@@ -1,11 +1,6 @@
-__pycache__/
-*.py[cod]
-.venv/
-venv/
-dist/
-build/
-*.egg-info/
-.pytest_cache/
+/target/
+**/*.rs.bk
+Cargo.lock.orig
 
 # local state and personal config must never be committed
 state.json

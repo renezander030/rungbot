@@ -3,27 +3,65 @@ on:
   push:
   pull_request:
 
+env:
+  CARGO_TERM_COLOR: always
+  # The ladder is pure and the tests inject their own prices: nothing here may reach a
+  # venue. If a test ever forgets, the ticker layer refuses the call and the build fails.
+  RUNGBOT_OFFLINE: "1"
+
 jobs:
   test:
-    runs-on: ubuntu-latest
+    runs-on: ${{ matrix.os }}
     strategy:
+      fail-fast: false
       matrix:
-        python: ["3.10", "3.12", "3.13"]
+        os: [ubuntu-latest, macos-latest, windows-latest]
     steps:
       - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
+      - name: test
+        run: cargo test --workspace --all-features
+
+  # The Worker target. Built on every push so a dependency that breaks wasm is caught
+  # the day it lands, not when the Worker is written.
+  wasm:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
         with:
-          python-version: ${{ matrix.python }}
-      # No dependencies on purpose: `rungbot plan` must work on a bare interpreter.
-      - name: run tests (offline)
-        run: ./run-tests.sh
-      - name: run tests again with PyYAML installed
+          targets: wasm32-unknown-unknown
+      - uses: Swatinem/rust-cache@v2
+      - name: the core must compile to wasm32
+        run: cargo build -p rungbot-core --target wasm32-unknown-unknown --release
+      - name: and must not have grown an incompatible dependency
+        run: cargo tree -p rungbot-core --target wasm32-unknown-unknown --edges normal
+
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: clippy, rustfmt
+      - uses: Swatinem/rust-cache@v2
+      - run: cargo fmt --all -- --check
+      - run: cargo clippy --workspace --all-targets -- -D warnings
+
+  smoke:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
+      - name: the real binary, end to end, offline
         run: |
-          pip install pyyaml
-          ./run-tests.sh
-      - name: install the package and run the real entry point
-        run: |
-          pip install .
-          rungbot --version
-          rungbot init --config /tmp/w.yaml
-          RUNGBOT_OFFLINE=1 rungbot plan --config /tmp/w.yaml --prices tests/prices.example.json --now 1700000000
+          cargo build --release -p rungbot-cli
+          ./target/release/rungbot --version
+          ./target/release/rungbot init --config /tmp/w.yaml
+          ./target/release/rungbot plan --config /tmp/w.yaml \
+            --prices tests/prices.example.json --now 1700000000
+          ./target/release/rungbot plan --config /tmp/w.yaml \
+            --prices tests/prices.example.json --now 1700000000 --json > /tmp/out.json
+          test "$(jq -r '.buys[0].sym' /tmp/out.json)" = "BTC"
