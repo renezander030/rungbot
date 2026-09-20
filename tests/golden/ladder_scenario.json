@@ -1,0 +1,664 @@
+{
+  "scenario": [
+    {
+      "buys": [],
+      "errors": [],
+      "hours": 0,
+      "sells": [],
+      "state": {
+        "AAA": {
+          "below_since": 0.0,
+          "breaker": false,
+          "buy": 0,
+          "cost_basis": 100.0,
+          "deployed_pct": 0.0,
+          "peak_pnl": 0.0,
+          "sell": 0,
+          "sold_pct": 0.0,
+          "win_dir": "",
+          "win_until": 0.0
+        },
+        "BBB": {
+          "below_since": 0.0,
+          "breaker": false,
+          "buy": 0,
+          "cost_basis": 2.0,
+          "deployed_pct": 0.0,
+          "peak_pnl": 0.0,
+          "sell": 0,
+          "sold_pct": 0.0,
+          "win_dir": "",
+          "win_until": 0.0
+        },
+        "CCC": {
+          "below_since": 0.0,
+          "breaker": false,
+          "buy": 0,
+          "cost_basis": 0.5,
+          "deployed_pct": 0.0,
+          "peak_pnl": 0.0,
+          "sell": 0,
+          "sold_pct": 0.0,
+          "win_dir": "",
+          "win_until": 0.0
+        },
+        "DDD": {
+          "below_since": 0.0,
+          "breaker": false,
+          "buy": 0,
+          "cost_basis": null,
+          "deployed_pct": 0.0,
+          "peak_pnl": 0.0,
+          "sell": 0,
+          "sold_pct": 0.0,
+          "win_dir": "",
+          "win_until": 0.0
+        }
+      }
+    },
+    {
+      "buys": [
+        {
+          "buy_pct": 15.0,
+          "capped": false,
+          "rung": 2,
+          "sym": "DDD"
+        },
+        {
+          "buy_pct": 10.0,
+          "capped": false,
+          "rung": 1,
+          "sym": "AAA"
+        }
+      ],
+      "errors": [],
+      "hours": 1,
+      "sells": [],
+      "state": {
+        "AAA": {
+          "below_since": 0.0,
+          "breaker": false,
+          "buy": 1,
+          "cost_basis": 100.0,
+          "deployed_pct": 10.0,
+          "peak_pnl": 0.0,
+          "sell": 0,
+          "sold_pct": 0.0,
+          "win_dir": "buy",
+          "win_until": 1700090000.0
+        },
+        "BBB": {
+          "below_since": 0.0,
+          "breaker": false,
+          "buy": 0,
+          "cost_basis": 2.0,
+          "deployed_pct": 0.0,
+          "peak_pnl": 0.0,
+          "sell": 0,
+          "sold_pct": 0.0,
+          "win_dir": "",
+          "win_until": 0.0
+        },
+        "CCC": {
+          "below_since": 0.0,
+          "breaker": false,
+          "buy": 0,
+          "cost_basis": 0.5,
+          "deployed_pct": 0.0,
+          "peak_pnl": 0.0,
+          "sell": 0,
+          "sold_pct": 0.0,
+          "win_dir": "",
+          "win_until": 0.0
+        },
+        "DDD": {
+          "below_since": 0.0,
+          "breaker": false,
+          "buy": 2,
+          "cost_basis": null,
+          "deployed_pct": 15.0,
+          "peak_pnl": 0.0,
+          "sell": 0,
+          "sold_pct": 0.0,
+          "win_dir": "buy",
+          "win_until": 1700090000.0
+        }
+      }
+    },
+    {
+      "buys": [
+        {
+          "buy_pct": 5.0,
+          "capped": false,
+          "rung": 3,
+          "sym": "DDD"
+        },
+        {
+          "buy_pct": 15.0,
+          "capped": false,
+          "rung": 1,
+          "sym": "CCC"
+        },
+        {
+          "buy_pct": 5.0,
+          "capped": false,
+          "rung": 2,
+          "sym": "AAA"
+        },
+        {
+          "buy_pct": 10.0,
+          "capped": false,
+          "rung": 1,
+          "sym": "BBB"
+        }
+      ],
+      "errors": [],
+      "hours": 2,
+      "sells": [],
+      "state": {
+        "AAA": {
+          "below_since": 0.0,
+          "breaker": false,
+          "buy": 2,
+          "cost_basis": 100.0,
+          "deployed_pct": 15.0,
+          "peak_pnl": 0.0,
+          "sell": 0,
+          "sold_pct": 0.0,
+          "win_dir": "buy",
+          "win_until": 1700093600.0
+        },
+        "BBB": {
+          "below_since": 0.0,
+          "breaker": false,
+          "buy": 1,
+          "cost_basis": 2.0,
+          "deployed_pct": 10.0,
+          "peak_pnl": 0.0,
+          "sell": 0,
+          "sold_pct": 0.0,
+          "win_dir": "buy",
+          "win_until": 1700093600.0
+        },
+        "CCC": {
+          "below_since": 0.0,
+          "breaker": false,
+          "buy": 1,
+          "cost_basis": 0.5,
+          "deployed_pct": 15.0,
+          "peak_pnl": 0.0,
+          "sell": 0,
+          "sold_pct": 0.0,
+          "win_dir": "buy",
+          "win_until": 1700093600.0
+        },
+        "DDD": {
+          "below_since": 0.0,
+          "breaker": false,
+          "buy": 3,
+          "cost_basis": null,
+          "deployed_pct": 20.0,
+          "peak_pnl": 0.0,
+          "sell": 0,
+          "sold_pct": 0.0,
+          "win_dir": "buy",
+          "win_until": 1700093600.0
+        }
+      }
+    },
+    {
+      "buys": [],
+      "errors": [],
+      "hours": 26,
+      "sells": [],
+      "state": {
+        "AAA": {
+          "below_since": 0.0,
+          "breaker": false,
+          "buy": 0,
+          "cost_basis": 100.0,
+          "deployed_pct": 15.0,
+          "peak_pnl": 0.0,
+          "sell": 0,
+          "sold_pct": 0.0,
+          "win_dir": "",
+          "win_until": 1700093600.0
+        },
+        "BBB": {
+          "below_since": 0.0,
+          "breaker": false,
+          "buy": 0,
+          "cost_basis": 2.0,
+          "deployed_pct": 10.0,
+          "peak_pnl": 0.0,
+          "sell": 0,
+          "sold_pct": 0.0,
+          "win_dir": "",
+          "win_until": 1700093600.0
+        },
+        "CCC": {
+          "below_since": 0.0,
+          "breaker": false,
+          "buy": 0,
+          "cost_basis": 0.5,
+          "deployed_pct": 15.0,
+          "peak_pnl": 0.0,
+          "sell": 0,
+          "sold_pct": 0.0,
+          "win_dir": "",
+          "win_until": 1700093600.0
+        },
+        "DDD": {
+          "below_since": 0.0,
+          "breaker": false,
+          "buy": 0,
+          "cost_basis": null,
+          "deployed_pct": 20.0,
+          "peak_pnl": 0.0,
+          "sell": 0,
+          "sold_pct": 0.0,
+          "win_dir": "",
+          "win_until": 1700093600.0
+        }
+      }
+    },
+    {
+      "buys": [
+        {
+          "buy_pct": 10.0,
+          "capped": false,
+          "rung": 1,
+          "sym": "BBB"
+        }
+      ],
+      "errors": [],
+      "hours": 50,
+      "sells": [
+        {
+          "capped": false,
+          "rung": 1,
+          "sell_pct": 15.0,
+          "sym": "CCC"
+        },
+        {
+          "capped": false,
+          "rung": 1,
+          "sell_pct": 10.0,
+          "sym": "AAA"
+        }
+      ],
+      "state": {
+        "AAA": {
+          "below_since": 0.0,
+          "breaker": false,
+          "buy": 0,
+          "cost_basis": 100.0,
+          "deployed_pct": 15.0,
+          "peak_pnl": 0.0,
+          "sell": 1,
+          "sold_pct": 10.0,
+          "win_dir": "sell",
+          "win_until": 1700266400.0
+        },
+        "BBB": {
+          "below_since": 0.0,
+          "breaker": false,
+          "buy": 1,
+          "cost_basis": 2.0,
+          "deployed_pct": 20.0,
+          "peak_pnl": 0.0,
+          "sell": 0,
+          "sold_pct": 0.0,
+          "win_dir": "buy",
+          "win_until": 1700266400.0
+        },
+        "CCC": {
+          "below_since": 0.0,
+          "breaker": false,
+          "buy": 0,
+          "cost_basis": 0.5,
+          "deployed_pct": 15.0,
+          "peak_pnl": 0.0,
+          "sell": 1,
+          "sold_pct": 15.0,
+          "win_dir": "sell",
+          "win_until": 1700266400.0
+        },
+        "DDD": {
+          "below_since": 0.0,
+          "breaker": false,
+          "buy": 0,
+          "cost_basis": null,
+          "deployed_pct": 20.0,
+          "peak_pnl": 0.0,
+          "sell": 0,
+          "sold_pct": 0.0,
+          "win_dir": "",
+          "win_until": 1700093600.0
+        }
+      }
+    },
+    {
+      "buys": [
+        {
+          "buy_pct": 15.0,
+          "capped": false,
+          "rung": 2,
+          "sym": "BBB"
+        }
+      ],
+      "errors": [],
+      "hours": 74,
+      "sells": [
+        {
+          "capped": false,
+          "rung": 5,
+          "sell_pct": 47.0,
+          "sym": "CCC"
+        },
+        {
+          "capped": false,
+          "rung": 6,
+          "sell_pct": 35.0,
+          "sym": "AAA"
+        }
+      ],
+      "state": {
+        "AAA": {
+          "below_since": 0.0,
+          "breaker": false,
+          "buy": 0,
+          "cost_basis": 100.0,
+          "deployed_pct": 15.0,
+          "peak_pnl": 0.0,
+          "sell": 6,
+          "sold_pct": 45.0,
+          "win_dir": "sell",
+          "win_until": 1700352800.0
+        },
+        "BBB": {
+          "below_since": 1700266400.0,
+          "breaker": false,
+          "buy": 2,
+          "cost_basis": 2.0,
+          "deployed_pct": 35.0,
+          "peak_pnl": 0.0,
+          "sell": 0,
+          "sold_pct": 0.0,
+          "win_dir": "buy",
+          "win_until": 1700352800.0
+        },
+        "CCC": {
+          "below_since": 0.0,
+          "breaker": false,
+          "buy": 0,
+          "cost_basis": 0.5,
+          "deployed_pct": 15.0,
+          "peak_pnl": 0.0,
+          "sell": 5,
+          "sold_pct": 62.0,
+          "win_dir": "sell",
+          "win_until": 1700352800.0
+        },
+        "DDD": {
+          "below_since": 0.0,
+          "breaker": false,
+          "buy": 0,
+          "cost_basis": null,
+          "deployed_pct": 20.0,
+          "peak_pnl": 0.0,
+          "sell": 0,
+          "sold_pct": 0.0,
+          "win_dir": "",
+          "win_until": 1700093600.0
+        }
+      }
+    },
+    {
+      "buys": [],
+      "errors": [],
+      "hours": 98,
+      "sells": [
+        {
+          "capped": true,
+          "rung": 9,
+          "sell_pct": 18.0,
+          "sym": "CCC"
+        },
+        {
+          "capped": true,
+          "rung": 11,
+          "sell_pct": 35.0,
+          "sym": "AAA"
+        }
+      ],
+      "state": {
+        "AAA": {
+          "below_since": 0.0,
+          "breaker": false,
+          "buy": 0,
+          "cost_basis": 100.0,
+          "deployed_pct": 15.0,
+          "peak_pnl": 0.0,
+          "sell": 11,
+          "sold_pct": 80.0,
+          "win_dir": "sell",
+          "win_until": 1700439200.0
+        },
+        "BBB": {
+          "below_since": 1700266400.0,
+          "breaker": false,
+          "buy": 0,
+          "cost_basis": 2.0,
+          "deployed_pct": 35.0,
+          "peak_pnl": 0.0,
+          "sell": 0,
+          "sold_pct": 0.0,
+          "win_dir": "",
+          "win_until": 1700352800.0
+        },
+        "CCC": {
+          "below_since": 0.0,
+          "breaker": false,
+          "buy": 0,
+          "cost_basis": 0.5,
+          "deployed_pct": 15.0,
+          "peak_pnl": 0.0,
+          "sell": 9,
+          "sold_pct": 80.0,
+          "win_dir": "sell",
+          "win_until": 1700439200.0
+        },
+        "DDD": {
+          "below_since": 0.0,
+          "breaker": false,
+          "buy": 0,
+          "cost_basis": null,
+          "deployed_pct": 20.0,
+          "peak_pnl": 0.0,
+          "sell": 0,
+          "sold_pct": 0.0,
+          "win_dir": "",
+          "win_until": 1700093600.0
+        }
+      }
+    },
+    {
+      "buys": [],
+      "errors": [],
+      "hours": 216,
+      "sells": [],
+      "state": {
+        "AAA": {
+          "below_since": 0.0,
+          "breaker": false,
+          "buy": 0,
+          "cost_basis": 100.0,
+          "deployed_pct": 15.0,
+          "peak_pnl": 0.0,
+          "sell": 9,
+          "sold_pct": 80.0,
+          "win_dir": "",
+          "win_until": 1700439200.0
+        },
+        "BBB": {
+          "below_since": 1700266400.0,
+          "breaker": false,
+          "buy": 0,
+          "cost_basis": 2.0,
+          "deployed_pct": 35.0,
+          "peak_pnl": 0.0,
+          "sell": 0,
+          "sold_pct": 0.0,
+          "win_dir": "",
+          "win_until": 1700352800.0
+        },
+        "CCC": {
+          "below_since": 0.0,
+          "breaker": false,
+          "buy": 0,
+          "cost_basis": 0.5,
+          "deployed_pct": 15.0,
+          "peak_pnl": 0.0,
+          "sell": 7,
+          "sold_pct": 80.0,
+          "win_dir": "",
+          "win_until": 1700439200.0
+        },
+        "DDD": {
+          "below_since": 0.0,
+          "breaker": false,
+          "buy": 0,
+          "cost_basis": null,
+          "deployed_pct": 20.0,
+          "peak_pnl": 0.0,
+          "sell": 0,
+          "sold_pct": 0.0,
+          "win_dir": "",
+          "win_until": 1700093600.0
+        }
+      }
+    },
+    {
+      "buys": [
+        {
+          "buy_pct": 30.0,
+          "capped": false,
+          "rung": 5,
+          "sym": "DDD"
+        }
+      ],
+      "errors": [
+        "BBB: CIRCUIT BREAKER -- -60.0% vs entry for >= 7d; dip-buys frozen until it recovers above -40%"
+      ],
+      "hours": 288,
+      "sells": [],
+      "state": {
+        "AAA": {
+          "below_since": 0.0,
+          "breaker": false,
+          "buy": 0,
+          "cost_basis": 100.0,
+          "deployed_pct": 15.0,
+          "peak_pnl": 0.0,
+          "sell": 7,
+          "sold_pct": 80.0,
+          "win_dir": "",
+          "win_until": 1700439200.0
+        },
+        "BBB": {
+          "below_since": 1700266400.0,
+          "breaker": true,
+          "buy": 0,
+          "cost_basis": 2.0,
+          "deployed_pct": 35.0,
+          "peak_pnl": 0.0,
+          "sell": 0,
+          "sold_pct": 0.0,
+          "win_dir": "",
+          "win_until": 1700352800.0
+        },
+        "CCC": {
+          "below_since": 0.0,
+          "breaker": false,
+          "buy": 0,
+          "cost_basis": 0.5,
+          "deployed_pct": 15.0,
+          "peak_pnl": 0.0,
+          "sell": 6,
+          "sold_pct": 80.0,
+          "win_dir": "",
+          "win_until": 1700439200.0
+        },
+        "DDD": {
+          "below_since": 0.0,
+          "breaker": false,
+          "buy": 5,
+          "cost_basis": null,
+          "deployed_pct": 50.0,
+          "peak_pnl": 0.0,
+          "sell": 0,
+          "sold_pct": 0.0,
+          "win_dir": "buy",
+          "win_until": 1701123200.0
+        }
+      }
+    },
+    {
+      "buys": [],
+      "errors": [],
+      "hours": 720,
+      "sells": [],
+      "state": {
+        "AAA": {
+          "below_since": 0.0,
+          "breaker": false,
+          "buy": 0,
+          "cost_basis": 100.0,
+          "deployed_pct": 15.0,
+          "peak_pnl": 0.0,
+          "sell": 29,
+          "sold_pct": 80.0,
+          "win_dir": "",
+          "win_until": 1700439200.0
+        },
+        "BBB": {
+          "below_since": 1700266400.0,
+          "breaker": true,
+          "buy": 0,
+          "cost_basis": 2.0,
+          "deployed_pct": 35.0,
+          "peak_pnl": 0.0,
+          "sell": 0,
+          "sold_pct": 0.0,
+          "win_dir": "",
+          "win_until": 1700352800.0
+        },
+        "CCC": {
+          "below_since": 0.0,
+          "breaker": false,
+          "buy": 0,
+          "cost_basis": 0.5,
+          "deployed_pct": 15.0,
+          "peak_pnl": 0.0,
+          "sell": 21,
+          "sold_pct": 80.0,
+          "win_dir": "",
+          "win_until": 1700439200.0
+        },
+        "DDD": {
+          "below_since": 0.0,
+          "breaker": false,
+          "buy": 0,
+          "cost_basis": null,
+          "deployed_pct": 50.0,
+          "peak_pnl": 0.0,
+          "sell": 0,
+          "sold_pct": 0.0,
+          "win_dir": "",
+          "win_until": 1701123200.0
+        }
+      }
+    }
+  ]
+}

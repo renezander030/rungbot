@@ -1,0 +1,29 @@
+name: tests
+on:
+  push:
+  pull_request:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        python: ["3.10", "3.12", "3.13"]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python }}
+      # No dependencies on purpose: `rungbot plan` must work on a bare interpreter.
+      - name: run tests (offline)
+        run: ./run-tests.sh
+      - name: run tests again with PyYAML installed
+        run: |
+          pip install pyyaml
+          ./run-tests.sh
+      - name: install the package and run the real entry point
+        run: |
+          pip install .
+          rungbot --version
+          rungbot init --config /tmp/w.yaml
+          RUNGBOT_OFFLINE=1 rungbot plan --config /tmp/w.yaml --prices tests/prices.example.json --now 1700000000

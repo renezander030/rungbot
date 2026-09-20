@@ -1,0 +1,35 @@
+# rungbot — a dip-buy / take-profit ladder, notify-only.
+#
+# `pair` is the venue's own symbol: Binance BTCUSDT, Gate BTC_USDT, CoinGecko bitcoin.
+# `entry` is your cost basis. Leave it out and the coin is watched for dips only —
+# rungbot will not suggest selling something it has no basis for.
+
+bands:
+  first_pct: 10        # first rung fires at a 10% move
+  step_pct: 5          # every further rung, 5% beyond the last
+
+ladder:
+  min_trade_pct: 1     # don't bother with a trade smaller than this
+  min_core_pct: 20     # never sell below this much of the position
+  window_hours: 24     # after acting, a coin is locked to that direction this long
+  buy_floor_pct: 50    # stop dip-buying past a 50% daily drop (falling knife)
+  target_pct: 10       # take-profit target shown in the report
+  breaker_pct: 40      # freeze dip-buys on a coin 40% underwater...
+  breaker_days: 7      # ...for 7 straight days
+  trail: off           # off = fire each rung on the way up; on = trail the peak
+
+coins:
+  BTC:
+    name: Bitcoin
+    venue: binance
+    pair: BTCUSDT
+    entry: 61000
+  ETH:
+    name: Ethereum
+    venue: binance
+    pair: ETHUSDT
+    entry: 2400
+  SOL:
+    name: Solana
+    venue: gate
+    pair: SOL_USDT
