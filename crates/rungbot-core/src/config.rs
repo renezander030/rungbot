@@ -32,16 +32,20 @@ fn err<T>(msg: impl Into<String>) -> Result<T, ConfigError> {
 pub enum Venue {
     Binance,
     Gate,
+    /// Revolut X — the EEA/UK venue. Pairs look like `BTC/USD`.
+    Revx,
     Coingecko,
 }
 
 impl Venue {
-    pub const ALL: [&'static str; 3] = ["binance", "gate", "coingecko"];
+    pub const ALL: [&'static str; 4] = ["binance", "gate", "revx", "coingecko"];
 
     pub fn parse(s: &str) -> Result<Self, ConfigError> {
         match s.to_ascii_lowercase().as_str() {
             "binance" => Ok(Venue::Binance),
             "gate" => Ok(Venue::Gate),
+            // Accept the spellings a human would reach for, canonicalise to `revx`.
+            "revx" | "revolutx" | "revolut-x" | "revolut" => Ok(Venue::Revx),
             "coingecko" => Ok(Venue::Coingecko),
             other => Err(ConfigError(format!(
                 "venue must be one of {}, got {other:?}",
@@ -54,6 +58,7 @@ impl Venue {
         match self {
             Venue::Binance => "binance",
             Venue::Gate => "gate",
+            Venue::Revx => "revx",
             Venue::Coingecko => "coingecko",
         }
     }

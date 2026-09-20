@@ -1,6 +1,7 @@
 # rungbot — a dip-buy / take-profit ladder, notify-only.
 #
-# `pair` is the venue's own symbol: Binance BTCUSDT, Gate BTC_USDT, CoinGecko bitcoin.
+# `pair` is the venue's own symbol: Binance BTCUSDT, Gate BTC_USDT, Revolut X BTC/USD,
+# CoinGecko bitcoin.
 # `entry` is your cost basis. Leave it out and the coin is watched for dips only —
 # rungbot will not suggest selling something it has no basis for.
 
@@ -33,3 +34,7 @@ coins:
     name: Solana
     venue: gate
     pair: SOL_USDT
+  # Revolut X (EEA/UK). One request covers every Revolut pair you list.
+  # AVAX:
+  #   venue: revx
+  #   pair: AVAX/USD
