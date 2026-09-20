@@ -124,11 +124,97 @@ pub fn coingecko(id: &str) -> Result<(f64, f64), TickerError> {
     Ok((p, row.get("usd_24h_change").and_then(num).unwrap_or(0.0)))
 }
 
+/// Every Revolut X pair in one call, as `{symbol: (price, 24h change %)}`.
+///
+/// Revolut X publishes its whole book from a single endpoint (about 780 pairs), so a
+/// watchlist with six Revolut coins costs one request, not six.
+///
+/// Two quirks of this feed, both of which cost real money if you get them wrong:
+///
+/// * **`price_change_24h` is an absolute move, not a percentage.** BTC shows `-315.84`,
+///   not `-0.39`. Feeding that straight into the ladder as a percentage would read a
+///   routine day as a catastrophic crash and fire every dip rung at once.
+/// * **`last_price` can be missing on a pair that has not traded**, in which case the
+///   mid of bid/ask is the honest price.
+fn revx_row(row: &Value) -> Option<(f64, f64)> {
+    let last = row
+        .get("last_price")
+        .and_then(num)
+        .filter(|p| *p > 0.0)
+        .or_else(
+            || match (row.get("bid").and_then(num), row.get("ask").and_then(num)) {
+                (Some(b), Some(a)) if b > 0.0 && a > 0.0 => Some((b + a) / 2.0),
+                _ => None,
+            },
+        )?;
+    // Absolute -> percentage, measured against the price 24h ago.
+    let abs = row.get("price_change_24h").and_then(num).unwrap_or(0.0);
+    let prev = last - abs;
+    let pct = if prev != 0.0 { abs / prev * 100.0 } else { 0.0 };
+    Some((last, pct))
+}
+
+pub fn revx_all() -> Result<BTreeMap<String, (f64, f64)>, TickerError> {
+    let body = get("https://revx.revolut.com/api/1.0/public/tickers")?;
+    let rows = body
+        .get("data")
+        .and_then(|d| d.as_array())
+        .ok_or_else(|| TickerError::Failed("revx: response has no `data` array".into()))?;
+
+    let mut out = BTreeMap::new();
+    for row in rows {
+        let Some(sym) = row.get("symbol").and_then(|v| v.as_str()) else {
+            continue;
+        };
+        if let Some(quote) = revx_row(row) {
+            out.insert(sym.to_string(), quote);
+        }
+    }
+    if out.is_empty() {
+        return Err(TickerError::Failed(
+            "revx: no usable tickers in the feed".into(),
+        ));
+    }
+    Ok(out)
+}
+
+/// `(price, 24h change %)` for one Revolut X pair, e.g. `BTC/USD`.
+pub fn revx(pair: &str) -> Result<(f64, f64), TickerError> {
+    revx_all()?
+        .get(pair)
+        .copied()
+        .ok_or_else(|| TickerError::Failed(format!("revx {pair}: not in the ticker feed")))
+}
+
 pub fn one(coin: &Coin) -> Result<(f64, f64), TickerError> {
     match coin.venue {
         Venue::Binance => binance(&coin.pair),
         Venue::Gate => gate(&coin.pair),
+        Venue::Revx => revx(&coin.pair),
         Venue::Coingecko => coingecko(&coin.pair),
+    }
+}
+
+/// Feeds that answer for many pairs at once, loaded lazily and only if needed.
+#[derive(Default)]
+struct Batched {
+    revx: Option<BTreeMap<String, (f64, f64)>>,
+}
+
+impl Batched {
+    fn quote(&mut self, coin: &Coin) -> Result<(f64, f64), TickerError> {
+        match coin.venue {
+            Venue::Revx => {
+                if self.revx.is_none() {
+                    self.revx = Some(revx_all()?);
+                }
+                let all = self.revx.as_ref().expect("just loaded");
+                all.get(&coin.pair).copied().ok_or_else(|| {
+                    TickerError::Failed(format!("revx {}: not in the ticker feed", coin.pair))
+                })
+            }
+            _ => one(coin),
+        }
     }
 }
 
@@ -140,9 +226,10 @@ pub fn one(coin: &Coin) -> Result<(f64, f64), TickerError> {
 pub fn fetch(coins: &[Coin], retries: u32) -> Result<BTreeMap<String, Price>, TickerError> {
     let mut out = BTreeMap::new();
     let mut last: Option<TickerError> = None;
+    let mut batched = Batched::default();
     for coin in coins {
         for attempt in 0..retries.max(1) {
-            match one(coin) {
+            match batched.quote(coin) {
                 Ok((price, chg)) => {
                     out.insert(
                         coin.symbol.clone(),
@@ -187,6 +274,55 @@ mod tests {
     #[test]
     fn the_user_agent_identifies_the_tool() {
         assert!(USER_AGENT.starts_with("rungbot/"));
+    }
+
+    /// A real row from the Revolut X feed, kept verbatim so the shape is pinned.
+    fn btc_row() -> Value {
+        serde_json::json!({
+            "symbol": "BTC/USD", "bid": "81091.13", "ask": "81120.45", "mid": "81105.79",
+            "last_price": "81136.72", "low_24h": "80109.9", "high_24h": "81518.28",
+            "price_change_24h": "-315.84", "volume_24h": "65.45", "region": "EEA"
+        })
+    }
+
+    #[test]
+    fn revx_converts_an_absolute_move_into_a_percentage() {
+        // The whole point: -315.84 on a ~81k coin is -0.39%, not -315.84%. Reading it
+        // as a percentage would fire every dip rung on a completely ordinary day.
+        let (price, pct) = revx_row(&btc_row()).expect("a complete row parses");
+        assert!((price - 81_136.72).abs() < 1e-6);
+        let expected = -315.84 / (81_136.72 + 315.84) * 100.0;
+        assert!((pct - expected).abs() < 1e-9, "got {pct}, want {expected}");
+        assert!(
+            pct > -1.0 && pct < 0.0,
+            "a routine day must read as a routine day: {pct}"
+        );
+    }
+
+    #[test]
+    fn revx_falls_back_to_the_mid_when_a_pair_has_not_traded() {
+        let row = serde_json::json!({
+            "symbol": "XYZ/USD", "bid": "10.0", "ask": "12.0", "price_change_24h": "0"
+        });
+        let (price, pct) = revx_row(&row).expect("bid/ask alone is enough");
+        assert_eq!(price, 11.0, "the mid of bid and ask");
+        assert_eq!(pct, 0.0);
+
+        let zero = serde_json::json!({ "symbol": "Z/USD", "last_price": "0" });
+        assert!(
+            revx_row(&zero).is_none(),
+            "a pair with no price at all is skipped"
+        );
+    }
+
+    #[test]
+    fn revx_handles_a_pair_that_doubled() {
+        let row = serde_json::json!({ "last_price": "200", "price_change_24h": "100" });
+        let (_, pct) = revx_row(&row).unwrap();
+        assert!(
+            (pct - 100.0).abs() < 1e-9,
+            "200 from 100 is +100%, got {pct}"
+        );
     }
 
     #[test]

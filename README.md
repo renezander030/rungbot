@@ -62,7 +62,7 @@ ladder:
 
 coins:
   BTC:
-    venue: binance       # binance | gate | coingecko
+    venue: binance       # binance | gate | revx | coingecko
     pair: BTCUSDT        # the venue's own symbol
     entry: 61000         # your cost basis; omit it to watch for dips only
   SOL:
@@ -71,7 +71,21 @@ coins:
     bands:               # a volatile coin can have wider rungs of its own
       first_pct: 20
       step_pct: 10
+  AVAX:
+    venue: revx          # Revolut X (EEA/UK); pairs look like AVAX/USD
+    pair: AVAX/USD
 ```
+
+### Venues
+
+| Venue | `pair` looks like | Notes |
+|---|---|---|
+| `binance` | `BTCUSDT` | one request per coin |
+| `gate` | `BTC_USDT` | one request per coin |
+| `revx` | `BTC/USD` | Revolut X (EEA/UK). The whole book comes from one request, so six Revolut coins still cost one call. |
+| `coingecko` | `bitcoin` | fallback for coins on none of the above; rate-limited unauthenticated |
+
+All four are public, unauthenticated endpoints.
 
 Every setting also takes an env override (`RUNGBOT_FIRST_PCT`, `RUNGBOT_MIN_CORE_PCT`,
 ...). A value that does not parse is a hard error rather than a silent fallback, so a
