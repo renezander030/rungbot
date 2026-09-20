@@ -9,7 +9,8 @@ use std::path::Path;
 use std::collections::BTreeMap;
 
 use rungbot_core::{
-    Bands, Coin, Config, ConfigError, RegimeConfig, SellPolicyConfig, Settings, Trail, Venue,
+    Bands, Coin, Config, ConfigError, RegimeConfig, ScreenConfig, SellPolicyConfig, Settings,
+    Trail, Venue,
 };
 
 use crate::notify::NotifyConfig;
@@ -32,6 +33,7 @@ pub struct CliConfig {
     pub notify: NotifyConfig,
     /// Per-coin candle source override, `symbol -> "venue:pair"`.
     pub klines: BTreeMap<String, String>,
+    pub screen: ScreenConfig,
 }
 
 pub fn load(path: &Path) -> Result<CliConfig, ConfigError> {
@@ -58,8 +60,41 @@ pub fn from_str(text: &str) -> Result<CliConfig, ConfigError> {
         sellpolicy: sellpolicy_from(doc.get("sellpolicy"))?,
         notify: notify_from(doc.get("notify"))?,
         klines: klines_from(doc.get("coins")),
+        screen: screen_from(doc.get("research"))?,
         core,
     })
+}
+
+fn screen_from(node: Option<&Yaml>) -> Result<ScreenConfig, ConfigError> {
+    let mut s = ScreenConfig::default();
+    let Some(n) = node else { return Ok(s) };
+    macro_rules! num_field {
+        ($($key:literal => $field:ident),* $(,)?) => {$(
+            if let Some(v) = n.get($key) { s.$field = number(v, concat!("research.", $key))? as _; }
+        )*};
+    }
+    num_field! {
+        "min_vol_24h"       => min_vol_24h,
+        "min_drawdown_pct"  => min_drawdown_pct,
+        "max_drawdown_pct"  => max_drawdown_pct,
+        "fee_floor_30d"     => fee_floor_30d,
+    }
+    if let Some(v) = n.get("min_rank") {
+        s.min_rank = number(v, "research.min_rank")? as u32;
+    }
+    if let Some(v) = n.get("max_rank") {
+        s.max_rank = number(v, "research.max_rank")? as u32;
+    }
+    if let Some(v) = n.get("limit") {
+        s.limit = number(v, "research.limit")? as usize;
+    }
+    if s.min_drawdown_pct > s.max_drawdown_pct {
+        return err("`research.min_drawdown_pct` cannot exceed max_drawdown_pct");
+    }
+    if s.min_rank > s.max_rank {
+        return err("`research.min_rank` cannot exceed max_rank");
+    }
+    Ok(s)
 }
 
 fn regime_from(node: Option<&Yaml>) -> Result<RegimeConfig, ConfigError> {

@@ -42,6 +42,60 @@ fn as_f64(v: &serde_json::Value) -> Option<f64> {
     }
 }
 
+/// Daily closes with their candle open times, oldest first.
+///
+/// The weekly RSI needs the timestamps to group days into ISO weeks; the regime read
+/// does not, which is why the plain [`closes`] exists alongside this.
+pub fn closes_with_times(
+    venue: Venue,
+    pair: &str,
+    days: usize,
+) -> Result<(Vec<f64>, Vec<f64>), TickerError> {
+    let (url, close_idx, time_idx) = match venue {
+        Venue::Binance => (
+            format!("https://api.binance.com/api/v3/klines?symbol={pair}&interval=1d&limit={days}"),
+            4usize,
+            0usize,
+        ),
+        Venue::Gate => (
+            format!(
+                "https://api.gateio.ws/api/v4/spot/candlesticks\
+                 ?currency_pair={pair}&interval=1d&limit={days}"
+            ),
+            2usize,
+            0usize,
+        ),
+        // CoinGecko returns [timestamp_ms, price] pairs and Revolut has no history;
+        // both fall back to closes without times, so the weekly read is simply blank.
+        _ => return closes(venue, pair, days).map(|c| (c, Vec::new())),
+    };
+    let body = get_json(&url)?;
+    let rows = body.as_array().ok_or_else(|| {
+        TickerError::Failed(format!("{} {pair}: not a candle array", venue.as_str()))
+    })?;
+    let mut cs = Vec::with_capacity(rows.len());
+    let mut ts = Vec::with_capacity(rows.len());
+    for r in rows {
+        let (Some(c), Some(t)) = (
+            r.get(close_idx).and_then(as_f64),
+            r.get(time_idx).and_then(as_f64),
+        ) else {
+            continue;
+        };
+        cs.push(c);
+        // Binance reports milliseconds, Gate seconds. Anything past year 10000 in
+        // seconds is obviously the former.
+        ts.push(if t > 1e11 { t / 1000.0 } else { t });
+    }
+    if cs.is_empty() {
+        return Err(TickerError::Failed(format!(
+            "{} {pair}: no closes in the candle response",
+            venue.as_str()
+        )));
+    }
+    Ok((cs, ts))
+}
+
 /// Daily closes, oldest first.
 pub fn closes(venue: Venue, pair: &str, days: usize) -> Result<Vec<f64>, TickerError> {
     let (url, idx) = match venue {

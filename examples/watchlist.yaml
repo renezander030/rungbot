@@ -40,6 +40,20 @@ sellpolicy:
   armed_giveback_pct: 15
   # no_base_trail: BTC  # coins that only exit on an explicit --armed
 
+# --- Research screen (optional) ------------------------------------------------
+# `rungbot research` looks for coins that are deeply off their high AND earn real
+# fees. Value first, then dislocation: 90% off an all-time high means nothing if
+# there was never a business there. Research only; never wired to the ladder.
+
+research:
+  min_rank: 40          # skip the mega-caps: too efficiently priced
+  max_rank: 600
+  min_vol_24h: 500000   # you cannot trade what has no book
+  min_drawdown_pct: 40  # a mild dip is not a dislocation
+  max_drawdown_pct: 92  # past this it is the graveyard, not the bargain bin
+  fee_floor_30d: 50000  # 30d fees at or above this count as a real business
+  limit: 10
+
 # --- Notifications (optional) --------------------------------------------------
 # The Telegram bot token is read from RUNGBOT_TELEGRAM_TOKEN, never from this file.
 # notify:
