@@ -4,38 +4,36 @@ A dip-buy / take-profit **ladder** for spot crypto, as a single command.
 
 ```console
 $ rungbot plan
-rungbot plan — 2026-09-20T15:48:36+00:00
+rungbot plan — 2026-09-20T17:01:40+00:00
 bands 10/5 · core 20% · window 24h · knife floor -50% · trail off
 
 BUY — nothing crossed a new dip rung
 
 SELL — 1 coin(s) crossed a new profit rung
-  BTC      +32.6% P&L  ->  rung 5 (+30%)  sell 30% of position   @ 80,878
+  BTC      +33.2% P&L  ->  rung 5 (+30%)  sell 30% of position   @ 81,278
 
 COIN          PRICE      24H       ENTRY      P&L      TARGET   USED  FLAGS
-BTC          80,878    -1.0%      61,000   +32.6%      67,100     0%
-ETH           2,606    -1.4%       2,400    +8.6%       2,640     0%
-SOL          108.50    -2.9%           -        -           -     0%
+ETH           2,636    -0.5%       2,400    +9.8%       2,640     0%
+BTC          81,278    -0.6%      61,000   +33.2%      67,100     0%
+SOL          110.11    -1.7%           -        -           -     0%
 
 Notify-only. rungbot holds no keys and places no orders.
 ```
 
-**rungbot tells you what it would do. It never does it.** There is no signing code in
-this package, it accepts no API keys, and it only ever issues public GET requests to
-venue ticker endpoints. A test in the suite greps the source for `hmac`, `api_secret`
-and friends and fails the build if any of them ever appear.
+**rungbot tells you what it would do. It never does it.** It accepts no API key, contains
+no request-signing code, and only ever issues public GETs to venue ticker endpoints. That
+is not a promise in a README: [a test](crates/rungbot-cli/tests/no_keys.rs) greps the
+shipped source for `hmac`, `api_secret` and friends and fails the build if any of them
+ever appear.
 
 ## Install
 
 ```bash
-uvx rungbot plan          # no install at all
-pipx install rungbot      # or keep it around
-pip install rungbot
+cargo install rungbot-cli
 ```
 
-Python 3.10+. **No dependencies.** PyYAML is used if you happen to have it and a small
-built-in reader handles the config format if you do not, so `rungbot` works on a bare
-interpreter, in a slim container, and on a Pi.
+Or grab a binary from [Releases](https://github.com/renezander030/rungbot/releases).
+One static file, no runtime, no dependencies to install.
 
 ## Use
 
@@ -83,9 +81,9 @@ typo in a cron file cannot quietly change your strategy.
 
 A coin's 24h move (for buys) and its profit against your cost basis (for sells) are each
 divided into **rungs**. The first rung sits at `first_pct`; every further rung is
-`step_pct` beyond the last. Crossing a rung is what triggers a suggestion, and the size
-of the suggestion is the size of the move: a fresh rung 1 is 10%, a deepening rung is 5%,
-and a crash that crosses rungs 1+2+3 at once is 10+5+5 = 20%.
+`step_pct` beyond the last. Crossing a rung triggers a suggestion, and the size of the
+suggestion is the size of the move: a fresh rung 1 is 10%, a deepening rung is 5%, and a
+crash that crosses rungs 1+2+3 at once is 10+5+5 = 20%.
 
 1. **A rung fires once.** The ladder tracks a high-water mark. A retrace does not re-fire
    a rung you already acted on; only a deeper move advances it. This is the difference
@@ -106,23 +104,36 @@ and a crash that crosses rungs 1+2+3 at once is 10+5+5 = 20%.
 Plus a knife floor: past a `buy_floor_pct` daily drop, rungbot stops suggesting buys
 entirely. Some dips are not dips.
 
+## Layout
+
+| Crate | What it is |
+|---|---|
+| [`rungbot-core`](crates/rungbot-core) | The entire strategy, as pure logic. Reads no clock, opens no file, makes no network call. |
+| [`rungbot-cli`](crates/rungbot-cli) | The binary: config, public tickers, state, output. |
+
+`rungbot-core` compiles unchanged to **`wasm32-unknown-unknown`**, which is how the same
+ladder can run in a Cloudflare Worker without the strategy existing in two places. CI
+builds that target on every push, so a dependency that breaks wasm is caught the day it
+lands.
+
 ## Testing
 
 ```bash
-./run-tests.sh
+cargo test --workspace
 ```
 
-Every test runs as a plain script with `RUNGBOT_OFFLINE=1`, which makes the ticker layer
-refuse all network calls, and with `HOME` pointed at an empty directory so no config or
-state on your machine can leak into a result. CI runs the same script on Python 3.10,
-3.12 and 3.13, once bare and once with PyYAML installed, then installs the wheel and runs
-the real entry point.
+Tests run fully offline: `RUNGBOT_OFFLINE=1` makes the ticker layer refuse every network
+call, so a test that forgets to inject prices fails loudly instead of hitting an exchange.
+CI runs the suite on Linux, macOS and Windows, plus clippy, rustfmt, the wasm32 build, and
+an end-to-end smoke test of the real binary.
 
-`tests/test_golden.py` pins a ten-step market scenario byte-for-byte. The unit tests say
-each rule is correct; the golden file says the whole thing still behaves exactly as it
-did, so a refactor that quietly changes sizing or a boundary is caught even when every
-unit test still passes. Regenerate it with `--update`, then read the diff. If you cannot
-explain every changed line, do not commit it.
+**`tests/golden/ladder_scenario.json` is a cross-language contract.** It was generated by
+the reference implementation this crate replaced, and
+[the golden test](crates/rungbot-core/tests/golden.rs) replays the same ten-step market
+scenario through the Rust core and asserts the same decisions come out. The unit tests say
+each rule is correct; the golden file says the whole thing behaves exactly as the
+implementation it replaced — so a refactor that quietly changes sizing, ordering or a
+boundary is caught even when every unit test still passes.
 
 ## What this is not
 

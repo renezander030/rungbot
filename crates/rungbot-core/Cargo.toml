@@ -1,0 +1,17 @@
+[package]
+name = "rungbot-core"
+description = "The rungbot ladder: pure strategy logic with no I/O. Compiles to native and wasm32."
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+repository.workspace = true
+authors.workspace = true
+
+# Deliberately tiny, and deliberately free of anything the wasm32 target cannot take:
+# no time, no filesystem, no network, no randomness. `now` is always passed in.
+[dependencies]
+serde = { workspace = true }
+
+[dev-dependencies]
+serde_json = { workspace = true }
