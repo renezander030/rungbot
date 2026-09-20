@@ -19,6 +19,33 @@ ladder:
   breaker_days: 7      # ...for 7 straight days
   trail: off           # off = fire each rung on the way up; on = trail the peak
 
+# --- Steering (optional) -------------------------------------------------------
+# Reading the market costs one candle request per coin, so it only runs when a
+# `sellpolicy:` is configured or you pass `--steer`.
+
+regime:
+  run_min_signals: 3   # how many of the four strength signals make a coin "running"
+  run_ret30_min: 25    # the 30-day return, in percent, that counts as strong
+
+# The bull sell policy. Delete this block to run the plain ladder always.
+# In a confirmed bull the ladder sells far too early, so the sell side of a coin
+# with a cost basis is handed to this instead.
+sellpolicy:
+  core_pct: 20          # never sold by the policy
+  tranches: 4,8,16,32   # sell a slice the first time price reaches each multiple
+  tranche_pct: 20
+  trail_arm_mult: 2     # the trail arms at 2x cost
+  giveback_pct: 40      # first hit: this far below the running peak
+  giveback_next_pct: 20 # after a hit lands, the fall is confirmed
+  armed_giveback_pct: 15
+  # no_base_trail: BTC  # coins that only exit on an explicit --armed
+
+# --- Notifications (optional) --------------------------------------------------
+# The Telegram bot token is read from RUNGBOT_TELEGRAM_TOKEN, never from this file.
+# notify:
+#   webhook_url: https://example.com/hook
+#   telegram_chat_id: "123456789"
+
 coins:
   BTC:
     name: Bitcoin

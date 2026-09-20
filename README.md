@@ -43,6 +43,9 @@ $EDITOR ~/.config/rungbot/watchlist.yaml
 rungbot plan              # what would I do right now?
 rungbot plan --save       # ...and advance the ladder so those rungs don't repeat
 rungbot plan --json       # for a cron, a dashboard, or a notifier
+rungbot plan --steer      # read the market first, and apply the sell policy
+rungbot plan --notify     # send the result to a webhook or Telegram
+rungbot regime            # what market is this, and what is running?
 ```
 
 `plan` changes nothing unless you pass `--save`. Run it as often as you like.
@@ -118,11 +121,68 @@ crash that crosses rungs 1+2+3 at once is 10+5+5 = 20%.
 Plus a knife floor: past a `buy_floor_pct` daily drop, rungbot stops suggesting buys
 entirely. Some dips are not dips.
 
+## Steering: the layer above the ladder
+
+The ladder on its own is regime-blind. It sells a 20% gain the same way in a raging bull
+as in a dead chop — and in a bull that is exactly wrong, because it hands you your
+profits and leaves you watching the rest of the move from the sidelines.
+
+`rungbot regime` reads the market from public daily candles: `bull`, `chop` or `bear`
+from BTC's trend plus breadth, and a four-signal strength read per coin. A bull is
+deliberately hard to declare — BTC must be above **both** its 100- and 200-day SMAs *and*
+half the watchlist must be above its own 30-day SMA. One coin ripping is not a bull
+market.
+
+When a `sellpolicy:` is configured and the market is a confirmed bull, the sell side of
+each coin with a cost basis is handed to the policy and the ladder's sell rungs go
+dormant for that coin:
+
+- **Tranches** — sell a slice the first time price reaches each multiple of cost.
+- **A trail** — arms at `trail_arm_mult × cost`, then sells when the daily sample gives
+  back `giveback_pct` from the running peak, re-arming from each hit. Evaluated **once
+  per UTC day**, because intraday wicks fire slices during ordinary base-building.
+- **An armed exit** — `--armed SOL` forces a one-shot exit to the core, for when you
+  have a signal the tool does not.
+
+Two invariants survive all of it: the `core_pct` slice is never sold, and nothing is ever
+sold below `cost + first_pct`.
+
+```console
+$ rungbot plan --steer
+market bull · breadth 3/3 above 30d SMA · running: none
+
+SELL — nothing crossed a new profit rung
+
+WHY NOTHING HAPPENED
+  SOL     bull policy governs this coin; the sell ladder is dormant
+  SOL: bull policy, trail not armed (arms at 2x cost = 180), remaining 100%
+```
+
+Without steering, that same SOL position at +22% sells 20% of itself at rung 3. That
+difference is the entire reason this layer exists.
+
+## Why nothing happened
+
+A ladder is quiet most of the time, and a correctly-disciplined quiet run looks exactly
+like a broken one: both print nothing. So every run records a reason per coin — the knife
+floor it hit, the window that locked it, the breaker that froze it, the budget it has
+spent, the core it will not sell into. `--save` appends them to `decisions.jsonl` next to
+the state file.
+
+## Notifications
+
+`--notify` posts to a webhook or sends a Telegram message. Dedupe is built in: **one
+message per new signal, one reminder a day, never a 30-minute loop** — because an alert
+you have learned to ignore is worse than no alert, since you believe you have one.
+
+The Telegram bot token is read from `RUNGBOT_TELEGRAM_TOKEN` and never from the config
+file, so a watchlist stays safe to paste into an issue.
+
 ## Layout
 
 | Crate | What it is |
 |---|---|
-| [`rungbot-core`](crates/rungbot-core) | The entire strategy, as pure logic. Reads no clock, opens no file, makes no network call. |
+| [`rungbot-core`](crates/rungbot-core) | The entire strategy, as pure logic: ladder, regime, sell policy, decision log, notification dedupe. Reads no clock, opens no file, makes no network call. |
 | [`rungbot-cli`](crates/rungbot-cli) | The binary: config, public tickers, state, output. |
 
 `rungbot-core` compiles unchanged to **`wasm32-unknown-unknown`**, which is how the same

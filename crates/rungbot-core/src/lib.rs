@@ -35,11 +35,25 @@
 
 pub mod analyze;
 pub mod config;
+pub mod decisions;
+pub mod fmt;
 pub mod ladder;
+pub mod notices;
+pub mod regime;
+pub mod sellpolicy;
+pub mod time;
 
-pub use analyze::{analyze, CoinState, Outcome, Price, Row, Side, State, Trade};
+pub use analyze::{
+    analyze, analyze_with, CoinState, Outcome, Price, Row, Side, Skip, SkipReason, State, Steer,
+    Trade,
+};
 pub use config::{Coin, Config, ConfigError, Settings, Trail, Venue};
+pub use decisions::{Decision, Kind as DecisionKind};
 pub use ladder::{buy_rung_for, ladder_increment, rung_threshold, sell_rung_for, Bands};
+pub use notices::{Notices, Verdict as NoticeVerdict};
+pub use regime::{assess, market_label, running_from_series, Market, Regime, RegimeConfig};
+pub use sellpolicy::{BullState, PolicySell, SellPolicyConfig};
+pub use time::{iso8601, utc_day};
 
 /// The crate version, so a Worker and a binary can report the same number.
 pub const VERSION: &str = env!("CARGO_PKG_VERSION");

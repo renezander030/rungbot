@@ -5,7 +5,7 @@
 
 use std::path::{Path, PathBuf};
 
-use rungbot_core::State;
+use rungbot_core::{Decision, Notices, State};
 use serde::{Deserialize, Serialize};
 
 pub const VERSION: u32 = 1;
@@ -102,5 +102,69 @@ pub fn save(path: &Path, state: &State) {
     }
     if let Err(e) = std::fs::rename(&tmp, path) {
         eprintln!("WARN: could not replace {}: {e}", path.display());
+    }
+}
+
+/// The decision log sits beside the state file.
+pub fn decisions_path(state_path: &Path) -> PathBuf {
+    state_path.with_file_name("decisions.jsonl")
+}
+
+pub fn notices_path(state_path: &Path) -> PathBuf {
+    state_path.with_file_name("notices.json")
+}
+
+/// Append one JSON line per decision. A ladder is quiet most of the time, and this is
+/// the record that says *why* it was quiet.
+pub fn append_decisions(path: &Path, decisions: &[Decision]) {
+    if decisions.is_empty() {
+        return;
+    }
+    use std::io::Write;
+    if let Some(parent) = path.parent() {
+        let _ = std::fs::create_dir_all(parent);
+    }
+    let mut body = String::new();
+    for d in decisions {
+        match serde_json::to_string(d) {
+            Ok(line) => {
+                body.push_str(&line);
+                body.push('\n');
+            }
+            Err(e) => eprintln!("WARN: could not serialise a decision: {e}"),
+        }
+    }
+    match std::fs::OpenOptions::new()
+        .create(true)
+        .append(true)
+        .open(path)
+    {
+        Ok(mut f) => {
+            if let Err(e) = f.write_all(body.as_bytes()) {
+                eprintln!("WARN: could not append to {}: {e}", path.display());
+            }
+        }
+        Err(e) => eprintln!("WARN: could not open {}: {e}", path.display()),
+    }
+}
+
+pub fn load_notices(path: &Path) -> Notices {
+    std::fs::read_to_string(path)
+        .ok()
+        .and_then(|s| serde_json::from_str(&s).ok())
+        .unwrap_or_default()
+}
+
+pub fn save_notices(path: &Path, n: &Notices) {
+    if let Some(parent) = path.parent() {
+        let _ = std::fs::create_dir_all(parent);
+    }
+    match serde_json::to_string_pretty(n) {
+        Ok(body) => {
+            if let Err(e) = std::fs::write(path, body) {
+                eprintln!("WARN: could not write {}: {e}", path.display());
+            }
+        }
+        Err(e) => eprintln!("WARN: could not serialise notices: {e}"),
     }
 }

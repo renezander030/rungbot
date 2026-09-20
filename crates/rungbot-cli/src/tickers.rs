@@ -36,7 +36,8 @@ impl fmt::Display for TickerError {
 
 impl std::error::Error for TickerError {}
 
-fn get(url: &str) -> Result<Value, TickerError> {
+/// One public GET returning JSON. The only way this crate reaches the network.
+pub fn get_json(url: &str) -> Result<Value, TickerError> {
     if std::env::var("RUNGBOT_OFFLINE").as_deref() == Ok("1") {
         return Err(TickerError::Offline(format!(
             "RUNGBOT_OFFLINE=1 refuses network call: {url}"
@@ -71,7 +72,7 @@ fn num(v: &Value) -> Option<f64> {
 
 /// `(price, 24h change %)` from Binance's public 24hr ticker. `pair` e.g. `BTCUSDT`.
 pub fn binance(pair: &str) -> Result<(f64, f64), TickerError> {
-    let body = get(&format!(
+    let body = get_json(&format!(
         "https://api.binance.com/api/v3/ticker/24hr?symbol={pair}"
     ))?;
     let (Some(p), Some(c)) = (
@@ -87,7 +88,7 @@ pub fn binance(pair: &str) -> Result<(f64, f64), TickerError> {
 
 /// `(price, 24h change %)` from Gate.io's public spot tickers. `pair` e.g. `BTC_USDT`.
 pub fn gate(pair: &str) -> Result<(f64, f64), TickerError> {
-    let body = get(&format!(
+    let body = get_json(&format!(
         "https://api.gateio.ws/api/v4/spot/tickers?currency_pair={pair}"
     ))?;
     let first = body
@@ -110,7 +111,7 @@ pub fn gate(pair: &str) -> Result<(f64, f64), TickerError> {
 /// A fallback for coins on neither venue. Rate-limited when unauthenticated; fine for a
 /// handful of coins on a 30-minute cadence, not for a tight loop.
 pub fn coingecko(id: &str) -> Result<(f64, f64), TickerError> {
-    let body = get(&format!(
+    let body = get_json(&format!(
         "https://api.coingecko.com/api/v3/simple/price\
          ?ids={id}&vs_currencies=usd&include_24hr_change=true"
     ))?;
@@ -155,7 +156,7 @@ fn revx_row(row: &Value) -> Option<(f64, f64)> {
 }
 
 pub fn revx_all() -> Result<BTreeMap<String, (f64, f64)>, TickerError> {
-    let body = get("https://revx.revolut.com/api/1.0/public/tickers")?;
+    let body = get_json("https://revx.revolut.com/api/1.0/public/tickers")?;
     let rows = body
         .get("data")
         .and_then(|d| d.as_array())
