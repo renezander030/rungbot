@@ -37,9 +37,11 @@ pub mod analyze;
 pub mod config;
 pub mod decisions;
 pub mod fmt;
+pub mod indicators;
 pub mod ladder;
 pub mod notices;
 pub mod regime;
+pub mod research;
 pub mod sellpolicy;
 pub mod time;
 
@@ -49,9 +51,11 @@ pub use analyze::{
 };
 pub use config::{Coin, Config, ConfigError, Settings, Trail, Venue};
 pub use decisions::{Decision, Kind as DecisionKind};
+pub use indicators::{compute as compute_kpi, CoinKpi, KpiThresholds, Phase};
 pub use ladder::{buy_rung_for, ladder_increment, rung_threshold, sell_rung_for, Bands};
 pub use notices::{Notices, Verdict as NoticeVerdict};
 pub use regime::{assess, market_label, running_from_series, Market, Regime, RegimeConfig};
+pub use research::{brief, gate, screen, Candidate, ScreenConfig, ValueFacts, Verdict};
 pub use sellpolicy::{BullState, PolicySell, SellPolicyConfig};
 pub use time::{iso8601, utc_day};
 

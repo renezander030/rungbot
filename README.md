@@ -46,6 +46,8 @@ rungbot plan --json       # for a cron, a dashboard, or a notifier
 rungbot plan --steer      # read the market first, and apply the sell policy
 rungbot plan --notify     # send the result to a webhook or Telegram
 rungbot regime            # what market is this, and what is running?
+rungbot kpi               # where is each of my coins in its own cycle?
+rungbot research          # what is deeply dislocated and still earns money?
 ```
 
 `plan` changes nothing unless you pass `--save`. Run it as often as you like.
@@ -161,6 +163,68 @@ WHY NOTHING HAPPENED
 Without steering, that same SOL position at +22% sells 20% of itself at rung 3. That
 difference is the entire reason this layer exists.
 
+## Cycle indicators, per coin
+
+`rungbot kpi` reads roughly 800 daily candles per coin and reports where it sits in its
+own cycle. Where `regime` answers "what market is this, right now", this answers "how far
+through is this coin".
+
+```console
+$ rungbot kpi
+COIN          PRICE   MAYER     PI    RSI    wRSI     DD%   vs200%    VOL%  PHASE
+BTC          81,258    1.15   0.43     64      55      35       15      37  markup
+ETH           2,635    1.27   0.40     66      59      45       27      45  markup
+SOL          110.01    1.31   0.39     62      55      58       31      68  markup
+```
+
+| Indicator | What it is |
+|---|---|
+| **Mayer** | price ÷ 200-day average. ~2.4 has marked cycle tops; 1.8 is stretched. |
+| **PI** | Pi-cycle ratio, `SMA(111) ÷ (2 × SMA(350))`. Crossing 1.0 has marked tops. |
+| **RSI / wRSI** | Wilder RSI(14) on daily closes, and on **completed** weekly closes. |
+| **DD%** | percent below the highest close in the window. |
+| **vs200%** | distance from the 200-day average. |
+| **VOL%** | annualised volatility of the last 30 days. |
+| **PHASE** | capitulation, accumulation, markup, euphoria, markdown — or `unknown`. |
+
+Every figure is `-` when there is not enough history for it. A 350-day average computed
+from 40 candles is worse than no number, so it is never faked, and `unknown` is a real
+answer rather than a failure.
+
+**None of this is a signal.** The ladder does not read these. They are context for you.
+
+## Research: what is cheap *and* earns money
+
+`rungbot research` screens the whole market for coins that are deeply off their high and
+have a business underneath. **Value first, then dislocation** — starting from dislocation
+surfaces memecoins with nothing to screen, because 90% off an all-time high means nothing
+if there was never anything there.
+
+```console
+$ rungbot research
+screened 2000 coins · rank 40-400 · 40-92% off high · volume >= $0.5M · fees floor $50k/30d
+
+COIN      RANK OFF_HIGH     VOL_24H    FEES_30D  CATEGORY        VERDICT
+ETHFI       98      92%      $28.4M       $9.8M  Liquid Staking  SURVIVOR
+ARB         60      91%     $298.5M       $3.9M  Foundation      SURVIVOR
+POL         77      92%      $37.3M           -  Chain           SPECULATIVE
+```
+
+Both ends of the band are bounded on purpose: a mild dip is not an opportunity, and past
+a certain depth you are in the graveyard rather than the bargain bin. Ranking is on
+dislocation alone — a seven-day bounce is shown as context but never rewarded, because
+rewarding it turns a value screen into a momentum screen.
+
+Data comes from CoinPaprika and DefiLlama. Both are keyless.
+
+**Optional model pass.** `--llm 'claude -p'` pipes each candidate's facts to a command on
+stdin and reads the answer back. rungbot calls no provider and holds no model
+credential — name any command you like, including a local one. Without it the gate is
+pure arithmetic, so a run with no model still produces an auditable answer.
+
+**Research only.** It is never wired to the ladder. A `SURVIVOR` is something to go and
+read about, not something to buy.
+
 ## Why nothing happened
 
 A ladder is quiet most of the time, and a correctly-disciplined quiet run looks exactly
@@ -182,7 +246,7 @@ file, so a watchlist stays safe to paste into an issue.
 
 | Crate | What it is |
 |---|---|
-| [`rungbot-core`](crates/rungbot-core) | The entire strategy, as pure logic: ladder, regime, sell policy, decision log, notification dedupe. Reads no clock, opens no file, makes no network call. |
+| [`rungbot-core`](crates/rungbot-core) | The entire strategy, as pure logic: ladder, regime, sell policy, cycle indicators, research screen, decision log, notification dedupe. Reads no clock, opens no file, makes no network call. |
 | [`rungbot-cli`](crates/rungbot-cli) | The binary: config, public tickers, state, output. |
 
 `rungbot-core` compiles unchanged to **`wasm32-unknown-unknown`**, which is how the same
@@ -213,7 +277,8 @@ boundary is caught even when every unit test still passes.
 
 It is not a backtester, not a portfolio tracker, and not an executor. It does not know
 your balances and does not ask for them, which is why sizes are percentages rather than
-amounts.
+amounts. The indicators and the research screen are context and never instructions;
+nothing in either feeds the ladder.
 
 **It is not financial advice and it carries no warranty.** Ladders lose money in a
 sustained downtrend: you buy every rung on the way to zero. Rule 5 exists because that

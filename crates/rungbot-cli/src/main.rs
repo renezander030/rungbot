@@ -7,6 +7,7 @@ mod config_file;
 mod klines;
 mod notify;
 mod report;
+mod screen;
 mod state;
 mod tickers;
 mod yaml;
@@ -15,7 +16,10 @@ use std::collections::BTreeMap;
 use std::path::PathBuf;
 use std::process::ExitCode;
 
-use rungbot_core::{analyze_with, decisions, iso8601, regime as rg, Market, Notices, Price, Steer};
+use rungbot_core::{
+    analyze_with, decisions, indicators, iso8601, regime as rg, research, Market, Notices, Price,
+    Steer,
+};
 
 const VERSION: &str = env!("CARGO_PKG_VERSION");
 
@@ -29,6 +33,8 @@ USAGE:
                   [--prices FILE] [--now EPOCH] [--json]
   rungbot tickers [--config PATH] [--json]
   rungbot regime  [--config PATH] [--json]
+  rungbot kpi     [--config PATH] [--json]
+  rungbot research[--config PATH] [--json] [--llm CMD]
   rungbot --version | --help
 
 PLAN OPTIONS:
@@ -67,7 +73,10 @@ impl Args {
                 flags.insert(k.to_string(), v.to_string());
                 continue;
             }
-            let takes_value = matches!(bare, "config" | "state" | "prices" | "now" | "armed");
+            let takes_value = matches!(
+                bare,
+                "config" | "state" | "prices" | "now" | "armed" | "llm"
+            );
             let value = if takes_value {
                 it.next()
                     .cloned()
@@ -118,6 +127,8 @@ fn main() -> ExitCode {
         "plan" => cmd_plan(&args),
         "tickers" => cmd_tickers(&args),
         "regime" => cmd_regime(&args),
+        "kpi" => cmd_kpi(&args),
+        "research" => cmd_research(&args),
         other => {
             eprintln!("unknown command {other:?}\n\n{USAGE}");
             return ExitCode::from(1);
@@ -427,6 +438,156 @@ fn cmd_regime(args: &Args) -> Result<(), Failure> {
         };
         println!("{mark}{:<7} {}/4  {detail}", c.sym, c.signals.count());
     }
+    Ok(())
+}
+
+fn cmd_kpi(args: &Args) -> Result<(), Failure> {
+    let cfg = load_config(args)?;
+    let t = indicators::KpiThresholds::default();
+    let now = std::time::SystemTime::now()
+        .duration_since(std::time::UNIX_EPOCH)
+        .map(|d| d.as_secs_f64())
+        .unwrap_or(0.0);
+
+    let mut all = Vec::with_capacity(cfg.core.coins.len());
+    for coin in &cfg.core.coins {
+        let (venue, pair) =
+            klines::kline_source(coin, cfg.klines.get(&coin.symbol).map(|s| s.as_str()))
+                .map_err(Failure::Config)?;
+        // The full set wants 350+ candles for the Pi-cycle ratio, so this asks for more
+        // history than the regime read does.
+        let (closes, stamps) =
+            klines::closes_with_times(venue, &pair, indicators::FULL_HISTORY_DAYS)
+                .unwrap_or_default();
+        all.push(indicators::compute(&coin.symbol, &closes, &stamps, now, t));
+    }
+
+    if args.has("json") {
+        println!(
+            "{}",
+            serde_json::to_string_pretty(&all)
+                .map_err(|e| Failure::Other(format!("cannot render JSON: {e}")))?
+        );
+        return Ok(());
+    }
+
+    let n = |v: Option<f64>, p: usize| match v {
+        Some(x) => format!("{x:.*}", p),
+        None => "-".into(),
+    };
+    println!(
+        "{:<7}{:>12}{:>8}{:>7}{:>7}{:>8}{:>8}{:>9}{:>8}  PHASE",
+        "COIN", "PRICE", "MAYER", "PI", "RSI", "wRSI", "DD%", "vs200%", "VOL%"
+    );
+    for k in &all {
+        println!(
+            "{:<7}{:>12}{:>8}{:>7}{:>7}{:>8}{:>8}{:>9}{:>8}  {}",
+            k.sym,
+            report::fmt_price(Some(k.price)),
+            n(k.mayer, 2),
+            n(k.pi_cycle, 2),
+            n(k.rsi14, 0),
+            n(k.weekly_rsi14, 0),
+            n(k.drawdown_pct, 0),
+            n(k.vs_sma200_pct, 0),
+            n(k.volatility30_pct, 0),
+            k.phase.as_str()
+        );
+    }
+    println!();
+    for k in &all {
+        if k.candles < 200 {
+            println!(
+                "  {} — only {} candles; the long reads are blank",
+                k.sym, k.candles
+            );
+        }
+        for f in &k.flags {
+            println!("  {} — {f}", k.sym);
+        }
+    }
+    println!("\nContext, not a signal. The ladder does not read these.");
+    Ok(())
+}
+
+fn cmd_research(args: &Args) -> Result<(), Failure> {
+    let cfg = load_config(args)?;
+    let scfg = cfg.screen;
+
+    let rows = screen::market().map_err(|e| Failure::Prices(e.to_string()))?;
+    // A dead value feed degrades to a dislocation-only screen rather than no screen.
+    let values = match screen::values() {
+        Ok(v) => v,
+        Err(e) => {
+            eprintln!("WARN: value data unavailable ({e}); screening on dislocation only");
+            Default::default()
+        }
+    };
+    let lookup = |s: &str| values.get(s).cloned();
+    let mut found = research::run(&rows, &lookup, scfg);
+
+    if let Some(cmd) = args.get("llm") {
+        for c in &mut found {
+            match screen::ask_model(cmd, &research::brief(c)) {
+                Ok(answer) if !answer.is_empty() => {
+                    c.name = format!("{} — {}", c.name, answer.lines().next().unwrap_or(""))
+                }
+                Ok(_) => {}
+                Err(e) => eprintln!("WARN: model pass for {} failed: {e}", c.symbol),
+            }
+        }
+    }
+
+    if args.has("json") {
+        println!(
+            "{}",
+            serde_json::to_string_pretty(&found)
+                .map_err(|e| Failure::Other(format!("cannot render JSON: {e}")))?
+        );
+        return Ok(());
+    }
+
+    println!(
+        "screened {} coins · rank {}-{} · {:.0}-{:.0}% off high · \
+         volume >= ${:.1}M · fees floor ${:.0}k/30d",
+        rows.len(),
+        scfg.min_rank,
+        scfg.max_rank,
+        scfg.min_drawdown_pct,
+        scfg.max_drawdown_pct,
+        scfg.min_vol_24h / 1e6,
+        scfg.fee_floor_30d / 1e3
+    );
+    println!();
+    if found.is_empty() {
+        println!("nothing in the band. That is a result, not a failure.");
+        return Ok(());
+    }
+    println!(
+        "{:<8}{:>6}{:>9}{:>12}{:>12}  {:<12} VERDICT",
+        "COIN", "RANK", "OFF_HIGH", "VOL_24H", "FEES_30D", "CATEGORY"
+    );
+    for c in &found {
+        let m = |v: Option<f64>| match v {
+            Some(n) if n >= 1e6 => format!("${:.1}M", n / 1e6),
+            Some(n) => format!("${n:.0}"),
+            None => "-".into(),
+        };
+        println!(
+            "{:<8}{:>6}{:>8.0}%{:>12}{:>12}  {:<12} {}",
+            c.symbol,
+            c.rank,
+            c.drawdown_pct,
+            m(Some(c.vol_24h)),
+            m(c.value.as_ref().and_then(|v| v.fees_30d)),
+            c.value
+                .as_ref()
+                .and_then(|v| v.category.clone())
+                .unwrap_or_else(|| "-".into()),
+            c.verdict.map(|v| v.as_str()).unwrap_or("-")
+        );
+    }
+    println!("\nResearch only. Never wired to the ladder. A SURVIVOR is something to read about, not to buy.");
     Ok(())
 }
 
