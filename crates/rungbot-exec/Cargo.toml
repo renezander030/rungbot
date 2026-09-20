@@ -1,0 +1,21 @@
+[package]
+name = "rungbot-exec"
+description = "Opt-in live execution for rungbot. Holds venue keys; kept out of the rungbot binary on purpose."
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+repository.workspace = true
+authors.workspace = true
+
+[[bin]]
+name = "rungbot-exec"
+path = "src/main.rs"
+
+[dependencies]
+rungbot-core = { path = "../rungbot-core", version = "0.5.0" }
+serde = { workspace = true }
+serde_json = { workspace = true }
+minreq = { version = "3", features = ["https-rustls"] }
+hmac = "0.12"
+sha2 = "0.10"

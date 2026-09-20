@@ -242,12 +242,81 @@ you have learned to ignore is worse than no alert, since you believe you have on
 The Telegram bot token is read from `RUNGBOT_TELEGRAM_TOKEN` and never from the config
 file, so a watchlist stays safe to paste into an issue.
 
+## Live execution, if you want it
+
+Execution lives in a **separate crate and a separate binary**. Installing `rungbot` never
+installs the ability to trade, and [a test](crates/rungbot-cli/tests/no_keys.rs) asserts
+that `rungbot-cli` does not depend on `rungbot-exec`.
+
+```bash
+cargo install rungbot-exec            # opt in, deliberately
+
+rungbot plan --json > plan.json       # decides; no credential in the process
+rungbot-exec plan --from plan.json --budget 1000 --pair-map SOL=SOL_USDT
+rungbot-exec sync --from plan.json --budget 1000 --pair-map SOL=SOL_USDT \
+    --live --i-understand
+```
+
+The order of operations is the safety property. The ladder decides with no key loaded;
+the rails refuse anything out of bounds; the journal writes a deterministic id **before**
+the venue is called; only then is a request signed.
+
+**Only GTC limit orders.** A resting order fills while your laptop is shut, which is what
+makes a ladder work on a machine that sleeps. Market orders need you present and are not
+implemented at all.
+
+### The rails
+
+| | Default | |
+|---|---|---|
+| mode | off | `--live` or nothing is sent |
+| acknowledgement | none | `--i-understand`, every run |
+| halt file | `~/.config/rungbot/HALT` | if it exists, nothing is placed |
+| per order | 50 | `--max-order` |
+| per day | 200 across 10 orders | `--max-daily`, `--max-orders` |
+| slippage | 2% | refuses if the venue moved from the decision |
+
+Defaults are small on purpose. Nobody should discover the size of their first live order
+by accident.
+
+```console
+$ rungbot-exec plan --from plan.json --budget 100000 --pair-map SOL=SOL_USDT
+  SELL  SOL_USDT   392.857 @  140.00  ≈ 55000.00  REFUSED: order of 55000.00 exceeds the 50.00 per-order cap
+```
+
+### Idempotency
+
+Each order's client id is derived from its **intent** — symbol, side, rung and a 30-minute
+window — not from a counter or a clock. The id is journaled before the venue call, so a
+crash between "the venue accepted it" and "the state was saved" cannot place it twice.
+
+Two details are ported deliberately because they were bought with real money: reprice
+suffixes are always derived from the *root* id, never chained onto the previous one
+(chaining grows the id past the venue's 36-character cap, after which the order silently
+stops being placed); and the fill-since query takes an inclusive flag, without which a
+fill landing in the same run that wrote a balance baseline can never be explained.
+
+### Keys
+
+From `RUNGBOT_GATE_KEY` / `RUNGBOT_GATE_SECRET`, or a mode-600 file. **Never from the
+watchlist** — that file is meant to be shareable. A group- or world-readable key file is
+refused outright rather than warned about.
+
+**Gate disables a key with no IP allowlist after 90 days, silently.** `rungbot-exec keys
+check` verifies the key works from your current address and says plainly what it cannot
+verify: Gate exposes no endpoint for a key's permission set, so you must confirm
+withdrawals are off in their UI yourself.
+
+Gate only, for now. A second venue is a second set of rounding rules, minimums and error
+shapes — worth adding once this one is proven.
+
 ## Layout
 
 | Crate | What it is |
 |---|---|
 | [`rungbot-core`](crates/rungbot-core) | The entire strategy, as pure logic: ladder, regime, sell policy, cycle indicators, research screen, decision log, notification dedupe. Reads no clock, opens no file, makes no network call. |
-| [`rungbot-cli`](crates/rungbot-cli) | The binary: config, public tickers, state, output. |
+| [`rungbot-cli`](crates/rungbot-cli) | The `rungbot` binary: config, public tickers, state, output. Holds no key. |
+| [`rungbot-exec`](crates/rungbot-exec) | The `rungbot-exec` binary: order journal, rails, the Gate client. Opt-in, and not a dependency of the above. |
 
 `rungbot-core` compiles unchanged to **`wasm32-unknown-unknown`**, which is how the same
 ladder can run in a Cloudflare Worker without the strategy existing in two places. CI
