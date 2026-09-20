@@ -86,3 +86,23 @@ fn no_dependency_pulls_in_an_exchange_sdk() {
         }
     }
 }
+
+#[test]
+fn the_notify_only_binary_does_not_depend_on_the_executor() {
+    // Everything that can move money lives in rungbot-exec, behind its own binary.
+    // If that crate ever becomes a dependency of the CLI, installing the ladder would
+    // quietly install the ability to trade.
+    let root = workspace_root();
+    let manifest = std::fs::read_to_string(root.join("crates/rungbot-cli/Cargo.toml"))
+        .expect("read the cli manifest");
+    assert!(
+        !manifest.contains("rungbot-exec"),
+        "rungbot-cli must not depend on rungbot-exec"
+    );
+
+    let lock = std::fs::read_to_string(root.join("Cargo.lock")).expect("read the lockfile");
+    assert!(
+        lock.contains("rungbot-exec"),
+        "the executor should still be in the workspace, just not wired into the CLI"
+    );
+}

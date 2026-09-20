@@ -1,23 +1,21 @@
 [package]
-name = "rungbot-cli"
-description = "A dip-buy / take-profit ladder for spot crypto. Notify-only: no API keys, no orders."
+name = "rungbot-exec"
+description = "Opt-in live execution for rungbot. Holds venue keys; kept out of the rungbot binary on purpose."
 version.workspace = true
 edition.workspace = true
 rust-version.workspace = true
 license.workspace = true
 repository.workspace = true
 authors.workspace = true
-readme = "../../README.md"
-keywords = ["crypto", "trading", "ladder", "dip-buy", "binance"]
-categories = ["command-line-utilities"]
 
 [[bin]]
-name = "rungbot"
+name = "rungbot-exec"
 path = "src/main.rs"
 
 [dependencies]
 rungbot-core = { path = "../rungbot-core", version = "0.5.0" }
 serde = { workspace = true }
 serde_json = { workspace = true }
-# rustls with bundled webpki roots: one static binary, no system cert store to find.
 minreq = { version = "3", features = ["https-rustls"] }
+hmac = "0.12"
+sha2 = "0.10"
