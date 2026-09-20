@@ -4,6 +4,8 @@
 //! `rungbot-core`, which this binary and a Cloudflare Worker share unchanged.
 
 mod config_file;
+mod klines;
+mod notify;
 mod report;
 mod state;
 mod tickers;
@@ -13,7 +15,7 @@ use std::collections::BTreeMap;
 use std::path::PathBuf;
 use std::process::ExitCode;
 
-use rungbot_core::{analyze, Price};
+use rungbot_core::{analyze_with, decisions, iso8601, regime as rg, Market, Notices, Price, Steer};
 
 const VERSION: &str = env!("CARGO_PKG_VERSION");
 
@@ -26,6 +28,7 @@ USAGE:
   rungbot plan    [--config PATH] [--state PATH] [--save] [--fresh]
                   [--prices FILE] [--now EPOCH] [--json]
   rungbot tickers [--config PATH] [--json]
+  rungbot regime  [--config PATH] [--json]
   rungbot --version | --help
 
 PLAN OPTIONS:
@@ -33,11 +36,16 @@ PLAN OPTIONS:
   --fresh    ignore prior state
   --prices   read prices from a JSON file instead of the network
   --now      epoch seconds, for reproducible runs
+  --steer    read the market regime and apply the sell policy
+  --armed    comma-separated coins to force a one-shot armed exit on
+  --notify   send the result to the configured webhook or Telegram
 
 ENVIRONMENT:
   RUNGBOT_OFFLINE=1   refuse every network call
   RUNGBOT_CONFIG      default config path
   RUNGBOT_STATE       default state path
+  RUNGBOT_ARMED       comma-separated coins to arm
+  RUNGBOT_TELEGRAM_TOKEN   bot token; never read from the config file
 ";
 
 /// Minimal flag parser: `--key value`, `--key=value`, and bare switches.
@@ -59,7 +67,7 @@ impl Args {
                 flags.insert(k.to_string(), v.to_string());
                 continue;
             }
-            let takes_value = matches!(bare, "config" | "state" | "prices" | "now");
+            let takes_value = matches!(bare, "config" | "state" | "prices" | "now" | "armed");
             let value = if takes_value {
                 it.next()
                     .cloned()
@@ -109,6 +117,7 @@ fn main() -> ExitCode {
         "init" => cmd_init(&args),
         "plan" => cmd_plan(&args),
         "tickers" => cmd_tickers(&args),
+        "regime" => cmd_regime(&args),
         other => {
             eprintln!("unknown command {other:?}\n\n{USAGE}");
             return ExitCode::from(1);
@@ -160,21 +169,21 @@ fn cmd_init(args: &Args) -> Result<(), Failure> {
     Ok(())
 }
 
-fn load_config(args: &Args) -> Result<rungbot_core::Config, Failure> {
+fn load_config(args: &Args) -> Result<config_file::CliConfig, Failure> {
     let path = args.path("config", state::default_config_path);
     config_file::load(&path).map_err(|e| Failure::Config(e.0))
 }
 
 fn cmd_tickers(args: &Args) -> Result<(), Failure> {
     let cfg = load_config(args)?;
-    let prices = tickers::fetch(&cfg.coins, 3).map_err(|e| Failure::Prices(e.to_string()))?;
+    let prices = tickers::fetch(&cfg.core.coins, 3).map_err(|e| Failure::Prices(e.to_string()))?;
     if args.has("json") {
         let body = serde_json::to_string_pretty(&prices)
             .map_err(|e| Failure::Other(format!("cannot render JSON: {e}")))?;
         println!("{body}");
         return Ok(());
     }
-    for coin in &cfg.coins {
+    for coin in &cfg.core.coins {
         match prices.get(&coin.symbol) {
             Some(p) => println!(
                 "{:<7} {:>14} {:>+8.2}%  {}:{}",
@@ -207,7 +216,7 @@ fn cmd_plan(args: &Args) -> Result<(), Failure> {
             serde_json::from_str(&raw)
                 .map_err(|e| Failure::Other(format!("{file}: not a price map: {e}")))?
         }
-        None => tickers::fetch(&cfg.coins, 3).map_err(|e| Failure::Prices(e.to_string()))?,
+        None => tickers::fetch(&cfg.core.coins, 3).map_err(|e| Failure::Prices(e.to_string()))?,
     };
 
     let now = match args.get("now") {
@@ -220,21 +229,35 @@ fn cmd_plan(args: &Args) -> Result<(), Failure> {
             .map_err(|e| Failure::Other(format!("system clock is before 1970: {e}")))?,
     };
 
+    // Steering is on when a sell policy is configured, or when asked for explicitly.
+    // It costs one candle request per coin, so it is not on by default.
+    let want_steer = args.has("steer") || cfg.sellpolicy.is_some();
+    let (steer, regime) = if want_steer {
+        let r = read_regime(&cfg)?;
+        (build_steer(&cfg, &r, args), Some(r))
+    } else {
+        (Steer::default(), None)
+    };
+
     let prior = if args.has("fresh") {
         Default::default()
     } else {
         state::load(&spath)
     };
-    let out = analyze(&cfg, &prices, &prior, now);
+    let out = analyze_with(&cfg.core, &prices, &prior, &steer, now);
     let now_iso = iso8601(now);
+    let log = decisions::from_outcome(&out, now);
 
     if args.has("json") {
         let body = serde_json::json!({
             "generated": now_iso,
+            "market": regime.as_ref().map(|r| r.market.as_str()),
             "buys": out.buys,
             "sells": out.sells,
             "rows": out.rows,
             "errors": out.errors,
+            "skips": out.skips,
+            "decisions": log,
         });
         println!(
             "{}",
@@ -242,56 +265,174 @@ fn cmd_plan(args: &Args) -> Result<(), Failure> {
                 .map_err(|e| Failure::Other(format!("cannot render JSON: {e}")))?
         );
     } else {
-        println!("{}", report::render(&out, &cfg, &now_iso));
+        println!(
+            "{}",
+            report::render(&out, &cfg.core, regime.as_ref(), &log, &now_iso)
+        );
     }
 
     if args.has("save") {
         state::save(&spath, &out.state);
+        state::append_decisions(&state::decisions_path(&spath), &log);
     } else if !args.has("json") {
         println!(
             "\n(state not saved; pass --save to advance the ladder at {})",
             spath.display()
         );
     }
+
+    if args.has("notify") {
+        notify_run(&cfg, &out, &spath, now, args.has("json"))?;
+    }
     Ok(())
 }
 
-/// UTC timestamp without pulling in a date library for one line of output.
-fn iso8601(epoch: f64) -> String {
-    let secs = epoch as i64;
-    let (days, rem) = (secs.div_euclid(86_400), secs.rem_euclid(86_400));
-    let (h, m, s) = (rem / 3600, (rem % 3600) / 60, rem % 60);
+/// Fetch candles and read the market. One request per coin, plus one for BTC.
+fn read_regime(cfg: &config_file::CliConfig) -> Result<rg::Regime, Failure> {
+    let mut series = Vec::with_capacity(cfg.core.coins.len());
+    for coin in &cfg.core.coins {
+        let (venue, pair) =
+            klines::kline_source(coin, cfg.klines.get(&coin.symbol).map(|s| s.as_str()))
+                .map_err(Failure::Config)?;
+        // A coin whose candles fail is reported as not running rather than aborting the
+        // run: one dead feed must not cost you the whole report.
+        let closes = klines::closes(venue, &pair, rg::KLINE_DAYS).unwrap_or_default();
+        series.push((coin.symbol.clone(), closes));
+    }
+    let btc =
+        klines::closes(rungbot_core::Venue::Binance, "BTCUSDT", rg::KLINE_DAYS).unwrap_or_default();
+    let now = std::time::SystemTime::now()
+        .duration_since(std::time::UNIX_EPOCH)
+        .map(|d| d.as_secs_f64())
+        .unwrap_or(0.0);
+    Ok(rg::assess(&series, &btc, cfg.regime, now))
+}
 
-    // Civil-from-days (Howard Hinnant's algorithm), valid for the whole Gregorian range.
-    let z = days + 719_468;
-    let era = z.div_euclid(146_097);
-    let doe = z.rem_euclid(146_097);
-    let yoe = (doe - doe / 1460 + doe / 36_524 - doe / 146_096) / 365;
-    let y = yoe + era * 400;
-    let doy = doe - (365 * yoe + yoe / 4 - yoe / 100);
-    let mp = (5 * doy + 2) / 153;
-    let d = doy - (153 * mp + 2) / 5 + 1;
-    let mth = if mp < 10 { mp + 3 } else { mp - 9 };
-    let year = if mth <= 2 { y + 1 } else { y };
+fn comma_list(s: &str) -> Vec<String> {
+    s.split(',')
+        .map(|x| x.trim().to_ascii_uppercase())
+        .filter(|x| !x.is_empty())
+        .collect()
+}
 
-    format!("{year:04}-{mth:02}-{d:02}T{h:02}:{m:02}:{s:02}+00:00")
+/// Turn a regime reading into the steering input for one run.
+fn build_steer(cfg: &config_file::CliConfig, r: &rg::Regime, args: &Args) -> Steer {
+    let armed = args
+        .get("armed")
+        .map(String::from)
+        .or_else(|| std::env::var("RUNGBOT_ARMED").ok())
+        .map(|s| comma_list(&s))
+        .unwrap_or_default();
+
+    // The bull policy governs only in a confirmed bull, and only coins with a basis.
+    let policy_coins: Vec<String> = if r.market == Market::Bull {
+        cfg.core
+            .coins
+            .iter()
+            .filter(|c| c.entry.is_some())
+            .map(|c| c.symbol.clone())
+            .collect()
+    } else {
+        Vec::new()
+    };
+
+    Steer {
+        policy: cfg.sellpolicy.clone(),
+        policy_coins,
+        armed,
+        trail_coins: r.running_syms().into_iter().map(String::from).collect(),
+    }
+}
+
+fn notify_run(
+    cfg: &config_file::CliConfig,
+    out: &rungbot_core::Outcome,
+    spath: &std::path::Path,
+    now: f64,
+    quiet: bool,
+) -> Result<(), Failure> {
+    if !cfg.notify.is_configured() {
+        return Err(Failure::Config(
+            "--notify needs a `notify:` section with a webhook_url or telegram_chat_id".into(),
+        ));
+    }
+    // Dedupe: one message per new signal, one reminder a day, never a 30-minute loop.
+    let npath = state::notices_path(spath);
+    let mut notices: Notices = state::load_notices(&npath);
+    let live: Vec<String> = out
+        .buys
+        .iter()
+        .chain(out.sells.iter())
+        .map(|t| format!("{}:{:?}:{}", t.row.sym, t.side, t.rung))
+        .chain(out.errors.iter().cloned())
+        .collect();
+    let fresh = notices.filter(&live, now, rungbot_core::notices::DEFAULT_REMIND_AFTER_S);
+
+    if fresh.is_empty() {
+        if !quiet {
+            println!("\n(notify: nothing new since the last message)");
+        }
+        state::save_notices(&npath, &notices);
+        return Ok(());
+    }
+
+    let text = notify::summary(out);
+    for (channel, res) in notify::send(&cfg.notify, out, &text) {
+        match res {
+            Ok(()) => {
+                if !quiet {
+                    println!("(notify: sent via {channel})");
+                }
+            }
+            Err(e) => eprintln!("WARN: notify via {channel} failed: {e}"),
+        }
+    }
+    state::save_notices(&npath, &notices);
+    Ok(())
+}
+
+fn cmd_regime(args: &Args) -> Result<(), Failure> {
+    let cfg = load_config(args)?;
+    let r = read_regime(&cfg)?;
+    if args.has("json") {
+        println!(
+            "{}",
+            serde_json::to_string_pretty(&r)
+                .map_err(|e| Failure::Other(format!("cannot render JSON: {e}")))?
+        );
+        return Ok(());
+    }
+    println!("market: {}", r.market.as_str());
+    if let (Some(px), Some(s100), Some(s200)) = (r.btc_price, r.btc_sma100, r.btc_sma200) {
+        println!("BTC {px:.0}  sma100 {s100:.0}  sma200 {s200:.0}");
+    }
+    println!(
+        "breadth above 30d SMA: {}/{}",
+        r.breadth_above_sma30,
+        r.coins.len()
+    );
+    println!();
+    for c in &r.coins {
+        let mark = if c.running { "RUN " } else { "    " };
+        let detail = match &c.error {
+            Some(e) => e.clone(),
+            None => {
+                let n = c.signals.named();
+                if n.is_empty() {
+                    "-".into()
+                } else {
+                    n.join(", ")
+                }
+            }
+        };
+        println!("{mark}{:<7} {}/4  {detail}", c.sym, c.signals.count());
+    }
+    Ok(())
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
-
-    #[test]
-    fn iso8601_matches_known_timestamps() {
-        assert_eq!(iso8601(0.0), "1970-01-01T00:00:00+00:00");
-        assert_eq!(iso8601(1_700_000_000.0), "2023-11-14T22:13:20+00:00");
-        assert_eq!(iso8601(1_789_919_316.0), "2026-09-20T15:48:36+00:00");
-        // The three places hand-rolled date maths goes wrong: a leap day, the last
-        // second of a year, and 2100 — a century that is not a leap year.
-        assert_eq!(iso8601(1_709_164_800.0), "2024-02-29T00:00:00+00:00");
-        assert_eq!(iso8601(1_767_225_599.0), "2025-12-31T23:59:59+00:00");
-        assert_eq!(iso8601(4_107_542_400.0), "2100-03-01T00:00:00+00:00");
-    }
 
     #[test]
     fn flags_parse_in_both_spellings() {

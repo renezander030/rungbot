@@ -4,7 +4,7 @@
 //! powder; a sell is a % of the position you hold. rungbot does not know your balances
 //! and never asks for them, so it cannot print dollar amounts and does not pretend to.
 
-use rungbot_core::{Config, Outcome, Row, Trade};
+use rungbot_core::{decisions::Kind, Config, Decision, Outcome, Regime, Row, Trade};
 
 pub fn fmt_price(v: Option<f64>) -> String {
     let Some(v) = v else { return "-".into() };
@@ -100,7 +100,13 @@ fn trim_num(v: f64) -> String {
     }
 }
 
-pub fn render(out: &Outcome, cfg: &Config, now_iso: &str) -> String {
+pub fn render(
+    out: &Outcome,
+    cfg: &Config,
+    regime: Option<&Regime>,
+    log: &[Decision],
+    now_iso: &str,
+) -> String {
     let s = &cfg.settings;
     let mut l: Vec<String> = Vec::new();
     l.push(format!("rungbot plan — {now_iso}"));
@@ -117,6 +123,19 @@ pub fn render(out: &Outcome, cfg: &Config, now_iso: &str) -> String {
             "off"
         },
     ));
+    if let Some(r) = regime {
+        l.push(format!(
+            "market {} · breadth {}/{} above 30d SMA · running: {}",
+            r.market.as_str(),
+            r.breadth_above_sma30,
+            r.coins.len(),
+            if r.running_syms().is_empty() {
+                "none".to_string()
+            } else {
+                r.running_syms().join(", ")
+            }
+        ));
+    }
     l.push(String::new());
 
     if out.buys.is_empty() {
@@ -158,6 +177,21 @@ pub fn render(out: &Outcome, cfg: &Config, now_iso: &str) -> String {
             flags(r)
         );
         l.push(line.trim_end().to_string());
+    }
+
+    let holds: Vec<&Decision> = log.iter().filter(|d| d.kind == Kind::Hold).collect();
+    if !holds.is_empty() {
+        l.push(String::new());
+        l.push("WHY NOTHING HAPPENED".into());
+        for d in holds {
+            l.push(format!("  {:<7} {}", d.sym, d.detail));
+        }
+    }
+
+    for r in &out.rows {
+        if let Some(p) = &r.policy {
+            l.push(format!("  {p}"));
+        }
     }
 
     if !out.errors.is_empty() {

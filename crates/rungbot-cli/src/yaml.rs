@@ -14,6 +14,8 @@
 #[derive(Debug, Clone, PartialEq)]
 pub enum Yaml {
     Str(String),
+    /// Inline `{...}` or `[...]`, which this reader does not parse.
+    Flow(String),
     Num(f64),
     Bool(bool),
     Null,
@@ -56,6 +58,17 @@ impl Yaml {
     pub fn is_null(&self) -> bool {
         matches!(self, Yaml::Null)
     }
+
+    /// The error a flow-style value should produce, if it is one.
+    pub fn flow_error(&self, key: &str) -> Option<String> {
+        match self {
+            Yaml::Flow(raw) => Some(format!(
+                "`{key}: {raw}` uses inline YAML, which this config format does not \
+                 support. Write it as an indented block instead."
+            )),
+            _ => None,
+        }
+    }
 }
 
 fn scalar(raw: &str) -> Yaml {
@@ -67,6 +80,11 @@ fn scalar(raw: &str) -> Yaml {
     if v.len() > 1 && (bytes[0] == b'"' || bytes[0] == b'\'') && bytes[bytes.len() - 1] == bytes[0]
     {
         return Yaml::Str(v[1..v.len() - 1].to_string());
+    }
+    // Flow style (`{a: 1}` / `[1, 2]`) is not supported. Without this it would parse as
+    // a string and surface much later as a confusing type error.
+    if bytes[0] == b'{' || bytes[0] == b'[' {
+        return Yaml::Flow(v.to_string());
     }
     match v.to_ascii_lowercase().as_str() {
         "true" | "yes" | "on" | "y" => return Yaml::Bool(true),
@@ -275,6 +293,14 @@ coins:
     fn a_line_without_a_colon_is_an_error_naming_the_line() {
         let e = parse("bands:\n  oops\n").unwrap_err();
         assert!(e.contains("line 2"), "got {e}");
+    }
+
+    #[test]
+    fn inline_flow_style_is_reported_not_silently_stringified() {
+        let y = parse("bands: {first_pct: 10, step_pct: 5}\n").unwrap();
+        let node = y.get("bands").unwrap();
+        let e = node.flow_error("bands").expect("a flow value is flagged");
+        assert!(e.contains("indented block"), "{e}");
     }
 
     #[test]
