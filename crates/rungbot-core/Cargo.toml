@@ -1,6 +1,6 @@
 [package]
 name = "rungbot-core"
-description = "The rungbot ladder: pure strategy logic with no I/O. Compiles to native and wasm32."
+description = "Spot crypto ladder strategy as pure logic: dip-buy and take-profit rungs, market regime, bull sell policy and cycle indicators. No I/O, compiles to wasm32."
 version.workspace = true
 edition.workspace = true
 rust-version.workspace = true
@@ -8,6 +8,9 @@ license.workspace = true
 repository.workspace = true
 authors.workspace = true
 readme = "../../README.md"
+keywords = ["crypto", "trading", "dca", "indicators", "wasm"]
+categories = ["finance", "algorithms"]
+documentation = "https://docs.rs/rungbot-core"
 
 # Deliberately tiny, and deliberately free of anything the wasm32 target cannot take:
 # no time, no filesystem, no network, no randomness. `now` is always passed in.

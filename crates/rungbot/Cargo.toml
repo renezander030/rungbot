@@ -1,6 +1,6 @@
 [package]
 name = "rungbot"
-description = "A dip-buy / take-profit ladder for spot crypto. Notify-only: no API keys, no orders."
+description = "Crypto trading ladder for spot markets: dip-buy and take-profit rungs across Binance, Gate.io and Revolut X. Notify-only, holds no API keys."
 version.workspace = true
 edition.workspace = true
 rust-version.workspace = true
@@ -8,8 +8,9 @@ license.workspace = true
 repository.workspace = true
 authors.workspace = true
 readme = "../../README.md"
-keywords = ["crypto", "trading", "ladder", "dip-buy", "binance"]
-categories = ["command-line-utilities"]
+keywords = ["crypto", "trading-bot", "dca", "binance", "cli"]
+categories = ["finance", "command-line-utilities"]
+documentation = "https://docs.rs/rungbot"
 
 [dependencies]
 rungbot-core = { path = "../rungbot-core", version = "0.5.0" }
