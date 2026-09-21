@@ -75,6 +75,7 @@ jobs:
       - uses: actions/checkout@v4
       - uses: dtolnay/rust-toolchain@stable
       - uses: Swatinem/rust-cache@v2
-      - run: cargo publish -p rungbot-core --dry-run
-      - run: cargo publish -p rungbot --dry-run
-      - run: cargo publish -p rungbot-exec --dry-run
+      # --workspace resolves the members against each other, so this holds on a
+      # version bump too, where a per-crate `publish --dry-run` cannot yet find the
+      # new version of its dependency in the registry.
+      - run: cargo package --workspace
