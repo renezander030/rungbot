@@ -13,7 +13,7 @@ categories = ["finance", "api-bindings"]
 documentation = "https://docs.rs/rungbot-exec"
 
 [dependencies]
-rungbot-core = { path = "../rungbot-core", version = "0.5.2" }
+rungbot-core = { path = "../rungbot-core", version = "0.5.3" }
 serde = { workspace = true }
 serde_json = { workspace = true }
 minreq = { version = "3", features = ["https-rustls"] }
