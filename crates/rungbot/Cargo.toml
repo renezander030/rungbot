@@ -1,5 +1,5 @@
 [package]
-name = "rungbot-cli"
+name = "rungbot"
 description = "A dip-buy / take-profit ladder for spot crypto. Notify-only: no API keys, no orders."
 version.workspace = true
 edition.workspace = true
@@ -10,10 +10,6 @@ authors.workspace = true
 readme = "../../README.md"
 keywords = ["crypto", "trading", "ladder", "dip-buy", "binance"]
 categories = ["command-line-utilities"]
-
-[[bin]]
-name = "rungbot"
-path = "src/main.rs"
 
 [dependencies]
 rungbot-core = { path = "../rungbot-core", version = "0.5.0" }

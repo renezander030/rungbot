@@ -1,5 +1,5 @@
 [workspace]
-members = ["crates/rungbot-core", "crates/rungbot-cli", "crates/rungbot-exec"]
+members = ["crates/rungbot-core", "crates/rungbot", "crates/rungbot-exec"]
 resolver = "2"
 
 [workspace.package]

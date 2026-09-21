@@ -41,7 +41,7 @@ fn the_shipped_code_contains_no_signing_or_key_handling() {
     ];
 
     let mut files = Vec::new();
-    for c in ["crates/rungbot-core/src", "crates/rungbot-cli/src"] {
+    for c in ["crates/rungbot-core/src", "crates/rungbot/src"] {
         rust_sources(&root.join(c), &mut files);
     }
     assert!(
@@ -72,7 +72,7 @@ fn no_dependency_pulls_in_an_exchange_sdk() {
     let root = workspace_root();
     let manifests = [
         "crates/rungbot-core/Cargo.toml",
-        "crates/rungbot-cli/Cargo.toml",
+        "crates/rungbot/Cargo.toml",
     ];
     for m in manifests {
         let body = std::fs::read_to_string(root.join(m))
@@ -93,11 +93,11 @@ fn the_notify_only_binary_does_not_depend_on_the_executor() {
     // If that crate ever becomes a dependency of the CLI, installing the ladder would
     // quietly install the ability to trade.
     let root = workspace_root();
-    let manifest = std::fs::read_to_string(root.join("crates/rungbot-cli/Cargo.toml"))
-        .expect("read the cli manifest");
+    let manifest = std::fs::read_to_string(root.join("crates/rungbot/Cargo.toml"))
+        .expect("read the rungbot manifest");
     assert!(
         !manifest.contains("rungbot-exec"),
-        "rungbot-cli must not depend on rungbot-exec"
+        "the rungbot crate must not depend on rungbot-exec"
     );
 
     let lock = std::fs::read_to_string(root.join("Cargo.lock")).expect("read the lockfile");
