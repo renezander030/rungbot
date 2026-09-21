@@ -27,18 +27,19 @@ regime:
   run_min_signals: 3   # how many of the four strength signals make a coin "running"
   run_ret30_min: 25    # the 30-day return, in percent, that counts as strong
 
-# The bull sell policy. Delete this block to run the plain ladder always.
-# In a confirmed bull the ladder sells far too early, so the sell side of a coin
-# with a cost basis is handed to this instead.
-sellpolicy:
-  core_pct: 20          # never sold by the policy
-  tranches: 4,8,16,32   # sell a slice the first time price reaches each multiple
-  tranche_pct: 20
-  trail_arm_mult: 2     # the trail arms at 2x cost
-  giveback_pct: 40      # first hit: this far below the running peak
-  giveback_next_pct: 20 # after a hit lands, the fall is confirmed
-  armed_giveback_pct: 15
-  # no_base_trail: BTC  # coins that only exit on an explicit --armed
+# The bull sell policy: in a confirmed bull the ladder sells far too early, so the
+# sell side of a coin with a cost basis is handed to this instead. Uncommenting it
+# also turns steering on for every `plan`, at a candle request per coin. Leave it off
+# and use `--steer` when you want the market read.
+# sellpolicy:
+#   core_pct: 20          # never sold by the policy
+#   tranches: 4,8,16,32   # sell a slice the first time price reaches each multiple
+#   tranche_pct: 20
+#   trail_arm_mult: 2     # the trail arms at 2x cost
+#   giveback_pct: 40      # first hit: this far below the running peak
+#   giveback_next_pct: 20 # after a hit lands, the fall is confirmed
+#   armed_giveback_pct: 15
+#   # no_base_trail: BTC  # coins that only exit on an explicit --armed
 
 # --- Research screen (optional) ------------------------------------------------
 # `rungbot research` looks for coins that are deeply off their high AND earn real
