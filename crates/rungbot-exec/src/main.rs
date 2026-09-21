@@ -606,19 +606,19 @@ mod tests {
 
     fn plan_json() -> serde_json::Value {
         serde_json::json!({
-            "buys": [{ "sym": "SOL", "rung": 1, "pct": 10.0, "price": 100.0 }],
+            "buys": [{ "sym": "XYZ", "rung": 1, "pct": 10.0, "price": 100.0 }],
             "sells": [{ "sym": "ETH", "rung": 2, "pct": 15.0, "price": 2000.0 }]
         })
     }
 
     #[test]
     fn a_plan_becomes_orders_sized_against_the_budget() {
-        let map = parse_pair_map(Some("SOL=SOL_USDT,ETH=ETH_USDT"));
+        let map = parse_pair_map(Some("XYZ=XYZ_USDT,ETH=ETH_USDT"));
         let got = planned_orders(&plan_json(), &map, 1000.0).unwrap();
         assert_eq!(got.len(), 2);
         let buy = got.iter().find(|p| p.side == Side::Buy).unwrap();
         assert_eq!(buy.quote, 100.0, "10% of a 1000 budget");
-        assert_eq!(buy.pair, "SOL_USDT");
+        assert_eq!(buy.pair, "XYZ_USDT");
         let sell = got.iter().find(|p| p.side == Side::Sell).unwrap();
         assert_eq!(sell.quote, 150.0);
         assert_eq!(sell.kind, "ladder_sell");
@@ -640,8 +640,8 @@ mod tests {
 
     #[test]
     fn the_pair_map_is_case_insensitive_on_the_symbol() {
-        let m = parse_pair_map(Some("sol=SOL_USDT"));
-        assert_eq!(m.get("SOL").map(String::as_str), Some("SOL_USDT"));
+        let m = parse_pair_map(Some("xyz=XYZ_USDT"));
+        assert_eq!(m.get("XYZ").map(String::as_str), Some("XYZ_USDT"));
     }
 
     #[test]

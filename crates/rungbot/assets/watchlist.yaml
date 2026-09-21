@@ -66,17 +66,13 @@ coins:
     name: Bitcoin
     venue: binance
     pair: BTCUSDT
-    entry: 61000
+    entry: 61000        # your cost basis, so the sell side has something to measure
   ETH:
     name: Ethereum
-    venue: binance
-    pair: ETHUSDT
-    entry: 2400
-  SOL:
-    name: Solana
-    venue: gate
-    pair: SOL_USDT
-  # Revolut X (EEA/UK). One request covers every Revolut pair you list.
-  # AVAX:
+    venue: gate         # Gate pairs use an underscore
+    pair: ETH_USDT
+                        # no entry: watched for dips only, never suggested as a sell
+  # Revolut X (EEA/UK) uses a slash, and one request covers every Revolut pair:
+  # BTC:
   #   venue: revx
-  #   pair: AVAX/USD
+  #   pair: BTC/USD

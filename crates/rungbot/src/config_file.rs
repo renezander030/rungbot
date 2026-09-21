@@ -421,7 +421,7 @@ mod tests {
     #[test]
     fn per_coin_overrides_and_inheritance() {
         let cfg = from_str(
-            "bands:\n  first_pct: 12\n  step_pct: 6\ncoins:\n  btc:\n    venue: binance\n    pair: BTCUSDT\n  sol:\n    venue: gate\n    pair: SOL_USDT\n    bands:\n      first_pct: 20\n      step_pct: 10\n",
+            "bands:\n  first_pct: 12\n  step_pct: 6\ncoins:\n  btc:\n    venue: binance\n    pair: BTCUSDT\n  xyz:\n    venue: gate\n    pair: XYZ_USDT\n    bands:\n      first_pct: 20\n      step_pct: 10\n",
         )
         .unwrap();
         assert_eq!(cfg.core.coins[0].symbol, "BTC", "symbols are upper-cased");
@@ -435,14 +435,14 @@ mod tests {
         );
         assert_eq!(
             cfg.core
-                .coin("SOL")
+                .coin("XYZ")
                 .unwrap()
                 .bands_or(cfg.core.settings.bands)
                 .first_pct,
             20.0
         );
         assert_eq!(
-            cfg.core.coin("SOL").unwrap().entry,
+            cfg.core.coin("XYZ").unwrap().entry,
             None,
             "a coin may have no cost basis"
         );

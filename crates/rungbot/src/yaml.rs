@@ -220,9 +220,9 @@ coins:
     venue: binance
     pair: BTCUSDT
     entry: 61000
-  SOL:
+  XYZ:
     venue: gate
-    pair: SOL_USDT
+    pair: XYZ_USDT
     bands:
       first_pct: 20
       step_pct: 10
@@ -249,7 +249,7 @@ coins:
         assert_eq!(
             y.get("coins")
                 .unwrap()
-                .get("SOL")
+                .get("XYZ")
                 .unwrap()
                 .get("bands")
                 .unwrap()
@@ -278,7 +278,7 @@ coins:
         let names: Vec<&str> = coins.iter().map(|(k, _)| k.as_str()).collect();
         assert_eq!(
             names,
-            vec!["BTC", "SOL"],
+            vec!["BTC", "XYZ"],
             "config order drives report tie-breaks"
         );
     }
