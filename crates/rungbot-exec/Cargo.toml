@@ -1,6 +1,6 @@
 [package]
 name = "rungbot-exec"
-description = "Opt-in live execution for rungbot. Holds venue keys; kept out of the rungbot binary on purpose."
+description = "Live order execution for rungbot: idempotent order journal, hard caps and a Gate.io spot client. Opt-in, GTC limit orders only."
 version.workspace = true
 edition.workspace = true
 rust-version.workspace = true
@@ -8,6 +8,9 @@ license.workspace = true
 repository.workspace = true
 authors.workspace = true
 readme = "../../README.md"
+keywords = ["crypto", "trading", "exchange", "gateio", "orders"]
+categories = ["finance", "api-bindings"]
+documentation = "https://docs.rs/rungbot-exec"
 
 [dependencies]
 rungbot-core = { path = "../rungbot-core", version = "0.5.0" }
