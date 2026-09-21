@@ -7,6 +7,7 @@ rust-version.workspace = true
 license.workspace = true
 repository.workspace = true
 authors.workspace = true
+readme = "../../README.md"
 
 # Deliberately tiny, and deliberately free of anything the wasm32 target cannot take:
 # no time, no filesystem, no network, no randomness. `now` is always passed in.
