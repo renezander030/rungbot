@@ -1,6 +1,6 @@
 //! `rungbot-exec` — opt-in live execution.
 //!
-//! This crate is deliberately **not** a dependency of `rungbot-cli`. The `rungbot`
+//! This crate is deliberately **not** a dependency of the `rungbot` crate. The `rungbot`
 //! binary holds no venue key and contains no request signing, and a test asserts that
 //! stays true. Everything that can move money lives here, behind its own binary that you
 //! have to install and arm on purpose.

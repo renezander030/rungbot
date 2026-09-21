@@ -29,20 +29,27 @@ asleep; a market order needs you present and is not implemented.
 
 USAGE:
   rungbot-exec status [--pair PAIR]
-  rungbot-exec plan   --from PLAN.json [--pair-map SYM=PAIR,...]
-  rungbot-exec sync   --from PLAN.json --live --i-understand
+  rungbot-exec plan   --from PLAN.json --budget N --pair-map SYM=PAIR,...
+  rungbot-exec sync   --from PLAN.json --budget N --pair-map SYM=PAIR,...
+                      --live --i-understand
   rungbot-exec cancel --pair PAIR [--live --i-understand]
   rungbot-exec keys   check
 
-OPTIONS:
+REQUIRED for plan and sync:
   --from FILE        a plan from `rungbot plan --json`
+  --budget N         what 100% is worth, in quote currency. The ladder sizes in
+                     percent and does not know your balances, so it cannot infer this.
+  --pair-map SYM=PAIR[,...]   which venue pair each symbol trades as
+
+OPTIONS:
   --live             actually place orders. Without it nothing is sent.
   --i-understand     acknowledge live trading. Required once, every run.
   --journal PATH     order journal (default: alongside the rungbot state)
-  --max-order        per-order cap in quote currency (default 50)
-  --max-daily        daily notional cap (default 200)
-  --max-orders       daily order count cap (default 10)
-  --json             machine-readable output
+  --pair PAIR        limit status/cancel to one pair
+  --max-order N      per-order cap in quote currency (default 50)
+  --max-daily N      daily notional cap (default 200)
+  --max-orders N     daily order count cap (default 10)
+  --max-slippage N   refuse if the venue moved this far from the decision (default 2)
 
 ENVIRONMENT:
   RUNGBOT_GATE_KEY / RUNGBOT_GATE_SECRET   credentials; never read from the watchlist

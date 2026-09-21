@@ -57,7 +57,7 @@ jobs:
       - uses: Swatinem/rust-cache@v2
       - name: the real binary, end to end, offline
         run: |
-          cargo build --release -p rungbot-cli
+          cargo build --release -p rungbot
           ./target/release/rungbot --version
           ./target/release/rungbot init --config /tmp/w.yaml
           ./target/release/rungbot plan --config /tmp/w.yaml \
