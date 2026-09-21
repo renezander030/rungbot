@@ -65,3 +65,16 @@ jobs:
           ./target/release/rungbot plan --config /tmp/w.yaml \
             --prices tests/prices.example.json --now 1700000000 --json > /tmp/out.json
           test "$(jq -r '.buys[0].sym' /tmp/out.json)" = "BTC"
+
+  # Every crate must be publishable on its own. Two defects shipped past review by
+  # referencing files outside the package — a test fixture and the example config —
+  # which packaging drops silently. `--dry-run` builds the real tarball and compiles it.
+  package:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
+      - run: cargo publish -p rungbot-core --dry-run
+      - run: cargo publish -p rungbot --dry-run
+      - run: cargo publish -p rungbot-exec --dry-run
