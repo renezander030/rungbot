@@ -27,6 +27,37 @@ any appears. It reads public endpoints and tells you what it would do.
 Placing orders needs an exchange key, and that lives in a **separate crate and binary**,
 [`rungbot-exec`](#execution). Installing the ladder does not install the ability to trade.
 
+## Three regimes, and the ladder is only right in two of them
+
+A market is in one of three states, and the same ladder is not correct in all three.
+
+| | | |
+|---|---|---|
+| **Bear** | BTC below its 200-day average and the book weak with it | Dip-buying is the job. The circuit breaker and the knife floor exist for this: a coin can fall a long way further than looks possible, and the ladder must stop feeding it. |
+| **Chop** | anything in between | Where the ladder is at its best. It buys the dips and sells the rallies of a range that goes nowhere, which is most of the time. |
+| **Bull** | BTC above **both** its 100- and 200-day averages, *and* half the watchlist above its own 30-day | Where the ladder is at its worst. It sells a running coin at rung 3 and hands you the rest of the move to watch from the sidelines. |
+
+That last case is why `--steer` exists. In a confirmed bull the sell side passes to a
+policy that takes tranches at multiples of cost and trails the peak, instead of harvesting
+the move early. In chop and bear the ladder's own sell rungs run, because that is what
+they are good at.
+
+```console
+$ rungbot regime
+market: bull
+BTC 81561  sma100 68502  sma200 70593
+breadth above 30d SMA: 2/2
+
+    BTC     2/4  above 30d SMA, fresh 30d high
+    ETH     2/4  above 30d SMA, fresh 30d high
+```
+
+The per-coin line is a four-signal strength read; three of four makes a coin "running",
+which is a separate question from what the market as a whole is doing.
+
+A bull is deliberately hard to declare — one coin running is not a bull market, and
+calling one early is how you turn off the behaviour that was working.
+
 ## Quickstart
 
 ```bash
@@ -106,11 +137,11 @@ Plus a knife floor: past a `buy_floor_pct` daily drop, no buys.
 
 ## Beyond the ladder
 
-**`--steer`** reads the market from public daily candles. A bull needs BTC above both its
-100- and 200-day averages *and* half the watchlist above its own 30-day. In a confirmed
-bull the sell side of each coin with a cost basis passes to a policy that sells tranches
-at multiples of cost and trails the peak once armed, instead of the ladder harvesting the
-move at rung 3. The core is never sold; nothing is sold below `cost + first_pct`.
+**`--steer`** applies the regime read above. In a confirmed bull the sell policy sells a
+tranche the first time price reaches each multiple of cost, and trails the running peak
+once it arms, re-arming from each hit. `--armed BTC` forces a one-shot exit when you have
+a signal the tool does not. The core is never sold, and nothing is ever sold below
+`cost + first_pct`.
 
 **`rungbot kpi`** reports the Mayer multiple, Pi-cycle ratio, daily and weekly RSI,
 drawdown, distance from the 200-day and a cycle phase. Values the history cannot support
@@ -180,8 +211,10 @@ sizing or a boundary fails even when every unit test passes.
 ## Risk
 
 Not financial advice, and no warranty. **Ladders lose money in a sustained downtrend: you
-buy every rung on the way down.** Rule 5 exists because that happens. `rungbot` is not a
-backtester, not a portfolio tracker and not an executor; it does not know your balances,
-which is why sizes are percentages.
+buy every rung on the way down.** Rule 5 exists because that happens.
+
+rungbot is not a backtester and not a portfolio tracker. It does not know your balances,
+which is why sizes are percentages. It *is* an executor, but only once you install
+`rungbot-exec` and arm it — the ladder on its own places nothing.
 
 MIT. See [LICENSE](LICENSE).
