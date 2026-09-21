@@ -17,7 +17,7 @@ use crate::notify::NotifyConfig;
 
 use crate::yaml::{self, Yaml};
 
-pub const EXAMPLE: &str = include_str!("../../../examples/watchlist.yaml");
+pub const EXAMPLE: &str = include_str!("../assets/watchlist.yaml");
 
 fn err<T>(msg: impl Into<String>) -> Result<T, ConfigError> {
     Err(ConfigError(msg.into()))
