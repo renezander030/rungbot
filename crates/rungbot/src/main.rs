@@ -9,6 +9,8 @@ mod notify;
 mod report;
 mod screen;
 mod state;
+#[cfg(test)]
+mod testenv;
 mod tickers;
 mod yaml;
 

@@ -23,6 +23,8 @@ pub mod gate;
 pub mod guard;
 pub mod journal;
 pub mod keys;
+#[cfg(test)]
+mod testenv;
 
 pub use gate::{Gate, GateError, PairInfo, VenueOrder};
 pub use guard::{Caps, Context, Intent, Mode, Refusal};

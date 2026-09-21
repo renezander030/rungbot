@@ -156,12 +156,18 @@ pub fn ask_model(cmd: &str, prompt: &str) -> Result<String, String> {
         .stderr(Stdio::piped())
         .spawn()
         .map_err(|e| format!("cannot run {program:?}: {e}"))?;
-    child
-        .stdin
-        .as_mut()
-        .ok_or_else(|| "the model command closed its stdin".to_string())?
-        .write_all(prompt.as_bytes())
-        .map_err(|e| format!("cannot write to {program:?}: {e}"))?;
+    // Taking stdin means it is dropped, and so closed, at the end of this block — the
+    // child needs that EOF or it waits forever.
+    if let Some(mut stdin) = child.stdin.take() {
+        if let Err(e) = stdin.write_all(prompt.as_bytes()) {
+            // A command that exited or closed stdin before reading is not itself the
+            // error worth reporting: its exit status and stderr say far more than a
+            // broken pipe does, so fall through and let those speak.
+            if e.kind() != std::io::ErrorKind::BrokenPipe {
+                return Err(format!("cannot write to {program:?}: {e}"));
+            }
+        }
+    }
     let out = child
         .wait_with_output()
         .map_err(|e| format!("{program:?} failed: {e}"))?;
@@ -178,10 +184,9 @@ mod tests {
 
     #[test]
     fn both_feeds_are_blocked_by_the_offline_guard() {
-        std::env::set_var("RUNGBOT_OFFLINE", "1");
+        let _env = crate::testenv::EnvGuard::offline();
         assert!(market().is_err());
         assert!(values().is_err());
-        std::env::remove_var("RUNGBOT_OFFLINE");
     }
 
     #[test]
@@ -198,8 +203,21 @@ mod tests {
 
     #[test]
     fn a_failing_model_command_surfaces_its_exit() {
-        let e = ask_model("false", "hi").unwrap_err();
-        assert!(e.contains("exited"), "{e}");
+        // `false` exits immediately, so the write to its stdin may or may not land
+        // depending on scheduling. Either way the useful report is its exit status,
+        // not a broken pipe.
+        for _ in 0..25 {
+            let e = ask_model("false", "hi").unwrap_err();
+            assert!(e.contains("exited"), "{e}");
+        }
+    }
+
+    #[test]
+    fn a_command_that_ignores_its_input_still_succeeds() {
+        // `true` never reads stdin; that must not be reported as a failure.
+        for _ in 0..25 {
+            assert_eq!(ask_model("true", "hi").expect("ignoring input is fine"), "");
+        }
     }
 
     #[test]

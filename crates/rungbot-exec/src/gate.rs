@@ -471,10 +471,9 @@ mod tests {
 
     #[test]
     fn the_offline_guard_covers_the_venue_too() {
-        std::env::set_var("RUNGBOT_OFFLINE", "1");
+        let _env = crate::testenv::EnvGuard::offline();
         let e = gate().balances().unwrap_err();
         assert!(matches!(e, GateError::Network(_)), "{e:?}");
         assert!(e.to_string().contains("RUNGBOT_OFFLINE"));
-        std::env::remove_var("RUNGBOT_OFFLINE");
     }
 }

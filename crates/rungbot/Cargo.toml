@@ -13,7 +13,7 @@ categories = ["finance", "command-line-utilities"]
 documentation = "https://docs.rs/rungbot"
 
 [dependencies]
-rungbot-core = { path = "../rungbot-core", version = "0.5.1" }
+rungbot-core = { path = "../rungbot-core", version = "0.5.2" }
 serde = { workspace = true }
 serde_json = { workspace = true }
 # rustls with bundled webpki roots: one static binary, no system cert store to find.
