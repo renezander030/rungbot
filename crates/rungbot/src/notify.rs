@@ -198,7 +198,7 @@ mod tests {
 
     #[test]
     fn a_chat_id_without_a_token_is_a_clear_misconfiguration() {
-        std::env::remove_var(TELEGRAM_TOKEN_ENV);
+        let _env = crate::testenv::EnvGuard::set(&[(TELEGRAM_TOKEN_ENV, None)]);
         let cfg = NotifyConfig {
             telegram_chat_id: Some("123".into()),
             ..Default::default()
@@ -211,7 +211,7 @@ mod tests {
 
     #[test]
     fn the_offline_guard_covers_sending_too() {
-        std::env::set_var("RUNGBOT_OFFLINE", "1");
+        let _env = crate::testenv::EnvGuard::offline();
         let cfg = NotifyConfig {
             webhook_url: Some("https://example.invalid".into()),
             ..Default::default()
@@ -222,7 +222,6 @@ mod tests {
             "{:?}",
             r[0].1
         );
-        std::env::remove_var("RUNGBOT_OFFLINE");
     }
 
     #[test]

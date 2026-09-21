@@ -197,9 +197,8 @@ mod tests {
 
     #[test]
     fn revx_candles_are_refused_with_the_fix_in_the_message() {
-        std::env::set_var("RUNGBOT_OFFLINE", "1");
+        let _env = crate::testenv::EnvGuard::offline();
         let e = closes(Venue::Revx, "BTC/USD", 220).unwrap_err().to_string();
         assert!(e.contains("klines: binance:"), "{e}");
-        std::env::remove_var("RUNGBOT_OFFLINE");
     }
 }

@@ -162,18 +162,20 @@ mod tests {
 
     #[test]
     fn the_environment_wins_over_a_file() {
-        std::env::set_var("RUNGBOT_TESTV_KEY", "envkey");
-        std::env::set_var("RUNGBOT_TESTV_SECRET", "envsecret");
+        let _env = crate::testenv::EnvGuard::set(&[
+            ("RUNGBOT_TESTV_KEY", Some("envkey")),
+            ("RUNGBOT_TESTV_SECRET", Some("envsecret")),
+        ]);
         let c = load("testv", None).expect("env is enough");
         assert_eq!(c.key, "envkey");
-        std::env::remove_var("RUNGBOT_TESTV_KEY");
-        std::env::remove_var("RUNGBOT_TESTV_SECRET");
     }
 
     #[test]
     fn a_missing_credential_says_exactly_what_to_set() {
-        std::env::remove_var("RUNGBOT_NOPEV_KEY");
-        std::env::remove_var("RUNGBOT_NOPEV_SECRET");
+        let _env = crate::testenv::EnvGuard::set(&[
+            ("RUNGBOT_NOPEV_KEY", None),
+            ("RUNGBOT_NOPEV_SECRET", None),
+        ]);
         let e = load("nopev", Some(Path::new("/definitely/not/here.env"))).unwrap_err();
         let m = e.to_string();
         assert!(m.contains("RUNGBOT_NOPEV_KEY"), "{m}");
@@ -183,8 +185,10 @@ mod tests {
     #[cfg(unix)]
     #[test]
     fn a_world_readable_key_file_is_refused_not_warned_about() {
-        std::env::remove_var("RUNGBOT_GATE_KEY");
-        std::env::remove_var("RUNGBOT_GATE_SECRET");
+        let _env = crate::testenv::EnvGuard::set(&[
+            ("RUNGBOT_GATE_KEY", None),
+            ("RUNGBOT_GATE_SECRET", None),
+        ]);
         let p = tmpfile("world-readable", "KEY=a\nSECRET=b\n", 0o644);
         let e = load("gate", Some(&p)).unwrap_err();
         assert!(matches!(e, KeyError::BadPermissions { .. }), "{e}");
@@ -194,8 +198,10 @@ mod tests {
     #[cfg(unix)]
     #[test]
     fn a_private_key_file_loads_and_tolerates_quoting() {
-        std::env::remove_var("RUNGBOT_GATE_KEY");
-        std::env::remove_var("RUNGBOT_GATE_SECRET");
+        let _env = crate::testenv::EnvGuard::set(&[
+            ("RUNGBOT_GATE_KEY", None),
+            ("RUNGBOT_GATE_SECRET", None),
+        ]);
         let p = tmpfile("private", "# gate\nKEY=\"abc\"\nSECRET='def'\n", 0o600);
         let c = load("gate", Some(&p)).expect("0600 is fine");
         assert_eq!(c.key, "abc");
@@ -205,8 +211,10 @@ mod tests {
     #[cfg(unix)]
     #[test]
     fn a_file_without_a_pair_is_malformed_rather_than_half_loaded() {
-        std::env::remove_var("RUNGBOT_GATE_KEY");
-        std::env::remove_var("RUNGBOT_GATE_SECRET");
+        let _env = crate::testenv::EnvGuard::set(&[
+            ("RUNGBOT_GATE_KEY", None),
+            ("RUNGBOT_GATE_SECRET", None),
+        ]);
         let p = tmpfile("half", "KEY=only\n", 0o600);
         assert!(matches!(
             load("gate", Some(&p)),
@@ -216,9 +224,8 @@ mod tests {
 
     #[test]
     fn the_default_path_is_under_the_config_dir_not_next_to_the_watchlist() {
-        std::env::set_var("XDG_CONFIG_HOME", "/tmp/cfg");
+        let _env = crate::testenv::EnvGuard::set(&[("XDG_CONFIG_HOME", Some("/tmp/cfg"))]);
         let p = default_key_path("gate");
         assert_eq!(p, PathBuf::from("/tmp/cfg/rungbot/gate.env"));
-        std::env::remove_var("XDG_CONFIG_HOME");
     }
 }

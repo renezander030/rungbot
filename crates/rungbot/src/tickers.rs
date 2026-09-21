@@ -328,10 +328,9 @@ mod tests {
 
     #[test]
     fn offline_is_refused_not_retried() {
-        std::env::set_var("RUNGBOT_OFFLINE", "1");
+        let _env = crate::testenv::EnvGuard::offline();
         let e = binance("BTCUSDT").expect_err("offline must block the call");
         assert!(matches!(e, TickerError::Offline(_)), "got {e:?}");
         assert!(e.to_string().contains("RUNGBOT_OFFLINE"), "and says why");
-        std::env::remove_var("RUNGBOT_OFFLINE");
     }
 }
