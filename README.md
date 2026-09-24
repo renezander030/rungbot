@@ -166,14 +166,23 @@ rungbot plan --json > plan.json
 rungbot-exec plan --from plan.json --budget 1000 --pair-map BTC=BTC_USDT
 rungbot-exec sync --from plan.json --budget 1000 --pair-map BTC=BTC_USDT \
     --live --i-understand
+rungbot-exec reconcile      # books fills, part-fills and venue cancels
 ```
 
 The ladder decides with no key loaded; the rails refuse; the journal writes a
 deterministic id **before** the venue is called; only then is a request signed.
-**GTC limit orders only** — a resting order fills while the machine is asleep.
-One `sync` or `cancel` at a time holds the journal (a second waits up to
-`RUNGBOT_LOCK_WAIT` seconds, default 120), and a journal that exists but does not
-parse stops the run instead of reading as empty.
+`sync` places **GTC limit orders only** — a resting order fills while the machine is
+asleep. `reconcile` reads each open order back and books what happened: a fill net of
+a base-coin fee, the filled part of an order that left the book, and a resize made in
+the venue's own app, which it re-attaches to instead of writing the rung off. One
+writer at a time holds the journal (`sync`, `reconcile`, `cancel`, `archive`,
+`import-cex --write`; a second waits up to `RUNGBOT_LOCK_WAIT` seconds, default 120),
+and a journal that exists but does not parse stops the run instead of reading as empty.
+
+The journal is a plain JSON object keyed by client id; finished cancels older than 30
+days move to `orders-archive.jsonl` with `rungbot-exec archive`. `rungbot-exec
+import-cex DIR` reads an existing `orders-journal.json` in the same format, prints what
+it found and checks every row reads back as written; `--write` imports it.
 
 | Rail | Default | |
 |---|---|---|
@@ -186,11 +195,15 @@ parse stops the run instead of reading as empty.
 The client id derives from intent — symbol, side, rung, 30-minute window — so a crash
 between the venue accepting an order and the state being saved cannot place it twice.
 
-Keys come from `RUNGBOT_GATE_KEY` / `RUNGBOT_GATE_SECRET` or a mode-600 file, never the
-watchlist; a key file others can read is refused. **Gate disables a key with no IP
-allowlist after 90 days, silently.** `rungbot-exec keys check` verifies the key works from
-your address and states what it cannot check — Gate exposes no permission endpoint, so
-confirm withdrawals are off in their UI yourself. Gate only, for now.
+Venues: Gate (the default), Revolut X and Binance, chosen with `--venue`. Keys come from
+the environment (`RUNGBOT_GATE_KEY` / `RUNGBOT_GATE_SECRET`, `RUNGBOT_BINANCE_KEY` /
+`RUNGBOT_BINANCE_SECRET`, `RUNGBOT_REVX_KEY` / `RUNGBOT_REVX_PRIVATE_KEY_PEM`) or a
+mode-600 `~/.config/rungbot/<venue>.env`, never the watchlist; a key file (or Revolut X
+private key) others can read is refused. **Gate disables a key with no IP allowlist
+after 90 days, silently.** `rungbot-exec keys check --venue V` verifies the key works
+from your address and states what it cannot check — no venue here exposes its key's
+permissions, so confirm withdrawals are off in their UI yourself. `RUNGBOT_OFFLINE=1`
+refuses every network call, signed or public.
 
 ## Layout
 
