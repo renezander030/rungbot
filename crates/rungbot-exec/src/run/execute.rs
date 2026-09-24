@@ -12,6 +12,13 @@
 //! * per-day notional and order caps (not a policy sell), and a per-ISO-week cap on buys;
 //! * the buy budget is the venue's free quote asset, less the pending onramp top-up,
 //!   at most `usdc_bag_usd` when set, split evenly across the venue's coins.
+//!
+//! Every order is journaled and written to disk before the venue sees it, and its
+//! answer written right after. A journal write that fails stops the run from placing
+//! anything more: the signals left are skipped (their ladder entries roll back) and one
+//! `fatal` result names the failure. Nothing here returns early past a venue call, so
+//! the caller always gets every result and still saves the ladder state, the cap
+//! counters and the P&L ledger.
 
 use std::collections::{BTreeMap, BTreeSet};
 
@@ -23,10 +30,10 @@ use super::signals::Signal;
 use super::RunResult;
 use crate::housekeeping::{
     self, cost_basis, fetch_balances, log_pnl, pair_limit_sell, pnl_tail, set_cost_basis, Balances,
-    Books, LadderState, Route, RunCtx, Settings,
+    Books, LadderState, Persist, Route, RunCtx, Settings,
 };
 use crate::ids;
-use crate::journal::{client_id, Journal, Order, Side};
+use crate::journal::{client_id, Order, Side};
 use crate::pyfmt::{self, g};
 use crate::reconcile::VenueSource;
 use crate::venue::Venue;
@@ -35,9 +42,10 @@ use crate::venue::Venue;
 pub struct ExecIo<'a> {
     pub venues: &'a dyn VenueSource,
     pub books: Books<'a>,
-    /// Writes the journal to disk. Called after every row is recorded and before the
-    /// venue sees the order, so a crash can never leave an order the journal forgot.
-    pub persist: &'a mut dyn FnMut(&Journal) -> Result<(), String>,
+    /// Writes the journal and the P&L ledger. The journal is written after every row is
+    /// recorded and before the venue sees the order, so a crash can never leave an order
+    /// the journal forgot.
+    pub persist: &'a mut Persist,
 }
 
 /// What this run knows about the market and the policy.
@@ -134,6 +142,15 @@ impl Ledgers {
     }
 }
 
+/// The error line of a run stopped by a journal write that failed.
+pub fn journal_fatal_text(e: &str) -> String {
+    format!(
+        "{e} -- stopped placing orders for this run. The journal on disk may be missing \
+         an order a venue now holds: fix the disk, then run `rungbot-exec reconcile` \
+         before the next run"
+    )
+}
+
 fn res(sym: &str, side: &str, mode: &str) -> RunResult {
     RunResult {
         sym: Some(sym.into()),
@@ -150,13 +167,13 @@ pub fn execute_trades(
     sells: &[Signal],
     ctx: &ExecCtx,
     io: &mut ExecIo,
-) -> Result<Vec<RunResult>, String> {
+) -> Vec<RunResult> {
     let mode = cfg.trade_mode.as_str();
     if mode != "dry" && mode != "live" {
-        return Ok(Vec::new());
+        return Vec::new();
     }
     if mode == "dry" && buys.is_empty() && sells.is_empty() {
-        return Ok(Vec::new());
+        return Vec::new();
     }
     let now = ctx.now;
     let mut results: Vec<RunResult> = Vec::new();
@@ -200,10 +217,10 @@ pub fn execute_trades(
             policy: &policy_set,
         };
         let before = io.books.journal.clone();
-        let out = housekeeping::run(&settings, &rctx, &bal, &mut io.books, io.venues);
+        let out = housekeeping::run(&settings, &rctx, &bal, &mut io.books, io.venues, io.persist);
         results.extend(out.iter().map(RunResult::from_outcome));
         if *io.books.journal != before {
-            (io.persist)(io.books.journal)?;
+            let _ = io.persist.journal(io.books.journal);
         }
     }
 
@@ -262,6 +279,12 @@ pub fn execute_trades(
         let Some(route) = cfg.route(&r.sym) else {
             continue;
         };
+        if let Some(e) = io.persist.failed() {
+            let mut x = res(&r.sym, "buy", mode);
+            x.skip = Some(format!("not placed: {e}"));
+            results.push(x);
+            continue;
+        }
         let (exch, pair, quote) = (
             route.exch.as_str(),
             route.pair.as_str(),
@@ -341,7 +364,7 @@ pub fn execute_trades(
         } else {
             let x = live_buy(
                 cfg, &settings, ctx, io, client, exch, pair, r, notional, price, &bal,
-            )?;
+            );
             if x.committed {
                 led.day_orders += 1;
                 led.day_notional += notional;
@@ -356,6 +379,12 @@ pub fn execute_trades(
         let Some(route) = cfg.route(&r.sym) else {
             continue;
         };
+        if let Some(e) = io.persist.failed() {
+            let mut x = res(&r.sym, "sell", mode);
+            x.skip = Some(format!("not placed: {e}"));
+            results.push(x);
+            continue;
+        }
         let (exch, pair) = (route.exch.as_str(), route.pair.as_str());
         let client = match io.venues.venue(exch) {
             Ok(c) => c,
@@ -454,7 +483,7 @@ pub fn execute_trades(
                 continue;
             }
         }
-        let mut x = live_sell(cfg, ctx, io, client, exch, pair, r, qty, price)?;
+        let mut x = live_sell(cfg, ctx, io, client, exch, pair, r, qty, price);
         x.policy = policy;
         if x.committed {
             led.day_orders += 1;
@@ -463,7 +492,16 @@ pub fn execute_trades(
         results.push(x);
     }
     led.store(io.books.ladder);
-    Ok(results)
+    if let Some(e) = io.persist.failed() {
+        results.push(RunResult {
+            mode: Some(mode.into()),
+            hk: true,
+            fatal: true,
+            err: Some(journal_fatal_text(e)),
+            ..Default::default()
+        });
+    }
+    results
 }
 
 /// A journaled market buy; on a fill, the fill-based cost basis and the paired sell.
@@ -480,14 +518,20 @@ fn live_buy(
     notional: f64,
     price: f64,
     bal: &Balances,
-) -> Result<RunResult, String> {
+) -> RunResult {
     let now = ctx.now;
     let sym = r.sym.as_str();
-    let cid = ids::safe_cid(&client_id(sym, Side::Buy, now, r.rung)).map_err(|e| e.to_string())?;
     let mut out = res(sym, "buy", "live");
+    let cid = match ids::safe_cid(&client_id(sym, Side::Buy, now, r.rung)) {
+        Ok(c) => c,
+        Err(e) => {
+            out.err = Some(e.to_string());
+            return out;
+        }
+    };
     if io.books.journal.exists(&cid) {
         out.skip = Some("already journaled this slot (idempotent)".into());
-        return Ok(out);
+        return out;
     }
     io.books.journal.record(Order {
         client_id: cid.clone(),
@@ -502,7 +546,11 @@ fn live_buy(
         ts: Some(now),
         ..Default::default()
     });
-    (io.persist)(io.books.journal)?;
+    if let Err(e) = io.persist.journal(io.books.journal) {
+        io.books.journal.orders.shift_remove(&cid);
+        out.skip = Some(format!("not placed: {e}"));
+        return out;
+    }
     let fill = client
         .market_buy(pair, notional, Some(&cid))
         .and_then(|raw| client.parse_order(&raw));
@@ -513,9 +561,9 @@ fn live_buy(
                 o.status = "error".into();
                 o.last_error = Some(e.to_string());
             });
-            (io.persist)(io.books.journal)?;
+            let _ = io.persist.journal(io.books.journal);
             out.err = Some(format!("market buy: {e}"));
-            return Ok(out);
+            return out;
         }
     };
     let base = fill.base_qty.filter(|b| *b != 0.0);
@@ -529,12 +577,12 @@ fn live_buy(
             };
             o.order_id = Some(fill.order_id.clone());
         });
-        (io.persist)(io.books.journal)?;
+        let _ = io.persist.journal(io.books.journal);
         out.committed = true;
         out.done = Some(format!(
             "BUY ~${notional:.2} placed, awaiting fill; limit sell pairs once the fill reconciles"
         ));
-        return Ok(out);
+        return out;
     }
     let mut fb = base.unwrap_or(if price != 0.0 { notional / price } else { 0.0 });
     if fill.fee != 0.0 && fill.fee_asset.as_deref() == Some(sym) {
@@ -554,7 +602,7 @@ fn live_buy(
         o.avg_price = Some(fp);
         o.filled_ts = Some(now);
     });
-    (io.persist)(io.books.journal)?;
+    let _ = io.persist.journal(io.books.journal);
     set_cost_basis(
         settings,
         io.books.ladder,
@@ -571,11 +619,12 @@ fn live_buy(
             g(fb, 6),
             cfg.target_pct
         ));
-        return Ok(out);
+        return out;
     }
     let paired = pair_limit_sell(
         settings,
         io.books.journal,
+        io.persist,
         client,
         exch,
         pair,
@@ -585,20 +634,27 @@ fn live_buy(
         now,
         r.rung,
         "",
-    )?;
-    (io.persist)(io.books.journal)?;
+    );
     let head = format!("BOUGHT ~{} {sym} (~${fq:.2})", g(fb, 6));
-    match paired.level {
-        housekeeping::Level::Done => out.done = Some(format!("{head}; {}", paired.text)),
-        _ => {
+    match paired {
+        Ok(p) if p.level == housekeeping::Level::Done => {
+            out.done = Some(format!("{head}; {}", p.text))
+        }
+        Ok(p) => {
             out.err = Some(format!(
                 "MANUAL ACTION: bought ~{} {sym} but {}",
                 g(fb, 6),
-                paired.text
+                p.text
+            ))
+        }
+        Err(e) => {
+            out.err = Some(format!(
+                "MANUAL ACTION: bought ~{} {sym} but the limit sell was not placed: {e}",
+                g(fb, 6)
             ))
         }
     }
-    Ok(out)
+    out
 }
 
 /// A journaled market take-profit sell, logged to the P&L ledger.
@@ -613,16 +669,21 @@ fn live_sell(
     r: &Signal,
     qty: f64,
     price: f64,
-) -> Result<RunResult, String> {
+) -> RunResult {
     let now = ctx.now;
     let sym = r.sym.as_str();
-    // A leading `m` keeps market-sell ids apart from the paired limit sells.
-    let cid = ids::safe_cid(&format!("m{}", client_id(sym, Side::Sell, now, r.rung)))
-        .map_err(|e| e.to_string())?;
     let mut out = res(sym, "sell", "live");
+    // A leading `m` keeps market-sell ids apart from the paired limit sells.
+    let cid = match ids::safe_cid(&format!("m{}", client_id(sym, Side::Sell, now, r.rung))) {
+        Ok(c) => c,
+        Err(e) => {
+            out.err = Some(e.to_string());
+            return out;
+        }
+    };
     if io.books.journal.exists(&cid) {
         out.skip = Some("already journaled this slot (idempotent)".into());
-        return Ok(out);
+        return out;
     }
     io.books.journal.record(Order {
         client_id: cid.clone(),
@@ -637,7 +698,11 @@ fn live_sell(
         ts: Some(now),
         ..Default::default()
     });
-    (io.persist)(io.books.journal)?;
+    if let Err(e) = io.persist.journal(io.books.journal) {
+        io.books.journal.orders.shift_remove(&cid);
+        out.skip = Some(format!("not placed: {e}"));
+        return out;
+    }
     let fill = client
         .market_sell(pair, qty, Some(&cid))
         .and_then(|raw| client.parse_order(&raw));
@@ -651,7 +716,7 @@ fn live_sell(
                 o.avg_price = fill.avg_price;
                 o.filled_ts = Some(now);
             });
-            (io.persist)(io.books.journal)?;
+            let _ = io.persist.journal(io.books.journal);
             let fq = if fill.quote != 0.0 {
                 fill.quote
             } else {
@@ -671,6 +736,7 @@ fn live_sell(
                 now,
                 "market_sell",
             );
+            io.persist.pnl(io.books.pnl);
             out.committed = true;
             out.done = Some(format!(
                 "SOLD ~{} {sym} (~${fq:.2}){}",
@@ -683,9 +749,9 @@ fn live_sell(
                 o.status = "error".into();
                 o.last_error = Some(e.to_string());
             });
-            (io.persist)(io.books.journal)?;
+            let _ = io.persist.journal(io.books.journal);
             out.err = Some(format!("market sell: {e}"));
         }
     }
-    Ok(out)
+    out
 }
