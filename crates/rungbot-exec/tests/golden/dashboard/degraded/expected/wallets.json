@@ -1,0 +1,159 @@
+{
+  "generated": "2024-12-24T00:26:40.250000+00:00",
+  "wallets": [
+    {
+      "sym": "AAA",
+      "liquid": 1500.0,
+      "staked": 4000.0,
+      "rewards": 1.2345678e-05,
+      "unbonding": [
+        {
+          "amount": 250.0,
+          "done": "2025-01-10T00:00:00Z"
+        }
+      ],
+      "unbond_days": 21,
+      "validators": 3,
+      "chain": "aaachain",
+      "address": "aaa1synthetic000000000000000000000000000",
+      "read_ts": 1735000000,
+      "unbonding_total": 250.0,
+      "total": 5750.000012345678,
+      "price": 1.25,
+      "value": 7187.500015432098,
+      "staked_pct": 73.91304331956405,
+      "cost": 0.8,
+      "rung": 3.2,
+      "rung_src": "4x bot cost",
+      "lead_pct": 30.0,
+      "trigger": 2.2399999999999998,
+      "to_trigger_pct": 79.19999999999999,
+      "status": "watching"
+    },
+    {
+      "sym": "CCC",
+      "liquid": 123456.78901234567,
+      "staked": 987654.3210987655,
+      "rewards": 0.0033333333333333335,
+      "unbonding": [
+        {
+          "amount": 11.11111111111111,
+          "done": "2025-01-02T00:00:00Z"
+        },
+        {
+          "amount": 22222.222222222223,
+          "done": "2025-01-05T12:00:00Z"
+        }
+      ],
+      "unbond_days": 21,
+      "validators": 2,
+      "chain": "cccchain",
+      "address": "ccc1synthetic000000000000000000000000000",
+      "read_ts": 1735000000,
+      "unbonding_total": 22233.333333333332,
+      "total": 1133344.4467777777,
+      "price": null,
+      "value": null,
+      "staked_pct": 89.10686043447073,
+      "cost": 0.05,
+      "rung": 0.2,
+      "rung_src": "4x bot cost",
+      "lead_pct": 30.0,
+      "trigger": 0.13999999999999999,
+      "to_trigger_pct": null,
+      "status": "watching"
+    },
+    {
+      "sym": "XXX",
+      "liquid": 5.0,
+      "staked": 0.0,
+      "rewards": 0.0,
+      "unbonding": [],
+      "unbond_days": 7,
+      "validators": 0,
+      "chain": "xxxchain",
+      "address": "xxx1synthetic000000000000000000000000000",
+      "read_ts": 1735000000,
+      "unbonding_total": 0,
+      "total": 5.0,
+      "price": null,
+      "value": null,
+      "staked_pct": 0.0,
+      "cost": null,
+      "rung": null,
+      "rung_src": null,
+      "lead_pct": 10.0,
+      "trigger": null,
+      "to_trigger_pct": null,
+      "status": "nothing staked"
+    },
+    {
+      "sym": "VVV",
+      "liquid": 100.0,
+      "staked": 7356.790110345679,
+      "rewards": 0.0,
+      "unbonding": [],
+      "unbond_days": 21,
+      "chain": "l1 + l2",
+      "address": "0x00000000000000000000000000000000000000aa",
+      "note": "vVVV 5,000 on L1 + 1,235 on L2 at 1.1800 VVV/vVVV; pending unstake requests not read",
+      "read_ts": 1735000000,
+      "unbonding_total": 0,
+      "total": 7456.790110345679,
+      "price": null,
+      "value": null,
+      "staked_pct": 98.65894039499304,
+      "cost": 0.2,
+      "rung": 0.8,
+      "rung_src": "4x bot cost",
+      "lead_pct": 30.0,
+      "trigger": 0.5599999999999999,
+      "to_trigger_pct": null,
+      "status": "watching"
+    },
+    {
+      "sym": "BTC",
+      "liquid": 0.5,
+      "staked": 0.0,
+      "rewards": 0.0,
+      "unbonding": [],
+      "unbond_days": 0,
+      "chain": "bitcoin (cold card)",
+      "address": "bc1qsyntheticwallet0000000000000000000000",
+      "read_ts": 1734000000,
+      "stale": true,
+      "unbonding_total": 0,
+      "total": 0.5,
+      "price": 41000.0,
+      "value": 20500.0,
+      "staked_pct": 0.0,
+      "cost": 20000.0,
+      "rung": 80000.0,
+      "rung_src": "4x bot cost",
+      "lead_pct": 0.0,
+      "trigger": 80000.0,
+      "to_trigger_pct": 95.1219512195122,
+      "status": "liquid (no lock)"
+    }
+  ],
+  "total_value": 27687.5000154321,
+  "staked_value": 5312.5,
+  "staked_pct": 19.187358905784155,
+  "staked_pct_all": 19.187358905784155,
+  "cex_value": 0,
+  "all_holdings": 27687.5000154321,
+  "confirmed_bull": false,
+  "rule": {
+    "tranche_x": 4.0,
+    "lead_pct_per_21d": 30.0,
+    "trail_only": [
+      "CCC",
+      "VVV"
+    ]
+  },
+  "errors": [
+    "coingecko: <urlopen error no fixture: https://api.coingecko.com/api/v3/simple/price?vs_currencies=usd&ids=aaa-coin,www-coin,ccc-coin,xxx-coin,vvv-coin,bitcoin>",
+    "WWW: <urlopen error no fixture: https://rest.cosmos.directory/wwwchain/cosmos/staking/v1beta1/params>",
+    "BTC: HTTP Error 500: Internal Server Error"
+  ]
+}

@@ -1,0 +1,182 @@
+{
+ "src": {
+  "BTC": [
+   [
+    "binance_BTCUSDT.json",
+    "ohlc"
+   ]
+  ],
+  "AAA": [
+   [
+    "binance_AAAUSDT.json",
+    "ohlc"
+   ],
+   [
+    "kucoin_AAA-USDT.json",
+    "ohlc"
+   ]
+  ],
+  "BBB": [
+   [
+    "gate_BBB_USDT.json",
+    "ohlc"
+   ],
+   [
+    "llama_bbb.json",
+    "px"
+   ]
+  ],
+  "CCC": [
+   [
+    "gate_CCC_USDT.json",
+    "ohlc"
+   ]
+  ],
+  "VVV": [
+   [
+    "binance_VVVUSDT.json",
+    "ohlc"
+   ],
+   [
+    "gate_VVV_USDT.json",
+    "ohlc"
+   ]
+  ],
+  "DDD": [
+   [
+    "binance_DDDUSDT.json",
+    "ohlc"
+   ]
+  ]
+ },
+ "scenarios": [
+  [
+   "s_early",
+   "synthetic early",
+   "2020-03-15",
+   200,
+   "Before most alt data: the alts follow their median."
+  ],
+  [
+   "s_run",
+   "synthetic run",
+   "2020-08-01",
+   null,
+   "The parabolic leg and the first months of the crash."
+  ],
+  [
+   "s_top",
+   "synthetic top",
+   "2021-02-01",
+   300,
+   "From the top into the bear."
+  ],
+  [
+   "s_late",
+   "synthetic late",
+   "2021-06-01",
+   420,
+   "A long window that some coins do not cover."
+  ],
+  [
+   "s_none",
+   "synthetic none",
+   "2018-01-01",
+   100,
+   "Before any data."
+  ]
+ ],
+ "ath": {
+  "BTC": [
+   60000.0,
+   "2021-11-10"
+  ],
+  "AAA": [
+   3.5,
+   "2021-04-01"
+  ],
+  "BBB": [
+   12.0,
+   "2021-05-05"
+  ],
+  "CCC": [
+   0.4,
+   "2022-01-01"
+  ],
+  "VVV": [
+   1.25,
+   "2021-03-03"
+  ],
+  "DDD": [
+   9.0,
+   "2020-12-12"
+  ]
+ },
+ "cg_ids": {
+  "BTC": "bitcoin",
+  "AAA": "aaa-coin",
+  "BBB": "bbb-coin",
+  "CCC": "ccc-coin",
+  "VVV": "vvv-coin",
+  "DDD": "ddd-coin"
+ },
+ "alts": [
+  "AAA",
+  "BBB",
+  "CCC",
+  "VVV",
+  "DDD"
+ ],
+ "evm": "0x00000000000000000000000000000000000000aa",
+ "btc_addr": "bc1qsyntheticwallet0000000000000000000000",
+ "cosmos": [
+  [
+   "AAA",
+   "aaachain",
+   "aaa1synthetic000000000000000000000000000",
+   6,
+   "aaa-coin"
+  ],
+  [
+   "WWW",
+   "wwwchain",
+   "www1synthetic000000000000000000000000000",
+   6,
+   "www-coin"
+  ],
+  [
+   "CCC",
+   "cccchain",
+   "ccc1synthetic000000000000000000000000000",
+   18,
+   "ccc-coin"
+  ],
+  [
+   "XXX",
+   "xxxchain",
+   "xxx1synthetic000000000000000000000000000",
+   6,
+   "xxx-coin"
+  ]
+ ],
+ "eth_rpc": "https://rpc-one.example.invalid",
+ "l2_rpc": "https://rpc-two.example.invalid",
+ "tok": [
+  "0x1111111111111111111111111111111111111111",
+  "0x2222222222222222222222222222222222222222",
+  "0x3333333333333333333333333333333333333333",
+  "0x4444444444444444444444444444444444444444"
+ ],
+ "trail_only": [
+  "CCC",
+  "VVV"
+ ],
+ "no_tranche": "BTC,CCC,VVV",
+ "forecast_alloc": {
+  "AAA": 300,
+  "BBB": 200,
+  "CCC": 100,
+  "VVV": 150,
+  "BTC": 250
+ }
+}

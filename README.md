@@ -258,6 +258,15 @@ level alert. `--dry-run` computes and prints without placing, saving or mailing
 anything; a run that finds another holding the lock prints `SKIPPED` and exits 0.
 [`contrib/systemd`](contrib/systemd) runs it every 30 minutes.
 
+`rungbot-exec snapshot` is the read-only dashboard collector, on the same file's
+`dashboard:` block. It writes `data.json` (balances, P&L, the order log, the onramp
+top-up card, the regime read, decisions, churn), `scenarios.json` (today's book
+replayed along past cycles under hold, the old ladder and the bull sell policy, the
+book at fractions of each coin's all-time high, and a seeded Monte Carlo of the next
+cycle top) and `wallets.json` (self-custody balances and staking from public chain
+APIs, with an alert when it is time to start unbonding). With `DASHBOARD_DEPLOY=1` it
+then runs `dashboard.deploy_command`; the third failed deploy in a row exits 1.
+
 | Rail | Default | |
 |---|---|---|
 | mode | off | `--live` |

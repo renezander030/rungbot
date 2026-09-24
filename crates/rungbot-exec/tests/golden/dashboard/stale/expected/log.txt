@@ -1,0 +1,21 @@
+[Tue Dec 24 00:26:40 UTC 2024] snapshot
+CHURN 7d: 2 rolls (2 rungs) / 1 fills, 2.0 cancels per fill, rung life median 41.7h; 0 rolls in 24h
+SELL-CHECK 1/6 sellable; AAA dust: 0.5 < min 1 AAA; BTC nothing held; CCC dust: 5 < min 10 CCC; DDD no binance client; VVV nothing held
+wrote <public>/data.json | 6 coins | value $97.22 | stable $2020.00 (locked $5.00) | errors 1
+  FORECAST cycle top, bot book + $4,000 new (invested now $4,321):
+    hold_top     p10 $   12,359  p50 $   27,781  p90 $    65,113  mean $   33,270
+    policy_top   p10 $   12,350  p50 $   25,436  p90 $    48,415  mean $   27,871
+    keep_hold    p10 $    1,894  p50 $    3,474  p90 $     7,255  mean $    4,038
+    keep_policy  p10 $    5,834  p50 $   13,224  p90 $    27,553  mean $   14,828
+    dex_top      p10 $    2,023  p50 $    5,256  p90 $     9,507  mean $    5,896
+scenarios.json: 5 scenarios, nw0 $2,267, 94 KB
+  ATH level 10% of ATH, BTC at ATH     hold $       109 policy $       109 | kept after the bear: hold $       11 policy $       49
+  ATH level 25% of ATH, BTC at ATH     hold $       273 policy $       273 | kept after the bear: hold $       27 policy $      123
+  ATH level 50% of ATH, BTC 1.5x ATH   hold $       546 policy $       546 | kept after the bear: hold $       55 policy $      246
+  ATH level ATH again, BTC 2x ATH      hold $     1,091 policy $     1,068 | kept after the bear: hold $      109 policy $      588
+  synthetic early  proxied ['CCC', 'DDD'] | hold peak 1.03x end 1.03x | ladder end 1.02x | live peak 1.03x end 1.03x kept 1.0
+  synthetic run    proxied ['CCC', 'DDD'] | hold peak 1.04x end 1.04x | ladder end 1.03x | live peak 1.04x end 1.04x kept 1.0
+  synthetic top    proxied ['DDD'] | hold peak 2.49x end 1.85x | ladder end 1.68x | live peak 1.52x end 1.43x kept 0.95
+  synthetic late   proxied ['DDD'] | hold peak 9.72x end 5.71x | ladder end 3.03x | live peak 3.5x end 2.7x kept 0.77
+  synthetic none: skipped
+wrote <public>/wallets.json | 6 wallets | $357,722.67 | staked 76% | of all 76% | alerts 1 | errors 0

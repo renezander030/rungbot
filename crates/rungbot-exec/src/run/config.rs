@@ -174,6 +174,10 @@ pub struct RunConfig {
 
     /// The `notify:` block as JSON, for [`rungbot_notify::Notifier`].
     pub notify: Value,
+
+    /// The `dashboard:` block, read by [`crate::dashboard::DashConfig`] (kept as YAML so
+    /// its mappings keep their order).
+    pub dashboard: Yaml,
 }
 
 fn home() -> PathBuf {
@@ -301,6 +305,7 @@ impl Default for RunConfig {
             audit_state: None,
             fillodds_cache: None,
             notify: Value::Null,
+            dashboard: Yaml::Null,
         }
     }
 }
@@ -659,6 +664,11 @@ impl RunConfig {
             "notify" => {
                 if let Raw::Yaml(y) = v {
                     self.notify = to_json(y);
+                }
+            }
+            "dashboard" => {
+                if let Raw::Yaml(y) = v {
+                    self.dashboard = y.clone();
                 }
             }
             other => return Err(format!("unknown key `{other}`")),

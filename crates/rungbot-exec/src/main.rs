@@ -36,6 +36,7 @@ USAGE:
   rungbot-exec churn     [--days N] [--json] [--config FILE]
   rungbot-exec fillodds  [--horizons 30,90] [--json] [--config FILE]
   rungbot-exec funding   [--config FILE]
+  rungbot-exec snapshot  [--config FILE] [--only data,scenarios,wallets] [--no-deploy]
   rungbot-exec status    [--pair PAIR --venue V]
   rungbot-exec plan      --from PLAN.json --budget N --pair-map SYM=PAIR,...
   rungbot-exec sync      --from PLAN.json --budget N --pair-map SYM=PAIR,...
@@ -56,6 +57,13 @@ DEPLOY (the monthly-capital layer; the run calls it every cycle with deploy: liv
   cancel [VENUE]     cancel every resting deploy zone (works while halted)
   tranche, market and cancel take the run lock; tranche and market refuse while
   live_trading_enabled is off or the halt file exists.
+
+SNAPSHOT (the dashboard collector; read-only on every venue, see the `dashboard:`
+block in contrib/rungbot-run.example.yaml):
+  writes data.json, scenarios.json and wallets.json into dashboard.public_dir, then
+  runs dashboard.deploy_command when DASHBOARD_DEPLOY=1 (or dashboard.deploy: yes).
+  Exit 1 when data.json could not be built, or on the 3rd deploy failure in a row
+  (and every 12th after), so the unit's failure hook reports it.
 
 READ-ONLY REPORTS (the run config names the journal and state files):
   churn              how often the zones were rolled, per fill, and rung lifetimes
@@ -308,6 +316,7 @@ fn main() -> ExitCode {
     let r = match args.cmd.as_str() {
         "run" => return cmd_run(&args),
         "deploy" | "churn" | "fillodds" | "funding" => cmd_layer(&argv),
+        "snapshot" => return cmd_snapshot(&argv),
         "status" => cmd_status(&args),
         "plan" => cmd_plan(&args),
         "sync" => cmd_sync(&args),
@@ -388,6 +397,84 @@ fn cmd_run(args: &Args) -> ExitCode {
             ExitCode::from(1)
         }
     }
+}
+
+/// One dashboard cycle: `data.json`, `scenarios.json`, `wallets.json`, then the deploy.
+fn cmd_snapshot(argv: &[String]) -> ExitCode {
+    use rungbot_core::watch::json::Json;
+    use rungbot_exec::dashboard::{self, DashConfig, Io, Parts};
+    use rungbot_exec::run::{config::RunConfig, market::PublicMarket, regime};
+    let setup = || -> Result<(RunConfig, DashConfig), String> {
+        let cfg = RunConfig::load(&run_config_path(argv))?;
+        let d = DashConfig::from_run(&cfg)?;
+        Ok((cfg, d))
+    };
+    let (cfg, d) = match setup() {
+        Ok(x) => x,
+        Err(e) => {
+            eprintln!("{e}");
+            return ExitCode::from(1);
+        }
+    };
+    let mut parts = Parts::default();
+    if let Some(only) = flag_value(argv, "--only") {
+        let want: Vec<&str> = only.split(',').map(str::trim).collect();
+        parts.data = want.contains(&"data");
+        parts.scenarios = want.contains(&"scenarios");
+        parts.wallets = want.contains(&"wallets");
+    }
+    if argv.iter().any(|a| a == "--no-deploy") {
+        parts.deploy = false;
+    }
+    let notifier = serde_json::from_value::<rungbot_notify::Notifier>(if cfg.notify.is_null() {
+        serde_json::json!({})
+    } else {
+        cfg.notify.clone()
+    })
+    .map(|n| n.with_env_overrides())
+    .unwrap_or_default();
+    let clients = Clients::new();
+    let market = PublicMarket::default();
+    let to_json = |v: serde_json::Value| -> Json { serde_json::from_value(v).unwrap_or_default() };
+    let read_regime = |now: f64| -> Result<(Json, Json), String> {
+        Ok((
+            to_json(regime::get_regime(&cfg, &market, now)),
+            to_json(regime::label_history(&cfg, &market, now)),
+        ))
+    };
+    let signer: std::cell::OnceCell<Result<(String, rungbot_exec::revx::RevxKey), String>> =
+        std::cell::OnceCell::new();
+    let revx_auth = |path: &str, ts: i64| -> Result<Vec<(String, String)>, String> {
+        let s = signer.get_or_init(|| {
+            let c = rungbot_exec::keys::load_revx(None).map_err(|e| e.to_string())?;
+            let k = rungbot_exec::revx::RevxKey::from_file(&c.pem_path)?;
+            Ok((c.key, k))
+        });
+        let (key, k) = s.as_ref().map_err(Clone::clone)?;
+        Ok(vec![
+            ("X-Revx-API-Key".to_string(), key.clone()),
+            ("X-Revx-Timestamp".to_string(), ts.to_string()),
+            (
+                "X-Revx-Signature".to_string(),
+                k.sign(format!("{ts}GET{path}").as_bytes()),
+            ),
+        ])
+    };
+    let (mut out, mut err) = (std::io::stdout(), std::io::stderr());
+    let mut io = Io {
+        venues: &clients,
+        market: &market,
+        regime: &read_regime,
+        http: rungbot_exec::http::Http::default(),
+        revx_auth: &revx_auth,
+        outbox: &notifier,
+        clock: &now,
+        sleep: &|s| std::thread::sleep(Duration::from_secs_f64(s)),
+        deploy: &dashboard::shell_deploy,
+        out: &mut out,
+        err: &mut err,
+    };
+    ExitCode::from(dashboard::cycle(&cfg, &d, parts, &mut io) as u8)
 }
 
 /// `--config FILE`, else `RUNGBOT_RUN_CONFIG`, else `~/.config/rungbot/run.yaml`.
