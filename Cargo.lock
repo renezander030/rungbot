@@ -282,9 +282,17 @@ name = "rungbot"
 version = "0.5.5"
 dependencies = [
  "minreq",
+ "rungbot-backtest",
  "rungbot-core",
  "serde",
  "serde_json",
+]
+
+[[package]]
+name = "rungbot-backtest"
+version = "0.5.5"
+dependencies = [
+ "rungbot-core",
 ]
 
 [[package]]

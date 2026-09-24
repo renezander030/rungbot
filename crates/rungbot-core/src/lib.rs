@@ -40,6 +40,7 @@ pub mod fmt;
 pub mod indicators;
 pub mod ladder;
 pub mod notices;
+pub mod pymath;
 pub mod regime;
 pub mod research;
 pub mod sellpolicy;

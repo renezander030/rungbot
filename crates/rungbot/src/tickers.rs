@@ -36,6 +36,29 @@ impl fmt::Display for TickerError {
 
 impl std::error::Error for TickerError {}
 
+/// One public GET returning the status and the body text, whatever the status.
+///
+/// The backtests need the status to back off on a rate limit, and parse the body
+/// themselves to keep key order and number kinds.
+pub fn get_text(url: &str) -> Result<(i32, String), TickerError> {
+    if std::env::var("RUNGBOT_OFFLINE").as_deref() == Ok("1") {
+        return Err(TickerError::Offline(format!(
+            "RUNGBOT_OFFLINE=1 refuses network call: {url}"
+        )));
+    }
+    let resp = minreq::get(url)
+        .with_header("User-Agent", USER_AGENT)
+        .with_header("Accept", "application/json")
+        .with_timeout(TIMEOUT_S * 2)
+        .send()
+        .map_err(|e| TickerError::Failed(format!("{url}: {e}")))?;
+    let body = resp
+        .as_str()
+        .map_err(|e| TickerError::Failed(format!("{url}: non-UTF8 response: {e}")))?
+        .to_string();
+    Ok((resp.status_code.into(), body))
+}
+
 /// One public GET returning JSON. The only way this crate reaches the network.
 pub fn get_json(url: &str) -> Result<Value, TickerError> {
     if std::env::var("RUNGBOT_OFFLINE").as_deref() == Ok("1") {

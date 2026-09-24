@@ -1,0 +1,18 @@
+[package]
+name = "rungbot-backtest"
+description = "Backtests and historical replays for the rungbot ladder: as-configured window runs, variant sweeps, a multi-window monthly verdict and cycle-top studies. Pure computation over price history."
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+repository.workspace = true
+authors.workspace = true
+readme = "../../README.md"
+keywords = ["crypto", "backtest", "trading", "dca", "replay"]
+categories = ["finance", "simulation"]
+documentation = "https://docs.rs/rungbot-backtest"
+
+# Pure: every entry point takes price history in and returns text or values out.
+# Reading caches and fetching candles is the CLI's job.
+[dependencies]
+rungbot-core = { path = "../rungbot-core", version = "0.5.5" }

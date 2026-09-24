@@ -3,7 +3,9 @@
 //! Text output by default, `--json` for machines. The strategy itself lives in
 //! `rungbot-core`, which this binary and a Cloudflare Worker share unchanged.
 
+mod backtest_cmd;
 mod config_file;
+mod history;
 mod klines;
 mod notify;
 mod report;
@@ -37,6 +39,7 @@ USAGE:
   rungbot regime  [--config PATH] [--json]
   rungbot kpi     [--config PATH] [--json]
   rungbot research[--config PATH] [--json] [--llm CMD]
+  rungbot backtest <invariants|window|sweep|monthly|replay ...>  (see: rungbot backtest help)
   rungbot --version | --help
 
 PLAN OPTIONS:
@@ -59,6 +62,8 @@ ENVIRONMENT:
 /// Minimal flag parser: `--key value`, `--key=value`, and bare switches.
 struct Args {
     cmd: String,
+    /// Positional words after the command (`backtest replay alt-top`).
+    pos: Vec<String>,
     flags: BTreeMap<String, String>,
 }
 
@@ -67,8 +72,13 @@ impl Args {
         let mut it = argv.iter().peekable();
         let cmd = it.next().cloned().unwrap_or_default();
         let mut flags = BTreeMap::new();
+        let mut pos = Vec::new();
         while let Some(arg) = it.next() {
             let Some(bare) = arg.strip_prefix("--") else {
+                if cmd == "backtest" {
+                    pos.push(arg.clone());
+                    continue;
+                }
                 return Err(format!("unexpected argument {arg:?}"));
             };
             if let Some((k, v)) = bare.split_once('=') {
@@ -77,7 +87,30 @@ impl Args {
             }
             let takes_value = matches!(
                 bare,
-                "config" | "state" | "prices" | "now" | "armed" | "llm"
+                "config"
+                    | "state"
+                    | "prices"
+                    | "now"
+                    | "armed"
+                    | "llm"
+                    | "days"
+                    | "book"
+                    | "history"
+                    | "cache-dir"
+                    | "bag"
+                    | "max-order"
+                    | "windows"
+                    | "expect"
+                    | "drift-band"
+                    | "percoin-min-gain"
+                    | "sweep-bag"
+                    | "study"
+                    | "out"
+                    | "tranche"
+                    | "recent-from"
+                    | "cutoff"
+                    | "variants"
+                    | "sources"
             );
             let value = if takes_value {
                 it.next()
@@ -88,7 +121,7 @@ impl Args {
             };
             flags.insert(bare.to_string(), value);
         }
-        Ok(Args { cmd, flags })
+        Ok(Args { cmd, pos, flags })
     }
 
     fn has(&self, k: &str) -> bool {
@@ -131,6 +164,7 @@ fn main() -> ExitCode {
         "regime" => cmd_regime(&args),
         "kpi" => cmd_kpi(&args),
         "research" => cmd_research(&args),
+        "backtest" => backtest_cmd::run(&args),
         other => {
             eprintln!("unknown command {other:?}\n\n{USAGE}");
             return ExitCode::from(1);
