@@ -45,6 +45,7 @@ pub mod regime;
 pub mod research;
 pub mod sellpolicy;
 pub mod time;
+pub mod watch;
 
 pub use analyze::{
     analyze, analyze_with, CoinState, Outcome, Price, Row, Side, Skip, SkipReason, State, Steer,

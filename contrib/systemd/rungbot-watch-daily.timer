@@ -1,0 +1,9 @@
+[Unit]
+Description=rungbot watch: froth then zone, daily
+
+[Timer]
+OnCalendar=*-*-* 05:20:00 UTC
+Persistent=true
+
+[Install]
+WantedBy=timers.target
