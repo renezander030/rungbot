@@ -198,6 +198,7 @@ confirm withdrawals are off in their UI yourself. Gate only, for now.
 |---|---|
 | [`rungbot-core`](crates/rungbot-core) | The strategy as pure logic. No clock, files or network; compiles to `wasm32`. |
 | [`rungbot`](crates/rungbot) | The `rungbot` binary. Holds no key. |
+| [`rungbot-notify`](crates/rungbot-notify) | Email (Resend), Telegram and webhook, plus signal-notice dedupe. Shared by both binaries; holds no venue key. |
 | [`rungbot-exec`](crates/rungbot-exec) | The `rungbot-exec` binary. Holds the key. Opt-in. |
 
 ## Testing

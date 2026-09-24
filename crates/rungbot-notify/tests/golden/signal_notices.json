@@ -1,0 +1,432 @@
+{
+ "remind_s": 3600.0,
+ "steps": [
+  {
+   "buys": [
+    {
+     "sym": "AKT",
+     "rung": 2
+    }
+   ],
+   "sells": [],
+   "execution": [
+    {
+     "sym": "AKT",
+     "side": "buy",
+     "skip": "$0.00 USD < min $3.00"
+    }
+   ],
+   "now": 1758000000.0,
+   "mail_buys": [
+    {
+     "sym": "AKT",
+     "rung": 2
+    }
+   ],
+   "mail_sells": [],
+   "suppressed": [],
+   "state": "{\n \"AKT|buy\": {\n  \"count\": 1,\n  \"first_ts\": 1758000000.0,\n  \"last_sent_ts\": 1758000000.0,\n  \"reason\": \"$0.00 USD < min $3.00\",\n  \"rung\": 2\n }\n}",
+   "suffix": " \u2014 not executed: $0.00 USD < min $3.00"
+  },
+  {
+   "buys": [
+    {
+     "sym": "AKT",
+     "rung": 2
+    }
+   ],
+   "sells": [],
+   "execution": [
+    {
+     "sym": "AKT",
+     "side": "buy",
+     "skip": "$0.00 USD < min $3.00"
+    }
+   ],
+   "now": 1758001800.0,
+   "mail_buys": [],
+   "mail_sells": [],
+   "suppressed": [
+    "AKT buy rung 2 (mailed 0.5h ago, seen 2x)"
+   ],
+   "state": "{\n \"AKT|buy\": {\n  \"count\": 2,\n  \"first_ts\": 1758000000.0,\n  \"last_sent_ts\": 1758000000.0,\n  \"reason\": \"$0.00 USD < min $3.00\",\n  \"rung\": 2\n }\n}",
+   "suffix": ""
+  },
+  {
+   "buys": [
+    {
+     "sym": "AKT",
+     "rung": 2
+    }
+   ],
+   "sells": [],
+   "execution": [
+    {
+     "sym": "AKT",
+     "side": "buy",
+     "skip": "$0.00 USD < min $3.00"
+    }
+   ],
+   "now": 1758003700.0,
+   "mail_buys": [
+    {
+     "sym": "AKT",
+     "rung": 2
+    }
+   ],
+   "mail_sells": [],
+   "suppressed": [],
+   "state": "{\n \"AKT|buy\": {\n  \"count\": 3,\n  \"first_ts\": 1758000000.0,\n  \"last_sent_ts\": 1758003700.0,\n  \"reason\": \"$0.00 USD < min $3.00\",\n  \"rung\": 2\n }\n}",
+   "suffix": " \u2014 not executed: $0.00 USD < min $3.00"
+  },
+  {
+   "buys": [
+    {
+     "sym": "AKT",
+     "rung": 2
+    }
+   ],
+   "sells": [],
+   "execution": [
+    {
+     "sym": "AKT",
+     "side": "buy",
+     "skip": "$0.00 USD < min $3.00"
+    }
+   ],
+   "now": 1758003800.0,
+   "mail_buys": [],
+   "mail_sells": [],
+   "suppressed": [
+    "AKT buy rung 2 (mailed 0.0h ago, seen 4x)"
+   ],
+   "state": "{\n \"AKT|buy\": {\n  \"count\": 4,\n  \"first_ts\": 1758000000.0,\n  \"last_sent_ts\": 1758003700.0,\n  \"reason\": \"$0.00 USD < min $3.00\",\n  \"rung\": 2\n }\n}",
+   "suffix": ""
+  },
+  {
+   "buys": [
+    {
+     "sym": "AKT",
+     "rung": 3
+    }
+   ],
+   "sells": [
+    {
+     "sym": "AKT",
+     "rung": 1
+    }
+   ],
+   "execution": [
+    {
+     "sym": "AKT",
+     "side": "buy",
+     "skip": "$0.00 USD < min $3.00"
+    },
+    {
+     "sym": "AKT",
+     "side": "sell",
+     "skip": "below exchange min \u2014 caf\u00e9"
+    }
+   ],
+   "now": 1758003900.0,
+   "mail_buys": [
+    {
+     "sym": "AKT",
+     "rung": 3
+    }
+   ],
+   "mail_sells": [
+    {
+     "sym": "AKT",
+     "rung": 1
+    }
+   ],
+   "suppressed": [],
+   "state": "{\n \"AKT|buy\": {\n  \"count\": 5,\n  \"first_ts\": 1758000000.0,\n  \"last_sent_ts\": 1758003900.0,\n  \"reason\": \"$0.00 USD < min $3.00\",\n  \"rung\": 3\n },\n \"AKT|sell\": {\n  \"count\": 1,\n  \"first_ts\": 1758003900.0,\n  \"last_sent_ts\": 1758003900.0,\n  \"reason\": \"below exchange min \\u2014 caf\\u00e9\",\n  \"rung\": 1\n }\n}",
+   "suffix": " \u2014 not executed: $0.00 USD < min $3.00"
+  },
+  {
+   "buys": [
+    {
+     "sym": "AKT",
+     "rung": 3
+    }
+   ],
+   "sells": [],
+   "execution": [
+    {
+     "sym": "AKT",
+     "side": "buy",
+     "done": "bought 10 AKT"
+    }
+   ],
+   "now": 1758004000.0,
+   "mail_buys": [
+    {
+     "sym": "AKT",
+     "rung": 3
+    }
+   ],
+   "mail_sells": [],
+   "suppressed": [],
+   "state": "{}",
+   "suffix": ""
+  },
+  {
+   "buys": [
+    {
+     "sym": "AKT",
+     "rung": 3
+    }
+   ],
+   "sells": [],
+   "execution": [
+    {
+     "sym": "AKT",
+     "side": "buy",
+     "skip": "$0.00 USD < min $3.00"
+    }
+   ],
+   "now": 1758004100.0,
+   "mail_buys": [
+    {
+     "sym": "AKT",
+     "rung": 3
+    }
+   ],
+   "mail_sells": [],
+   "suppressed": [],
+   "state": "{\n \"AKT|buy\": {\n  \"count\": 1,\n  \"first_ts\": 1758004100.0,\n  \"last_sent_ts\": 1758004100.0,\n  \"reason\": \"$0.00 USD < min $3.00\",\n  \"rung\": 3\n }\n}",
+   "suffix": " \u2014 not executed: $0.00 USD < min $3.00"
+  },
+  {
+   "buys": [],
+   "sells": [],
+   "execution": [],
+   "now": 1758004200.0,
+   "mail_buys": [],
+   "mail_sells": [],
+   "suppressed": [],
+   "state": "{}",
+   "suffix": ""
+  },
+  {
+   "buys": [
+    {
+     "sym": "AKT",
+     "rung": 3
+    }
+   ],
+   "sells": [],
+   "execution": [
+    {
+     "sym": "AKT",
+     "side": "buy",
+     "skip": "$0.00 USD < min $3.00"
+    }
+   ],
+   "now": 1758004300.0,
+   "mail_buys": [
+    {
+     "sym": "AKT",
+     "rung": 3
+    }
+   ],
+   "mail_sells": [],
+   "suppressed": [],
+   "state": "{\n \"AKT|buy\": {\n  \"count\": 1,\n  \"first_ts\": 1758004300.0,\n  \"last_sent_ts\": 1758004300.0,\n  \"reason\": \"$0.00 USD < min $3.00\",\n  \"rung\": 3\n }\n}",
+   "suffix": " \u2014 not executed: $0.00 USD < min $3.00"
+  },
+  {
+   "buys": [
+    {
+     "sym": "AKT",
+     "rung": 3
+    }
+   ],
+   "sells": [
+    {
+     "sym": "BBB",
+     "rung": 1
+    }
+   ],
+   "execution": [
+    {
+     "sym": "BBB",
+     "side": "sell",
+     "err": "venue down xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+    }
+   ],
+   "now": 1758004400.0,
+   "mail_buys": [],
+   "mail_sells": [
+    {
+     "sym": "BBB",
+     "rung": 1
+    }
+   ],
+   "suppressed": [
+    "AKT buy rung 3 (mailed 0.0h ago, seen 2x)"
+   ],
+   "state": "{\n \"AKT|buy\": {\n  \"count\": 2,\n  \"first_ts\": 1758004300.0,\n  \"last_sent_ts\": 1758004300.0,\n  \"reason\": \"$0.00 USD < min $3.00\",\n  \"rung\": 3\n }\n}",
+   "suffix": ""
+  },
+  {
+   "buys": [
+    {
+     "sym": "AKT",
+     "rung": 3
+    }
+   ],
+   "sells": [
+    {
+     "sym": "BBB",
+     "rung": 1
+    }
+   ],
+   "execution": [
+    {
+     "sym": "BBB",
+     "side": "sell",
+     "plan": "would sell"
+    }
+   ],
+   "now": 1758004500.0,
+   "mail_buys": [],
+   "mail_sells": [
+    {
+     "sym": "BBB",
+     "rung": 1
+    }
+   ],
+   "suppressed": [
+    "AKT buy rung 3 (mailed 0.1h ago, seen 3x)"
+   ],
+   "state": "{\n \"AKT|buy\": {\n  \"count\": 3,\n  \"first_ts\": 1758004300.0,\n  \"last_sent_ts\": 1758004300.0,\n  \"reason\": \"$0.00 USD < min $3.00\",\n  \"rung\": 3\n }\n}",
+   "suffix": ""
+  },
+  {
+   "buys": [
+    {
+     "sym": "AKT",
+     "rung": 3
+    }
+   ],
+   "sells": [
+    {
+     "sym": "CCC",
+     "rung": 4
+    }
+   ],
+   "execution": [
+    {
+     "sym": "CCC",
+     "side": "sell",
+     "skip": "rrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrr"
+    }
+   ],
+   "now": 1758004600.25,
+   "mail_buys": [],
+   "mail_sells": [
+    {
+     "sym": "CCC",
+     "rung": 4
+    }
+   ],
+   "suppressed": [
+    "AKT buy rung 3 (mailed 0.1h ago, seen 4x)"
+   ],
+   "state": "{\n \"AKT|buy\": {\n  \"count\": 4,\n  \"first_ts\": 1758004300.0,\n  \"last_sent_ts\": 1758004300.0,\n  \"reason\": \"$0.00 USD < min $3.00\",\n  \"rung\": 3\n },\n \"CCC|sell\": {\n  \"count\": 1,\n  \"first_ts\": 1758004600.25,\n  \"last_sent_ts\": 1758004600.25,\n  \"reason\": \"rrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrr\",\n  \"rung\": 4\n }\n}",
+   "suffix": " \u2014 not executed: rrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrr"
+  },
+  {
+   "buys": [
+    {
+     "sym": "AKT",
+     "rung": 3
+    }
+   ],
+   "sells": [
+    {
+     "sym": "CCC",
+     "rung": 4
+    }
+   ],
+   "execution": [],
+   "now": 1758005000.5,
+   "mail_buys": [],
+   "mail_sells": [],
+   "suppressed": [
+    "AKT buy rung 3 (mailed 0.2h ago, seen 5x)",
+    "CCC sell rung 4 (mailed 0.1h ago, seen 2x)"
+   ],
+   "state": "{\n \"AKT|buy\": {\n  \"count\": 5,\n  \"first_ts\": 1758004300.0,\n  \"last_sent_ts\": 1758004300.0,\n  \"reason\": \"$0.00 USD < min $3.00\",\n  \"rung\": 3\n },\n \"CCC|sell\": {\n  \"count\": 2,\n  \"first_ts\": 1758004600.25,\n  \"last_sent_ts\": 1758004600.25,\n  \"reason\": \"rrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrr\",\n  \"rung\": 4\n }\n}",
+   "suffix": ""
+  }
+ ],
+ "suffix": [
+  {
+   "buys": [
+    {
+     "sym": "AKT",
+     "rung": 2
+    }
+   ],
+   "sells": [],
+   "execution": [
+    {
+     "sym": "AKT",
+     "side": "buy",
+     "skip": "$0.00 USD < min $3.00"
+    }
+   ],
+   "suffix": " \u2014 not executed: $0.00 USD < min $3.00"
+  },
+  {
+   "buys": [
+    {
+     "sym": "AKT",
+     "rung": 2
+    }
+   ],
+   "sells": [],
+   "execution": [
+    {
+     "sym": "AKT",
+     "side": "buy",
+     "done": "bought 10 AKT"
+    }
+   ],
+   "suffix": ""
+  },
+  {
+   "buys": [],
+   "sells": [],
+   "execution": [
+    {
+     "sym": "AKT",
+     "side": "buy",
+     "skip": "$0.00 USD < min $3.00"
+    }
+   ],
+   "suffix": ""
+  },
+  {
+   "buys": [],
+   "sells": [
+    {
+     "sym": "CCC",
+     "rung": 1
+    }
+   ],
+   "execution": [
+    {
+     "sym": "CCC",
+     "side": "sell",
+     "skip": "ssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssss"
+    }
+   ],
+   "suffix": " \u2014 not executed: ssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssss"
+  }
+ ]
+}
