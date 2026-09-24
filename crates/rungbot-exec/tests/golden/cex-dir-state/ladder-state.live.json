@@ -1,0 +1,43 @@
+{
+  "AAA": {
+    "buy": 2,
+    "sell": 0,
+    "deployed_pct": 12.5,
+    "sold_pct": 0.0,
+    "win_until": 1790003600.5,
+    "win_dir": "buy",
+    "cost_basis": 0.5,
+    "below_since": 0,
+    "breaker": false,
+    "peak_pnl": 0.0,
+    "bull": {
+      "peak": 0.7,
+      "remaining": 100.0,
+      "tranches": [],
+      "exited": false
+    }
+  },
+  "_daily": {
+    "date": "2026-09-21",
+    "notional": 50.0,
+    "orders": 1
+  },
+  "_weekly": {
+    "week": "2026-W39",
+    "notional": 50.0
+  },
+  "_bal": {
+    "ts": 1790000000.5,
+    "hold": {
+      "AAA": 10.0
+    },
+    "booked": {
+      "csAAAs994444r1": 10.0
+    }
+  },
+  "_sellpolicy": {
+    "on": false,
+    "armed": false,
+    "ts": 1790000000.5
+  }
+}
