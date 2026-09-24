@@ -675,6 +675,26 @@ impl RunConfig {
                 return Err(format!("`routing` has no entry for {sym}"));
             }
         }
+        if !(self.deploy_min_usd.is_finite() && self.deploy_min_usd > 0.0) {
+            return Err(format!(
+                "`deploy_min_usd` must be a number above 0, got {}",
+                self.deploy_min_usd
+            ));
+        }
+        if !(self.deploy_max_tranche_usd.is_finite() && self.deploy_max_tranche_usd > 0.0) {
+            return Err(format!(
+                "`deploy_max_tranche_usd` must be a number above 0, got {}",
+                self.deploy_max_tranche_usd
+            ));
+        }
+        for (sym, z) in &self.deploy_zones {
+            let total: f64 = z.weights.iter().sum();
+            if z.weights.iter().any(|w| !w.is_finite()) || (total - 100.0).abs() > 1e-9 {
+                return Err(format!(
+                    "`deploy_zones.{sym}.weights` must sum to 100, got {total}"
+                ));
+            }
+        }
         Ok(())
     }
 

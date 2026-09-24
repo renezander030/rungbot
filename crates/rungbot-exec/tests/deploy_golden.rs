@@ -1092,3 +1092,421 @@ fn a_state_file_that_does_not_parse_stops_the_layer() {
     let e = layer.check().unwrap_err();
     assert!(e.contains("deploy-state.json"), "{e}");
 }
+
+// ------------------------------------------------------------------ review regressions
+
+/// One scenario's venues, journal and state, run step by step with any closure over the
+/// layer. `venues` names the venues that have a client; one left out has none.
+struct Rig {
+    dir: Scratch,
+    cfg: RunConfig,
+    venues: Venues,
+    feed: Feed,
+    journal: Journal,
+    calls: Rc<RefCell<Vec<Value>>>,
+}
+
+struct Step {
+    r: Result<(), String>,
+    texts: Vec<String>,
+    calls: Vec<Value>,
+    out: String,
+}
+
+impl Rig {
+    fn new(tag: &str, g: &Value, venues: &[&'static str], state: Option<Value>) -> Rig {
+        let dir = Scratch::new(tag);
+        let cfg = config(&g["config"], &dir.0);
+        let init = &g["initial"];
+        let mut journal = Journal::default();
+        if let Some(m) = init["journal"].as_object() {
+            for (cid, row) in m {
+                journal
+                    .orders
+                    .insert(cid.clone(), serde_json::from_value(row.clone()).unwrap());
+            }
+        }
+        store::save_journal(&cfg.journal_path(), &journal).unwrap();
+        if let Some(s) = state.or_else(|| Some(init["state"].clone()).filter(|v| !v.is_null())) {
+            std::fs::write(cfg.deploy_state_path(), s.to_string()).unwrap();
+        }
+        let calls = Rc::new(RefCell::new(Vec::new()));
+        let venues = Venues(
+            venues
+                .iter()
+                .map(|n| {
+                    (
+                        n.to_string(),
+                        FakeVenue::new(n, &init["venues"][*n], calls.clone()),
+                    )
+                })
+                .collect(),
+        );
+        let feed = Feed {
+            regime: RefCell::new(
+                init.get("regime")
+                    .cloned()
+                    .unwrap_or_else(|| json!({"market": "chop", "coins": {}})),
+            ),
+            history: RefCell::new(
+                init.get("history")
+                    .cloned()
+                    .unwrap_or_else(|| json!({"labels": []})),
+            ),
+            closes: RefCell::new(closes_of(&init["closes"])),
+        };
+        Rig {
+            dir,
+            cfg,
+            venues,
+            feed,
+            journal,
+            calls,
+        }
+    }
+
+    fn venue(&self, n: &str) -> &FakeVenue {
+        &self.venues.0[n]
+    }
+
+    fn run(
+        &mut self,
+        now: f64,
+        f: impl FnOnce(&mut Layer, &mut Vec<u8>) -> Result<(), String>,
+    ) -> Step {
+        self.calls.borrow_mut().clear();
+        let jpath = self.cfg.journal_path();
+        let persist = |j: &Journal| store::save_journal(&jpath, j);
+        let clk = || now;
+        let mut layer = Layer {
+            cfg: &self.cfg,
+            venues: &self.venues,
+            regime: &self.feed,
+            clock: &clk,
+            sleep: &|_| {},
+            persist: &persist,
+            stderr: &|_| {},
+            j: &mut self.journal,
+            results: Vec::new(),
+        };
+        let mut out = Vec::new();
+        let r = f(&mut layer, &mut out);
+        let texts = layer
+            .results
+            .iter()
+            .map(|x| {
+                let v = x.to_json();
+                ["done", "warn", "err"]
+                    .iter()
+                    .find_map(|k| v.get(*k).and_then(Value::as_str).map(str::to_string))
+                    .unwrap_or_default()
+            })
+            .collect();
+        Step {
+            r,
+            texts,
+            calls: self.calls.borrow().clone(),
+            out: String::from_utf8(out).unwrap(),
+        }
+    }
+
+    fn check(&mut self, now: f64) -> Step {
+        self.run(now, |l, _| l.check())
+    }
+
+    fn state(&self) -> serde_json::Map<String, Value> {
+        deploy::load_state(&self.cfg.deploy_state_path()).unwrap()
+    }
+}
+
+fn has_call(s: &Step, venue: &str, method: &str) -> bool {
+    s.calls.iter().any(|c| c[0] == venue && c[1] == method)
+}
+
+/// Revolut X holds staged USDC for the Gate top-up and fresh USD above its baseline.
+fn staged_topup() -> (Value, Value) {
+    let g = load("deploy_onramp_and_inflight.json");
+    let mut g = g.clone();
+    g["initial"]["venues"]["revx"]["balances"] = json!({
+        "USD": {"free": 400.0, "locked": 0.0},
+        "USDC": {"free": 300.0, "locked": 0.0}
+    });
+    let state = json!({"ts": 1799998200.0, "stable": {"binance": 50.0, "gate": 100.0, "revx": 100.0},
+                       "part": {}, "offquote": {"revx:USDC": 300.0}});
+    (g, state)
+}
+
+fn assert_fail_closed(rig: &mut Rig, s: &Step) {
+    assert!(s.r.is_ok(), "{:?}", s.r);
+    assert!(
+        !has_call(s, "revx", "market_sell"),
+        "staged USDC sold: {:?}",
+        s.calls
+    );
+    assert!(
+        !has_call(s, "revx", "limit_buy"),
+        "revx laddered: {:?}",
+        s.calls
+    );
+    assert!(
+        s.texts.iter().any(|t| t
+            == "Gate top-up reserve unknown (Gate balance unreadable): no new capital laddered on revx this run"),
+        "{:?}",
+        s.texts
+    );
+    // The new capital is not absorbed: it carries to the next run.
+    assert_eq!(rig.state()["stable"]["revx"], json!(100.0));
+    let _ = &rig.dir;
+}
+
+#[test]
+fn a_missing_gate_client_holds_the_revx_topup_reserve() {
+    let (g, state) = staged_topup();
+    let mut rig = Rig::new("rv-nogate", &g, &["binance", "revx"], Some(state));
+    let s = rig.check(1_800_000_000.0);
+    assert!(
+        s.texts.iter().any(|t| t.starts_with(
+            "Gate top-up reserve unavailable in the revx pre-step; staged USDC stays USDC this run: "
+        )),
+        "{:?}",
+        s.texts
+    );
+    assert_fail_closed(&mut rig, &s);
+}
+
+#[test]
+fn an_unreadable_gate_balance_holds_the_revx_topup_reserve() {
+    let (mut g, state) = staged_topup();
+    g["initial"]["venues"]["gate"]["fail"] =
+        json!([{"method": "balances_full", "key": "", "msg": "gate down", "times": -1}]);
+    let mut rig = Rig::new("rv-gatedown", &g, &["binance", "gate", "revx"], Some(state));
+    let s = rig.check(1_800_000_000.0);
+    assert!(
+        s.texts.iter().any(|t| t
+            == "Gate top-up reserve unavailable in the revx pre-step; staged USDC stays USDC this run: gate down"),
+        "{:?}",
+        s.texts
+    );
+    assert_fail_closed(&mut rig, &s);
+    // Once Gate reads again the reserve is known and the fresh USD ladders.
+    rig.venue("gate").apply(&json!({"fail": []}));
+    let s = rig.check(1_800_001_800.0);
+    assert!(has_call(&s, "revx", "limit_buy"), "{:?}", s.calls);
+}
+
+#[test]
+fn a_venue_without_a_client_keeps_its_baseline() {
+    let g = load("deploy_onramp_and_inflight.json");
+    let mut rig = Rig::new("rv-nobinance", &g, &["gate", "revx"], None);
+    let s = rig.check(1_800_000_000.0);
+    assert!(s.r.is_ok(), "{:?}", s.r);
+    assert_eq!(rig.state()["stable"]["binance"], json!(50.0));
+}
+
+/// The young-bull scenario: AAA's two stale zones on Revolut X are swept to market.
+fn bull() -> Value {
+    load("deploy_bull_sweep_young.json")
+}
+
+fn sweep_buy(s: &Step) -> f64 {
+    s.calls
+        .iter()
+        .find(|c| c[0] == "revx" && c[1] == "market_buy")
+        .and_then(|c| c[3].as_f64())
+        .unwrap_or_else(|| panic!("no sweep buy: {:?}", s.calls))
+}
+
+#[test]
+fn a_bull_sweep_cancel_with_an_unreadable_status_adds_nothing() {
+    let mut g = bull();
+    g["initial"]["venues"]["revx"]["fail"] =
+        json!([{"method": "order_status", "key": "revx-60", "msg": "timeout", "times": -1}]);
+    let mut rig = Rig::new("rv-bull-unread", &g, &["binance", "gate", "revx"], None);
+    let s = rig.check(1_800_000_000.0);
+    assert!(s.r.is_ok(), "{:?}", s.r);
+    assert!(
+        s.texts
+            .iter()
+            .any(|t| t == "bull sweep: b1 final status unreadable, its budget is not swept"),
+        "{:?}",
+        s.texts
+    );
+    // Only b2's unspent $54 is swept, not b1's $95 on top.
+    assert_eq!(sweep_buy(&s), 53.83);
+}
+
+#[test]
+fn a_bull_sweep_buy_is_capped_at_free_cash() {
+    let mut g = bull();
+    // b1 mostly filled venue-side since the last poll: its cancel frees only $9.50.
+    let book = g["initial"]["venues"]["revx"]["book"]
+        .as_array_mut()
+        .unwrap();
+    book[0]["qty"] = json!(1.0);
+    g["initial"]["venues"]["revx"]["balances"]["USD"]["free"] = json!(0.0);
+    let mut rig = Rig::new("rv-bull-cap", &g, &["binance", "gate", "revx"], None);
+    let s = rig.check(1_800_000_000.0);
+    assert!(s.r.is_ok(), "{:?}", s.r);
+    // Free after the cancels: $9.50 + $90.00; the journal's unspent says $149.
+    let buy = sweep_buy(&s);
+    assert!(buy <= 99.5, "market buy ${buy} exceeds free cash");
+    assert_eq!(buy, 99.2);
+}
+
+fn cli_rig(tag: &str) -> Rig {
+    let g = load("deploy_cli.json");
+    Rig::new(tag, &g, &["binance", "gate", "revx"], None)
+}
+
+#[test]
+fn cli_market_share_must_be_above_0_and_at_most_100() {
+    let mut rig = cli_rig("rv-share");
+    for (share, shown) in [
+        (0.0, "0.0"),
+        (-5.0, "-5.0"),
+        (100.5, "100.5"),
+        (f64::NAN, "nan"),
+        (f64::INFINITY, "inf"),
+    ] {
+        let s = rig.run(1_800_000_000.0, |l, o| {
+            cli::market(l, share, "revx", "AAA", o)
+        });
+        assert_eq!(
+            s.r,
+            Err(format!(
+                "--market share must be above 0 and at most 100, got {shown}"
+            ))
+        );
+        assert!(s.calls.is_empty(), "{:?}", s.calls);
+    }
+}
+
+#[test]
+fn cli_tranche_refuses_a_negative_or_non_finite_budget() {
+    let mut rig = cli_rig("rv-tranche-neg");
+    for b in [-10.0, f64::NAN, f64::INFINITY] {
+        let s = rig.run(1_800_000_000.0, |l, o| cli::tranche(l, b, "gate", None, o));
+        assert!(s.r.is_err(), "{b}: {:?}", s.r);
+        assert!(s.calls.is_empty(), "{b}: {:?}", s.calls);
+    }
+}
+
+#[test]
+fn cli_cancel_refuses_an_unknown_venue() {
+    let mut rig = cli_rig("rv-cancel");
+    let s = rig.run(1_800_000_000.0, |l, o| cli::cancel(l, Some("kraken"), o));
+    assert!(s.r.is_err(), "{:?} {}", s.r, s.out);
+    assert!(s.calls.is_empty(), "{:?}", s.calls);
+}
+
+#[test]
+fn cli_numbers_must_be_finite() {
+    for bad in ["nan", "NaN", "inf", "-inf", "1e999", "x"] {
+        assert!(cli::parse_num(bad, "tranche").is_err(), "{bad}");
+    }
+    assert_eq!(cli::parse_num("12.5", "tranche"), Ok(12.5));
+}
+
+/// Gate with no zones, $100 USDT, baseline $100.
+fn tranche_rig(tag: &str, usdt: f64) -> Rig {
+    let mut g = load("deploy_onramp_and_inflight.json");
+    g["initial"]["venues"]["gate"]["balances"] = json!({"USDT": {"free": usdt, "locked": 0.0}});
+    Rig::new(tag, &g, &["binance", "gate", "revx"], None)
+}
+
+#[test]
+fn a_cli_tranche_of_baselined_money_leaves_the_baseline() {
+    let mut rig = tranche_rig("rv-bump-none", 100.0);
+    let s = rig.run(1_800_000_000.0, |l, o| {
+        cli::tranche(l, 50.0, "gate", None, o)
+    });
+    assert!(s.r.is_ok(), "{:?}", s.r);
+    assert!(has_call(&s, "gate", "limit_buy"), "{:?}", s.calls);
+    assert_eq!(rig.state()["stable"]["gate"], json!(100.0));
+}
+
+#[test]
+fn a_cli_tranche_raises_the_baseline_by_new_money_placed() {
+    let mut rig = tranche_rig("rv-bump-part", 130.0);
+    let s = rig.run(1_800_000_000.0, |l, o| {
+        cli::tranche(l, 50.0, "gate", None, o)
+    });
+    assert!(s.r.is_ok(), "{:?}", s.r);
+    assert_eq!(rig.state()["stable"]["gate"], json!(130.0));
+    // Nothing placed: nothing counted as deployed.
+    let mut rig = tranche_rig("rv-bump-fail", 130.0);
+    rig.venue("gate").apply(
+        &json!({"fail": [{"method": "limit_buy", "key": "dep", "msg": "down", "times": -1}]}),
+    );
+    let s = rig.run(1_800_000_000.0, |l, o| {
+        cli::tranche(l, 50.0, "gate", None, o)
+    });
+    assert!(s.r.is_ok(), "{:?}", s.r);
+    assert_eq!(rig.state()["stable"]["gate"], json!(100.0));
+}
+
+#[test]
+fn a_malformed_inflight_marker_is_read_as_none() {
+    let g = load("deploy_onramp_and_inflight.json");
+    let mut g = g.clone();
+    g["initial"]["venues"]["revx"]["balances"] =
+        json!({"USD": {"free": 100.0, "locked": 0.0}, "USDC": {"free": 0.0, "locked": 0.0}});
+    // Gate cannot say what landed: the USDC that left reads as a top-up in flight.
+    g["initial"]["venues"]["gate"]
+        .as_object_mut()
+        .unwrap()
+        .remove("deposits");
+    let state = json!({"ts": 1799998200.0, "stable": {"binance": 50.0, "gate": 100.0, "revx": 100.0},
+                       "part": {}, "offquote": {"revx:USDC": 300.0}, "inflight": "garbage"});
+    let mut rig = Rig::new("rv-inflight", &g, &["binance", "gate", "revx"], Some(state));
+    let s = rig.check(1_800_000_000.0);
+    assert!(s.r.is_ok(), "{:?}", s.r);
+    assert!(
+        s.texts
+            .iter()
+            .any(|t| t.contains("`inflight` is not an object")),
+        "{:?}",
+        s.texts
+    );
+    let st = rig.state();
+    assert_eq!(st["inflight"]["amount"], json!(300.0), "{st:?}");
+}
+
+#[test]
+fn a_coin_without_a_positive_spot_is_skipped() {
+    for px in [0.0, -1.0] {
+        let mut g = load("deploy_cli.json");
+        g["initial"]["venues"]["revx"]["prices"]["AAA/USD"] = json!(px);
+        let mut rig = Rig::new("rv-spot", &g, &["binance", "gate", "revx"], None);
+        let s = rig.run(1_800_000_000.0, |l, o| cli::plan(l, 200.0, o));
+        assert!(s.r.is_ok(), "{:?}", s.r);
+        assert!(
+            s.out.contains("skip AAA: venue data: spot "),
+            "{px}: {}",
+            s.out
+        );
+    }
+}
+
+fn cfg_yaml(extra: &str) -> Result<RunConfig, String> {
+    let y = format!("watchlist:\n  AAA: x\nrouting:\n  AAA: \"gate AAA_USDT USDT\"\n{extra}");
+    RunConfig::from_yaml(&y, &|_| None)
+}
+
+#[test]
+fn deploy_config_rejects_non_positive_amounts_and_bad_zone_weights() {
+    assert!(cfg_yaml("").is_ok());
+    for bad in [
+        "deploy_min_usd: 0\n",
+        "deploy_min_usd: -5\n",
+        "deploy_max_tranche_usd: 0\n",
+        "deploy_max_tranche_usd: -1\n",
+        "deploy_zones:\n  AAA:\n    depths: [5, 10]\n    weights: [30, 40]\n",
+    ] {
+        assert!(cfg_yaml(bad).is_err(), "accepted: {bad}");
+    }
+    assert!(cfg_yaml(
+        "deploy_zones:\n  AAA:\n    depths: [5, 10, 20]\n    weights: [30, 40, 30]\n"
+    )
+    .is_ok());
+}

@@ -317,6 +317,14 @@ fn cmd_plan(args: &Args) -> Result<(), Failure> {
     let now = match args.get("now") {
         Some(v) => v
             .parse::<f64>()
+            .map_err(|e| e.to_string())
+            .and_then(|x| {
+                if x.is_finite() {
+                    Ok(x)
+                } else {
+                    Err(format!("{v:?} is not finite"))
+                }
+            })
             .map_err(|e| Failure::Other(format!("--now must be epoch seconds: {e}")))?,
         None => std::time::SystemTime::now()
             .duration_since(std::time::UNIX_EPOCH)
