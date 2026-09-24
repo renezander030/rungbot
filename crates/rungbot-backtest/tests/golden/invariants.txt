@@ -1,0 +1,17 @@
+dip ladder + high-water dedup
+  PASS  first dip -> rung1 buy 10%
+  PASS  deeper dip -> rung2 buy 5%
+  PASS  retrace -> no re-fire (high-water)
+directional 24h lock
+  PASS  sell frozen during buy window
+  PASS  sell allowed after window closes
+-50% knife floor
+  PASS  no buy past -50% 24h
+sell core floor (never sell all)
+  PASS  cumulative sell capped at 100-MIN_CORE
+missing 24h data holds state (no reset)
+  PASS  None 24h change preserves buy rung
+cost basis seeds from ENTRIES
+  PASS  cost_basis seeded to entry 0.70
+
+ALL INVARIANTS HOLD

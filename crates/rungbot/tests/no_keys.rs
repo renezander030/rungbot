@@ -41,7 +41,11 @@ fn the_shipped_code_contains_no_signing_or_key_handling() {
     ];
 
     let mut files = Vec::new();
-    for c in ["crates/rungbot-core/src", "crates/rungbot/src"] {
+    for c in [
+        "crates/rungbot-core/src",
+        "crates/rungbot/src",
+        "crates/rungbot-backtest/src",
+    ] {
         rust_sources(&root.join(c), &mut files);
     }
     assert!(
@@ -73,6 +77,7 @@ fn no_dependency_pulls_in_an_exchange_sdk() {
     let manifests = [
         "crates/rungbot-core/Cargo.toml",
         "crates/rungbot/Cargo.toml",
+        "crates/rungbot-backtest/Cargo.toml",
     ];
     for m in manifests {
         let body = std::fs::read_to_string(root.join(m))
