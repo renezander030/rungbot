@@ -13,7 +13,11 @@ use rungbot_core::{
     Trail, Venue,
 };
 
+use rungbot_core::watch::Hints;
+use rungbot_notify::{EmailConfig, Notifier, TelegramConfig};
+
 use crate::notify::NotifyConfig;
+use crate::watch::{expand, WatchConfig};
 
 use crate::yaml::{self, Yaml};
 
@@ -33,7 +37,15 @@ pub struct CliConfig {
     pub notify: NotifyConfig,
     /// Per-coin candle source override, `symbol -> "venue:pair"`.
     pub klines: BTreeMap<String, String>,
+    /// Per-coin CoinGecko id, for the backtests' price history (`symbol -> id`).
+    pub coingecko: BTreeMap<String, String>,
+    /// `backtest:` tunables.
+    pub backtest: BacktestConfig,
     pub screen: ScreenConfig,
+    /// The watchers' settings (`watch:`).
+    pub watch: WatchConfig,
+    /// Email and Telegram for the watchers, from `notify:`.
+    pub notifier: Notifier,
 }
 
 pub fn load(path: &Path) -> Result<CliConfig, ConfigError> {
@@ -55,11 +67,17 @@ pub fn from_str(text: &str) -> Result<CliConfig, ConfigError> {
     let coins = coins_from(doc.get("coins"))?;
     let core = apply_env(Config::new(coins, settings)?)?;
 
+    let watch = watch_from(doc.get("watch"))
+        .and_then(|w| crate::watch::apply_env(w).map_err(ConfigError))?;
     Ok(CliConfig {
-        regime: regime_from(doc.get("regime"))?,
+        regime: regime_env(regime_from(doc.get("regime"))?)?,
+        watch,
+        notifier: notifier_from(doc.get("notify"))?,
         sellpolicy: sellpolicy_from(doc.get("sellpolicy"))?,
         notify: notify_from(doc.get("notify"))?,
         klines: klines_from(doc.get("coins")),
+        coingecko: coin_key_from(doc.get("coins"), "coingecko"),
+        backtest: backtest_from(doc.get("backtest"))?,
         screen: screen_from(doc.get("research"))?,
         core,
     })
@@ -111,6 +129,154 @@ fn regime_from(node: Option<&Yaml>) -> Result<RegimeConfig, ConfigError> {
         r.run_ret30_min = number(v, "regime.run_ret30_min")?;
     }
     Ok(r)
+}
+
+/// `RUN_MIN_SIGNALS` / `RUN_RET30_MIN` over the file, as the original gate read them.
+fn regime_env(mut r: RegimeConfig) -> Result<RegimeConfig, ConfigError> {
+    for (key, is_min) in [("RUN_MIN_SIGNALS", true), ("RUN_RET30_MIN", false)] {
+        if let Ok(v) = std::env::var(key) {
+            let x: f64 = v
+                .trim()
+                .parse()
+                .map_err(|e| ConfigError(format!("{key}: {e}")))?;
+            if is_min {
+                r.run_min_signals = x as usize;
+            } else {
+                r.run_ret30_min = x;
+            }
+        }
+    }
+    Ok(r)
+}
+
+fn text(node: Option<&Yaml>) -> Option<String> {
+    node.and_then(|v| v.as_str())
+        .filter(|s| !s.trim().is_empty())
+}
+
+fn watch_from(node: Option<&Yaml>) -> Result<WatchConfig, ConfigError> {
+    let mut w = WatchConfig::default();
+    let Some(n) = node else { return Ok(w) };
+    if n.as_map().is_none() {
+        return err("`watch` must be a mapping");
+    }
+    let path = |k: &str| text(n.get(k)).map(|p| expand(&p));
+    w.state_dir = path("state_dir");
+    w.journal = path("journal");
+    w.balances = path("balances");
+    w.book = path("book");
+    w.verdict = path("verdict");
+    w.expectation = path("expectation");
+    if let Some(v) = n.get("balances_max_age_s") {
+        w.balances_max_age_s = number(v, "watch.balances_max_age_s")?;
+    }
+    let mut hints = Hints::default();
+    if let Some(d) = text(n.get("deploy_cmd")) {
+        hints.deploy_cmd = d;
+    }
+    if let Some(h) = text(n.get("halt_file")) {
+        hints.halt_file = h;
+    }
+    w.hints = hints;
+    if let Some(r) = n.get("regime") {
+        macro_rules! num {
+            ($key:literal, $slot:expr, $t:ty) => {
+                if let Some(v) = r.get($key) {
+                    $slot = number(v, concat!("watch.regime.", $key))? as $t;
+                }
+            };
+        }
+        num!("ttl_h", w.regime_ttl_h, f64);
+        num!("hist_ttl_h", w.hist_ttl_h, f64);
+        num!("hist_days", w.hist_days, usize);
+        num!("confirm_days", w.confirm_days, i64);
+    }
+    if let Some(b) = n.get("btc") {
+        if let Some(v) = b.get("alert_usd") {
+            w.btc.alert_usd = number(v, "watch.btc.alert_usd")?;
+        }
+        if let Some(v) = b.get("warn_usd") {
+            w.btc.warn_usd = number(v, "watch.btc.warn_usd")?;
+        }
+    }
+    if let Some(z) = n.get("zone") {
+        macro_rules! num {
+            ($key:literal, $slot:expr, $t:ty) => {
+                if let Some(v) = z.get($key) {
+                    $slot = number(v, concat!("watch.zone.", $key))? as $t;
+                }
+            };
+        }
+        num!("stale_days", w.zone.stale_days, f64);
+        num!("stale_extra_pp", w.zone.stale_extra_pp, f64);
+        num!("idle_min_usd", w.zone.idle_min_usd, f64);
+        num!("alt_run_tripwire", w.zone.alt_run_tripwire, i64);
+        num!("book_stale_s", w.zone.book_stale_s, f64);
+        w.zone.alts = str_list(z.get("alts"));
+    }
+    if let Some(a) = n.get("alloc") {
+        let Some(entries) = a.as_map() else {
+            return err("`watch.alloc` must map coins to weights");
+        };
+        for (sym, v) in entries {
+            w.alloc
+                .push((sym.to_ascii_uppercase(), number(v, "watch.alloc")?));
+        }
+    }
+    if let Some(d) = n.get("divergence") {
+        macro_rules! num {
+            ($key:literal, $slot:expr) => {
+                if let Some(v) = d.get($key) {
+                    $slot = number(v, concat!("watch.divergence.", $key))?;
+                }
+            };
+        }
+        num!("drift_band_pct", w.divergence.drift_band_pct);
+        num!("floor_margin_pct", w.divergence.floor_margin_pct);
+        num!("min_days", w.divergence.min_days);
+    }
+    if w.btc.alert_usd < 0.0 || w.btc.warn_usd < 0.0 {
+        return err("`watch.btc` lines must be >= 0 (0 disables one)");
+    }
+    Ok(w)
+}
+
+/// The watchers' channels: `notify.email` (Resend) and `notify.telegram`, plus the older
+/// flat `notify.telegram_chat_id`. Keys and tokens only ever come from the environment.
+fn notifier_from(node: Option<&Yaml>) -> Result<Notifier, ConfigError> {
+    let mut out = Notifier::default();
+    let Some(n) = node else { return Ok(out) };
+    if let Some(e) = n.get("email") {
+        let (Some(from), Some(to)) = (text(e.get("from")), text(e.get("to"))) else {
+            return err("`notify.email` needs `from` and `to`");
+        };
+        let mut c = EmailConfig::new(from, to);
+        if let Some(k) = text(e.get("api_key_env")) {
+            c.api_key_env = k;
+        }
+        c.api_key_file = text(e.get("api_key_file"));
+        out.email = Some(c.with_env_overrides());
+    }
+    let chat = n
+        .get("telegram")
+        .and_then(|t| text(t.get("chat_id")))
+        .or_else(|| text(n.get("telegram_chat_id")));
+    if let Some(chat) = chat {
+        let mut t = TelegramConfig::new(chat);
+        if let Some(tg) = n.get("telegram") {
+            if let Some(k) = text(tg.get("token_env")) {
+                t.token_env = k;
+            }
+            if let Some(Yaml::Bool(b)) = tg.get("host_prefix") {
+                t.host_prefix = *b;
+            }
+            if let Some(Yaml::Bool(b)) = tg.get("disable_notification") {
+                t.disable_notification = *b;
+            }
+        }
+        out.telegram = Some(t);
+    }
+    Ok(out)
 }
 
 fn str_list(node: Option<&Yaml>) -> Vec<String> {
@@ -183,22 +349,85 @@ fn notify_from(node: Option<&Yaml>) -> Result<NotifyConfig, ConfigError> {
     }
     // The bot token is deliberately NOT read from the config: it lives in the
     // environment, so a watchlist stays safe to paste into an issue.
-    if let Some(chat) = n.get("telegram_chat_id").and_then(|v| v.as_str()) {
+    if let Some(chat) = n
+        .get("telegram_chat_id")
+        .or_else(|| n.get("telegram").and_then(|t| t.get("chat_id")))
+        .and_then(|v| v.as_str())
+    {
         c.telegram_chat_id = Some(chat);
     }
     Ok(c)
 }
 
 fn klines_from(node: Option<&Yaml>) -> BTreeMap<String, String> {
+    coin_key_from(node, "klines")
+}
+
+/// A per-coin string key, `symbol -> value`, for every coin that sets it.
+fn coin_key_from(node: Option<&Yaml>, key: &str) -> BTreeMap<String, String> {
     let mut out = BTreeMap::new();
     if let Some(entries) = node.and_then(|n| n.as_map()) {
         for (sym, spec) in entries {
-            if let Some(k) = spec.get("klines").and_then(|v| v.as_str()) {
+            if let Some(k) = spec.get(key).and_then(|v| v.as_str()) {
                 out.insert(sym.to_ascii_uppercase(), k);
             }
         }
     }
     out
+}
+
+/// The backtests' own knobs. Defaults are the reference implementation's.
+#[derive(Debug, Clone, PartialEq)]
+pub struct BacktestConfig {
+    /// Hard per-order cap the replay applies, in dollars. 0 = unlimited.
+    pub max_order_usd: f64,
+    /// Trailing windows the monthly run judges, in days.
+    pub windows: Vec<i64>,
+    /// A variant must beat the live bands by more than this to flag REVIEW.
+    pub drift_band_pct: f64,
+    pub percoin: bool,
+    /// Per-coin band probes gaining at least this many alpha points are recommended.
+    pub percoin_min_gain: f64,
+}
+
+impl Default for BacktestConfig {
+    fn default() -> Self {
+        BacktestConfig {
+            max_order_usd: 50.0,
+            windows: vec![28, 90, 180],
+            drift_band_pct: 5.0,
+            percoin: true,
+            percoin_min_gain: 2.0,
+        }
+    }
+}
+
+fn backtest_from(node: Option<&Yaml>) -> Result<BacktestConfig, ConfigError> {
+    let mut b = BacktestConfig::default();
+    let Some(node) = node else { return Ok(b) };
+    if node.is_null() {
+        return Ok(b);
+    }
+    if let Some(v) = node.get("max_order_usd") {
+        b.max_order_usd = number(v, "backtest.max_order_usd")?;
+    }
+    if let Some(v) = node.get("drift_band_pct") {
+        b.drift_band_pct = number(v, "backtest.drift_band_pct")?;
+    }
+    if let Some(v) = node.get("percoin_min_gain") {
+        b.percoin_min_gain = number(v, "backtest.percoin_min_gain")?;
+    }
+    if let Some(v) = node.get("percoin") {
+        let raw = v.as_str().unwrap_or_default().to_ascii_lowercase();
+        b.percoin = !matches!(raw.as_str(), "off" | "false" | "no" | "0");
+    }
+    if let Some(ws) = num_list(node.get("windows"), "backtest.windows")? {
+        if ws.is_empty() || ws.iter().any(|w| *w < 1.0 || w.fract() != 0.0) {
+            return err("`backtest.windows` must be whole days, e.g. 28,90,180");
+        }
+        b.windows = ws.iter().map(|w| *w as i64).collect();
+    }
+    Ok(b)
 }
 
 fn number(node: &Yaml, what: &str) -> Result<f64, ConfigError> {

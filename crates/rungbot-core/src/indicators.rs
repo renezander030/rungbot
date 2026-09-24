@@ -123,7 +123,7 @@ pub fn sma(vals: &[f64], n: usize) -> Option<f64> {
     if n == 0 || vals.len() < n {
         return None;
     }
-    Some(vals[vals.len() - n..].iter().sum::<f64>() / n as f64)
+    Some(crate::watch::pyfmt::sum(vals[vals.len() - n..].iter().copied()) / n as f64)
 }
 
 /// Wilder's RSI. `None` when there is not enough history to seed it.
@@ -135,8 +135,8 @@ pub fn rsi(vals: &[f64], n: usize) -> Option<f64> {
         .windows(2)
         .map(|w| ((w[1] - w[0]).max(0.0), (w[0] - w[1]).max(0.0)))
         .unzip();
-    let mut ag = gains[..n].iter().sum::<f64>() / n as f64;
-    let mut al = losses[..n].iter().sum::<f64>() / n as f64;
+    let mut ag = crate::watch::pyfmt::sum(gains[..n].iter().copied()) / n as f64;
+    let mut al = crate::watch::pyfmt::sum(losses[..n].iter().copied()) / n as f64;
     for i in n..gains.len() {
         ag = (ag * (n - 1) as f64 + gains[i]) / n as f64;
         al = (al * (n - 1) as f64 + losses[i]) / n as f64;

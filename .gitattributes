@@ -1,0 +1,5 @@
+# Frozen reference outputs are compared byte for byte: a checkout must never rewrite
+# their line endings (Windows would turn \n into \r\n and fail every text golden).
+crates/*/tests/golden/** -text
+crates/*/tests/fixtures/** -text
+crates/*/assets/** -text

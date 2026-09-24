@@ -1,0 +1,106 @@
+{
+ "stdout": "pulled 2026-09-04 08:30 UTC\nsym         spot    7d%   30d% offHi% dHi       lo30    lo_date v7/v30  vol%   w1d%   w3d% vsBTC30% vsSMA30%   pnl%\nBTC      81234.5    4.3   25.6   -1.3   1    62535.2 2026-08-14   1.10  2.37   -3.0   -3.2     None     14.0   16.1\nFET       0.1571    4.7   10.7  -14.8  13     0.1192 2026-08-17   1.05  5.14   -9.1  -12.1   -11.87      8.0  -21.4\nOSMO      0.0352   -1.1   24.8  -25.9  15     0.0279 2026-08-05   1.03  7.61  -14.3  -19.6    -0.64      7.7  -12.0\nFETG      0.1569    4.5   10.4  -15.1  13     0.1192 2026-08-17   1.05  5.16   -9.0  -12.2   -12.11      7.9  -12.8\nZZZ   ERROR no fixture for binance:ZZZUSDT\nrungs: sym r# price dist% sigma redDays30 belowLo30 vsSMA30%\n  BTC   r1 76000        6.44  2.71  0 False    6.68\n  BTC   r2 72000       11.37  4.79  0 False    1.06\n  BTC   r3 68000       16.29  6.86  0 False   -4.55\n  FET   r1 0.15         4.52  0.88  7 False    3.15\n  FET   r2 0.145        7.70  1.50  3 False   -0.28\n  FET   SELL 0.2        +27.3% above spot, qty 100.0\n  OSMO  r1 0.033        6.25  0.82  4 False    0.99\n  OSMO  SELL 0.05       +42.0% above spot, qty 1000.0\n  OSMO  SELL 0.045      +27.8% above spot, qty 500.5\n  FETG  r1 0.152        3.12  0.60 11 False    4.50\n  FETG  r2 0.146        6.95  1.35  3 False    0.38\n  FETG  r3 0.138       12.05  2.33  1 False   -5.12\n  funding_now_pct_8h: 0.0071\n  mark: 81200.1\n  oi_err: fixture: no open interest\n  fng: [('2026-09-04', 55, 'Greed'), ('2026-09-03', 49, 'Neutral')]\n",
+ "stderr": "OSMO: gate failed (no fixture for gate:OSMO_USDT), trying kucoin\n",
+ "microstate.json": "{\n  \"pulled_utc\": \"2026-09-04 08:30 UTC\",\n  \"coins\": {\n    \"BTC\": {\n      \"sym\": \"BTC\",\n      \"spot\": 81234.5,\n      \"spot_day\": \"2026-09-04\",\n      \"ret7_pct\": 4.35,\n      \"ret30_pct\": 25.62,\n      \"low30\": 62535.24,\n      \"low30_date\": \"2026-08-14\",\n      \"high30\": 82300.0,\n      \"high30_date\": \"2026-09-03\",\n      \"days_since_high30\": 1,\n      \"days_since_low30\": 21,\n      \"off_high30_pct\": -1.29,\n      \"above_low30_pct\": 29.9,\n      \"vol7_avg_usd\": 96712236,\n      \"vol30_avg_usd\": 87950094,\n      \"vol7_vs_vol30\": 1.1,\n      \"realized_vol30_daily_pct\": 2.37,\n      \"worst_1d_pct\": -3.04,\n      \"worst_3d_pct\": -3.25,\n      \"sma30\": 71243.49433333334,\n      \"spot_vs_sma30_pct\": 14.02,\n      \"vs_btc_30d_pct\": null,\n      \"cost\": 70000,\n      \"pnl_vs_cost_pct\": 16.05,\n      \"rungs\": [\n        {\n          \"rung\": 1,\n          \"price\": 76000,\n          \"usd\": 500,\n          \"dist_pct\": 6.44,\n          \"sigma\": 2.71,\n          \"days_in_30_with_low_that_deep\": 0,\n          \"below_30d_low\": false,\n          \"vs_30d_sma_pct\": 6.68\n        },\n        {\n          \"rung\": 2,\n          \"price\": 72000,\n          \"usd\": 700,\n          \"dist_pct\": 11.37,\n          \"sigma\": 4.79,\n          \"days_in_30_with_low_that_deep\": 0,\n          \"below_30d_low\": false,\n          \"vs_30d_sma_pct\": 1.06\n        },\n        {\n          \"rung\": 3,\n          \"price\": 68000,\n          \"usd\": 800,\n          \"dist_pct\": 16.29,\n          \"sigma\": 6.86,\n          \"days_in_30_with_low_that_deep\": 0,\n          \"below_30d_low\": false,\n          \"vs_30d_sma_pct\": -4.55\n        }\n      ],\n      \"sells\": [],\n      \"source\": \"binance:BTCUSDT\"\n    },\n    \"FET\": {\n      \"sym\": \"FET\",\n      \"spot\": 0.1571,\n      \"spot_day\": \"2026-09-04\",\n      \"ret7_pct\": 4.73,\n      \"ret30_pct\": 10.71,\n      \"low30\": 0.1192,\n      \"low30_date\": \"2026-08-17\",\n      \"high30\": 0.1845,\n      \"high30_date\": \"2026-08-22\",\n      \"days_since_high30\": 13,\n      \"days_since_low30\": 18,\n      \"off_high30_pct\": -14.85,\n      \"above_low30_pct\": 31.8,\n      \"vol7_avg_usd\": 188,\n      \"vol30_avg_usd\": 180,\n      \"vol7_vs_vol30\": 1.05,\n      \"realized_vol30_daily_pct\": 5.14,\n      \"worst_1d_pct\": -9.11,\n      \"worst_3d_pct\": -12.09,\n      \"sma30\": 0.14541333333333334,\n      \"spot_vs_sma30_pct\": 8.04,\n      \"vs_btc_30d_pct\": -11.87,\n      \"cost\": 0.2,\n      \"pnl_vs_cost_pct\": -21.45,\n      \"rungs\": [\n        {\n          \"rung\": 1,\n          \"price\": 0.15,\n          \"usd\": 300,\n          \"dist_pct\": 4.52,\n          \"sigma\": 0.88,\n          \"days_in_30_with_low_that_deep\": 7,\n          \"below_30d_low\": false,\n          \"vs_30d_sma_pct\": 3.15\n        },\n        {\n          \"rung\": 2,\n          \"price\": 0.145,\n          \"usd\": 400,\n          \"dist_pct\": 7.7,\n          \"sigma\": 1.5,\n          \"days_in_30_with_low_that_deep\": 3,\n          \"below_30d_low\": false,\n          \"vs_30d_sma_pct\": -0.28\n        }\n      ],\n      \"sells\": [\n        {\n          \"price\": 0.2,\n          \"qty\": 100.0,\n          \"above_spot_pct\": 27.31\n        }\n      ],\n      \"source\": \"binance:FETUSDT\"\n    },\n    \"OSMO\": {\n      \"sym\": \"OSMO\",\n      \"spot\": 0.0352,\n      \"spot_day\": \"2026-09-04\",\n      \"ret7_pct\": -1.12,\n      \"ret30_pct\": 24.82,\n      \"low30\": 0.0279,\n      \"low30_date\": \"2026-08-05\",\n      \"high30\": 0.0475,\n      \"high30_date\": \"2026-08-20\",\n      \"days_since_high30\": 15,\n      \"days_since_low30\": 30,\n      \"off_high30_pct\": -25.89,\n      \"above_low30_pct\": 26.16,\n      \"vol7_avg_usd\": 42,\n      \"vol30_avg_usd\": 40,\n      \"vol7_vs_vol30\": 1.03,\n      \"realized_vol30_daily_pct\": 7.61,\n      \"worst_1d_pct\": -14.26,\n      \"worst_3d_pct\": -19.59,\n      \"sma30\": 0.032676666666666666,\n      \"spot_vs_sma30_pct\": 7.72,\n      \"vs_btc_30d_pct\": -0.64,\n      \"cost\": 0.04,\n      \"pnl_vs_cost_pct\": -12.0,\n      \"rungs\": [\n        {\n          \"rung\": 1,\n          \"price\": 0.033,\n          \"usd\": 200,\n          \"dist_pct\": 6.25,\n          \"sigma\": 0.82,\n          \"days_in_30_with_low_that_deep\": 4,\n          \"below_30d_low\": false,\n          \"vs_30d_sma_pct\": 0.99\n        }\n      ],\n      \"sells\": [\n        {\n          \"price\": 0.05,\n          \"qty\": 1000.0,\n          \"above_spot_pct\": 42.05\n        },\n        {\n          \"price\": 0.045,\n          \"qty\": 500.5,\n          \"above_spot_pct\": 27.84\n        }\n      ],\n      \"source\": \"kucoin:OSMO_USDT\"\n    },\n    \"FETG\": {\n      \"sym\": \"FETG\",\n      \"spot\": 0.1569,\n      \"spot_day\": \"2026-09-04\",\n      \"ret7_pct\": 4.53,\n      \"ret30_pct\": 10.42,\n      \"low30\": 0.1192,\n      \"low30_date\": \"2026-08-17\",\n      \"high30\": 0.1847,\n      \"high30_date\": \"2026-08-22\",\n      \"days_since_high30\": 13,\n      \"days_since_low30\": 18,\n      \"off_high30_pct\": -15.05,\n      \"above_low30_pct\": 31.63,\n      \"vol7_avg_usd\": 188,\n      \"vol30_avg_usd\": 180,\n      \"vol7_vs_vol30\": 1.05,\n      \"realized_vol30_daily_pct\": 5.16,\n      \"worst_1d_pct\": -9.04,\n      \"worst_3d_pct\": -12.22,\n      \"sma30\": 0.14545333333333332,\n      \"spot_vs_sma30_pct\": 7.87,\n      \"vs_btc_30d_pct\": -12.11,\n      \"cost\": 0.18,\n      \"pnl_vs_cost_pct\": -12.83,\n      \"rungs\": [\n        {\n          \"rung\": 1,\n          \"price\": 0.152,\n          \"usd\": 100,\n          \"dist_pct\": 3.12,\n          \"sigma\": 0.6,\n          \"days_in_30_with_low_that_deep\": 11,\n          \"below_30d_low\": false,\n          \"vs_30d_sma_pct\": 4.5\n        },\n        {\n          \"rung\": 2,\n          \"price\": 0.146,\n          \"usd\": 150,\n          \"dist_pct\": 6.95,\n          \"sigma\": 1.35,\n          \"days_in_30_with_low_that_deep\": 3,\n          \"below_30d_low\": false,\n          \"vs_30d_sma_pct\": 0.38\n        },\n        {\n          \"rung\": 3,\n          \"price\": 0.138,\n          \"usd\": 200,\n          \"dist_pct\": 12.05,\n          \"sigma\": 2.33,\n          \"days_in_30_with_low_that_deep\": 1,\n          \"below_30d_low\": false,\n          \"vs_30d_sma_pct\": -5.12\n        }\n      ],\n      \"sells\": [],\n      \"source\": \"gate:FET_USDT\"\n    },\n    \"ZZZ\": {\n      \"sym\": \"ZZZ\",\n      \"error\": \"no fixture for binance:ZZZUSDT\",\n      \"source\": \"binance:ZZZUSDT\"\n    }\n  },\n  \"btc_derivs\": {\n    \"funding_now_pct_8h\": 0.0071,\n    \"mark\": 81200.1,\n    \"oi_err\": \"fixture: no open interest\",\n    \"fng\": [\n      [\n        \"2026-09-04\",\n        55,\n        \"Greed\"\n      ],\n      [\n        \"2026-09-03\",\n        49,\n        \"Neutral\"\n      ]\n    ]\n  }\n}",
+ "orders": {
+  "rungs": {
+   "BTC": [
+    [
+     76000,
+     500
+    ],
+    [
+     72000,
+     700
+    ],
+    [
+     68000,
+     800
+    ]
+   ],
+   "FET": [
+    [
+     0.15,
+     300
+    ],
+    [
+     0.145,
+     400
+    ]
+   ],
+   "OSMO": [
+    [
+     0.033,
+     200
+    ]
+   ],
+   "FETG": [
+    [
+     0.152,
+     100
+    ],
+    [
+     0.146,
+     150
+    ],
+    [
+     0.138,
+     200
+    ]
+   ],
+   "ZZZ": [
+    [
+     1.0,
+     10
+    ]
+   ]
+  },
+  "sells": {
+   "FET": [
+    [
+     0.2,
+     100.0
+    ]
+   ],
+   "OSMO": [
+    [
+     0.05,
+     1000.0
+    ],
+    [
+     0.045,
+     500.5
+    ]
+   ]
+  },
+  "cost": {
+   "BTC": 70000,
+   "FET": 0.2,
+   "OSMO": 0.04,
+   "FETG": 0.18,
+   "ZZZ": 1.5
+  },
+  "src": {
+   "BTC": [
+    "binance",
+    "BTCUSDT"
+   ],
+   "FET": [
+    "binance",
+    "FETUSDT"
+   ],
+   "OSMO": [
+    "gate",
+    "OSMO_USDT"
+   ],
+   "FETG": [
+    "gate",
+    "FET_USDT"
+   ],
+   "ZZZ": [
+    "binance",
+    "ZZZUSDT"
+   ]
+  }
+ }
+}

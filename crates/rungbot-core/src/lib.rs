@@ -41,10 +41,12 @@ pub mod housekeeping;
 pub mod indicators;
 pub mod ladder;
 pub mod notices;
+pub mod pymath;
 pub mod regime;
 pub mod research;
 pub mod sellpolicy;
 pub mod time;
+pub mod watch;
 pub mod yaml;
 
 pub use analyze::{

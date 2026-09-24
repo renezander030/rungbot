@@ -215,7 +215,7 @@ mod tests {
         assert_eq!(fmt_price(Some(2606.4)), "2,606");
         assert_eq!(fmt_price(Some(108.5)), "108.50");
         assert_eq!(fmt_price(Some(0.044)), "0.0440");
-        assert_eq!(fmt_price(Some(0.00195)), "0.001950");
+        assert_eq!(fmt_price(Some(0.00123)), "0.001230");
         assert_eq!(fmt_price(None), "-");
     }
 

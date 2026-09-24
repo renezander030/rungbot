@@ -41,11 +41,13 @@ fn the_shipped_code_contains_no_signing_or_key_handling() {
     ];
 
     let mut files = Vec::new();
-    // rungbot-notify is scanned too: the CLI links it, so it is part of what ships.
+    // Every crate the CLI links is scanned: all of it ships in the keyless binary.
     for c in [
         "crates/rungbot-core/src",
         "crates/rungbot-notify/src",
         "crates/rungbot/src",
+        "crates/rungbot-backtest/src",
+        "crates/rungbot-research/src",
     ] {
         rust_sources(&root.join(c), &mut files);
     }
@@ -79,6 +81,8 @@ fn no_dependency_pulls_in_an_exchange_sdk() {
         "crates/rungbot-core/Cargo.toml",
         "crates/rungbot-notify/Cargo.toml",
         "crates/rungbot/Cargo.toml",
+        "crates/rungbot-backtest/Cargo.toml",
+        "crates/rungbot-research/Cargo.toml",
     ];
     for m in manifests {
         let body = std::fs::read_to_string(root.join(m))

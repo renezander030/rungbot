@@ -83,6 +83,7 @@ Rust 1.82+. No system dependencies.
 | `rungbot regime` | bull, chop or bear, and which coins are running |
 | `rungbot kpi` | where each coin sits in its own cycle |
 | `rungbot research` | what is deeply dislocated and still earns fees |
+| `rungbot backtest` | the ladder replayed over history: window, sweep, monthly verdict, studies |
 | `rungbot init` · `rungbot tickers` | starter config · just the prices |
 
 All except `init` take `--json`. `--config PATH` works everywhere; `--state PATH` on `plan`.
@@ -152,10 +153,71 @@ fees, value first and dislocation second (CoinPaprika + DefiLlama, both keyless)
 `--llm 'claude -p'` pipes each candidate's facts to any command on stdin; without it the
 gate is arithmetic. Never wired to the ladder.
 
+**`rungbot research <stage>`** is the weekly version of that screen, as a pipeline that
+composes through one ledger file:
+
+| Stage | Does |
+|---|---|
+| `oppscan` | the tradable band, ranked by distance from the all-time high (CoinPaprika) |
+| `survivor build-index \| select \| run` | a DefiLlama fees/TVL index, a value-first pick, then web evidence and one LLM verdict per coin |
+| `catalyst search \| synthesize` | web evidence of a forward catalyst, then one LLM verdict per coin |
+| `unlocks build-index \| enrich` | the next 180 days of token-unlock cliffs (DefiLlama's open CDN) |
+| `report [--refresh] [--commit]` | reads the regime, runs the matching thesis, writes one dated note and a short email |
+| `theses [--example]` | which screen runs in which regime; the wording lives in a YAML file you edit |
+
+No model provider is built in. `research.llm.command` names any command that reads a
+prompt on stdin and answers on stdout; rungbot **always** appends a spend cap to it
+(`--max-budget-usd 0.10` by default, flag and amount configurable, never off) and adds
+nothing else, so it runs with exactly the permissions you wrote into the command. With no
+command configured, the LLM stages refuse to run. The search key (`EXA_API_KEY`), the
+Resend key and the note token are read from the environment, never from the config.
+`report` without `--commit` is a dry run. See `rungbot research help` and
+[`contrib/systemd`](contrib/systemd) for a weekly timer.
+
 **`--notify`** posts to a webhook or Telegram, deduplicated to one message per new signal
 and one reminder a day. The bot token comes from `RUNGBOT_TELEGRAM_TOKEN`, never the
 config. Every run also records why each coin did nothing; `--save` appends
 `decisions.jsonl` beside the state file.
+
+## Watchers
+
+`rungbot watch <regime|btc|zone|froth|divergence|daily>` runs the read-only checks that
+mail you when the market or the book needs a human. None of them places, cancels or
+halts anything; each mail says what to run by hand. `--dry-run` prints instead of
+sending. State files sit side by side and are written by rename, so a crash never
+leaves half a file.
+
+| Watcher | Mails when |
+|---|---|
+| `regime` | the bull/chop/bear label flips, and again when it confirms (14 days held). A confirmed label that later returns is announced again. |
+| `btc` | BTC enters the heads-up band or breaks your alert line. Once per crossing; re-arms 2% back above. |
+| `zone` | a resting buy has sat far below spot too long, a coin starts or stops running, or cash sits idle. |
+| `froth` | the heat level changes: fear & greed, funding, open interest, BTC's Mayer multiple. |
+| `divergence` | live results fall behind the last backtest, or the drawdown passes its worst window. Once per guard per baseline. |
+
+`daily` runs `froth` then `zone`. Email goes through Resend (`RESEND_API_KEY`), Telegram
+through `RUNGBOT_TELEGRAM_TOKEN`. The watchers read the executor's order journal and a
+balances snapshot from the paths under `watch:`, so `rungbot` still holds no venue key.
+Example systemd units are in [`contrib/systemd`](contrib/systemd).
+
+**`rungbot backtest`** replays the configured ladder over past prices; it never trades.
+`window --book FILE` runs the last 28 days (`--days N`) hour by hour from a start book of
+holdings and free stable, with fees and slippage, and writes the book it started from.
+`sweep` replays the same window under nine band and core variants. `monthly` runs
+several windows (`backtest.windows`, default 28/90/180), flags REVIEW when a variant
+beats the live bands by more than `backtest.drift_band_pct`, probes per-coin bands, and
+writes an expectation file a later run is measured against; `--dry-run` prints it,
+`--notify` sends it. Price history comes from CoinGecko: give each coin a
+`coingecko: <id>`. For a monthly verdict, schedule it and keep the log:
+
+```
+0 7 1 * *  rungbot backtest monthly --book ~/book.json --notify >> ~/backtest.log 2>&1
+```
+
+`backtest replay <study>` runs the research studies behind the sell policy over cached
+daily candles: BTC confirmations and the dip rungs after them, whether they transfer to
+alts, the anatomy of cycle tops, and the sell policy replayed across them.
+`replay example` prints a study file to start from; `replay fetch` caches its candles.
 
 ## Execution
 
@@ -213,6 +275,8 @@ refuses every network call, signed or public.
 | [`rungbot-core`](crates/rungbot-core) | The strategy as pure logic. No clock, files or network; compiles to `wasm32`. |
 | [`rungbot`](crates/rungbot) | The `rungbot` binary. Holds no key. |
 | [`rungbot-notify`](crates/rungbot-notify) | Email (Resend), Telegram and webhook, plus signal-notice dedupe. Shared by both binaries; holds no venue key. |
+| [`rungbot-backtest`](crates/rungbot-backtest) | Backtests and replays as pure computation over price history. |
+| [`rungbot-research`](crates/rungbot-research) | The weekly research pipeline: dislocation screen, fundamentals, unlocks, and an optional LLM verdict with a spend cap. Holds no venue key. |
 | [`rungbot-exec`](crates/rungbot-exec) | The `rungbot-exec` binary. Holds the key. Opt-in. |
 
 ## Testing
@@ -224,7 +288,9 @@ end-to-end smoke test.
 
 [The golden test](crates/rungbot-core/tests/golden.rs) replays a frozen ten-step scenario
 generated by the reference implementation this crate replaced, so a refactor that changes
-sizing or a boundary fails even when every unit test passes.
+sizing or a boundary fails even when every unit test passes. The backtests and replays
+have [their own goldens](crates/rungbot-backtest/tests), recorded from the reference's
+backtest and study scripts on public candles and compared byte for byte.
 
 ## Risk
 

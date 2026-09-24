@@ -54,12 +54,46 @@ research:
   max_drawdown_pct: 92  # past this it is the graveyard, not the bargain bin
   fee_floor_30d: 50000  # 30d fees at or above this count as a real business
   limit: 10
+  # The weekly pipeline (`rungbot research <stage>`, see `rungbot research help`):
+  # dir: ~/.local/state/rungbot/research   # ledger + indexes
+  # theses: ~/.config/rungbot/theses.yaml  # `rungbot research theses --example`
+  # llm:                                   # no default: the LLM stages refuse without it
+  #   command: "your-llm-cli --print"      # prompt on stdin, answer on stdout
+  #   max_budget_usd: 0.10                 # always appended as --max-budget-usd 0.10
+  # email:                                 # key from RESEND_API_KEY
+  #   from: research@example.com
+  #   to: you@example.com
+  # notes:                                 # token from TICKTICK_TOKEN
+  #   project_id: "your-project-id"
 
 # --- Notifications (optional) --------------------------------------------------
 # The Telegram bot token is read from RUNGBOT_TELEGRAM_TOKEN, never from this file.
 # notify:
 #   webhook_url: https://example.com/hook
 #   telegram_chat_id: "123456789"
+#   email:                        # used by `rungbot watch`; key from RESEND_API_KEY
+#     from: rungbot@example.com
+#     to: you@example.com
+#   telegram:
+#     chat_id: "123456789"        # token from RUNGBOT_TELEGRAM_TOKEN
+
+# --- Watchers (optional, for `rungbot watch`) -----------------------------------
+# Read-only: they mail you, they never place or cancel anything.
+# watch:
+#   state_dir: ~/.local/state/rungbot
+#   journal: ~/.local/state/rungbot/journal.json    # rungbot-exec's order journal
+#   balances: ~/.local/state/rungbot/balances.json  # {"ts": ..., "venues": {...}}
+#   btc:
+#     alert_usd: 50000        # the price that flips your thesis; 0 disables
+#     warn_usd: 55000         # a heads-up above it; 0 disables
+#   zone:
+#     stale_days: 14
+#     idle_min_usd: 25
+#     alts: SOL, AVAX         # coins the RUN-flip tripwire counts
+#   divergence:
+#     drift_band_pct: 5
+#     floor_margin_pct: 3
+#     min_days: 7
 
 coins:
   BTC:
