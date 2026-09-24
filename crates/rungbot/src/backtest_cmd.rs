@@ -327,22 +327,28 @@ fn cmd_monthly(args: &Args, cfg: &CliConfig) -> Result<(), Failure> {
         print!("{}", report.dry_run_text());
         return Ok(());
     }
-    if !cfg.notify.is_configured() {
+    let email = cfg.notifier.email.as_ref();
+    if !cfg.notify.is_configured() && email.is_none() {
         return Err(Failure::Config(
-            "--notify needs a `notify:` webhook or Telegram chat in the config".into(),
+            "--notify needs a `notify:` email, webhook or Telegram chat in the config".into(),
         ));
     }
-    let empty = rungbot_core::Outcome {
-        buys: Vec::new(),
-        sells: Vec::new(),
-        rows: Vec::new(),
-        errors: Vec::new(),
-        skips: Vec::new(),
-        state: Default::default(),
-    };
-    let text = format!("{}\n\n{}", report.subject, report.body);
-    let results = crate::notify::send(&cfg.notify, &empty, &text);
-    if results.iter().any(|(_, r)| r.is_ok()) {
+    // The verdict mail (Resend, text only), then the webhook and Telegram when set.
+    let mut sent = email.is_some_and(|e| e.send_email(&report.subject, &report.body, None));
+    if cfg.notify.is_configured() {
+        let empty = rungbot_core::Outcome {
+            buys: Vec::new(),
+            sells: Vec::new(),
+            rows: Vec::new(),
+            errors: Vec::new(),
+            skips: Vec::new(),
+            state: Default::default(),
+        };
+        let text = format!("{}\n\n{}", report.subject, report.body);
+        let results = crate::notify::send(&cfg.notify, &empty, &text);
+        sent |= results.iter().any(|(_, r)| r.is_ok());
+    }
+    if sent {
         println!(
             "Sent monthly backtest verdict across {}/{} windows.",
             report.windows_ok,
