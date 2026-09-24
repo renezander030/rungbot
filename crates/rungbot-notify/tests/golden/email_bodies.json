@@ -1,0 +1,30 @@
+[
+ {
+  "kind": "bot",
+  "subject": "DIP-BUY AAA -12.3% 24h (rung 2)",
+  "text": "line one\nline two",
+  "html": null,
+  "body": "{\"from\": \"alerts@example.com\", \"to\": [\"me@example.com\"], \"subject\": \"DIP-BUY AAA -12.3% 24h (rung 2)\", \"text\": \"line one\\nline two\"}"
+ },
+ {
+  "kind": "bot",
+  "subject": "SIGNAL: 1 dip-buy + 1 take-profit \u2014 not executed: $0.00 USD < min $3.00",
+  "text": "caf\u00e9 \ud83e\udded \"q\" \\ back\ttab\r\u0001\u007f",
+  "html": "<b>hi</b>",
+  "body": "{\"from\": \"alerts@example.com\", \"to\": [\"me@example.com\"], \"subject\": \"SIGNAL: 1 dip-buy + 1 take-profit \\u2014 not executed: $0.00 USD < min $3.00\", \"text\": \"caf\\u00e9 \\ud83e\\udded \\\"q\\\" \\\\ back\\ttab\\r\\u0001\\u007f\", \"html\": \"<b>hi</b>\"}"
+ },
+ {
+  "kind": "bot",
+  "subject": "empty html is dropped",
+  "text": "",
+  "html": "",
+  "body": "{\"from\": \"alerts@example.com\", \"to\": [\"me@example.com\"], \"subject\": \"empty html is dropped\", \"text\": \"\"}"
+ },
+ {
+  "kind": "report",
+  "subject": "\ud83e\udded Weekly steering \u2014 3 lead(s) \u2014 2026-01-05",
+  "text": null,
+  "html": "<div style=\"font-family:system-ui\">x<br>y</div>",
+  "body": "{\"from\": \"alerts@example.com\", \"to\": [\"me@example.com\"], \"subject\": \"\\ud83e\\udded Weekly steering \\u2014 3 lead(s) \\u2014 2026-01-05\", \"html\": \"<div style=\\\"font-family:system-ui\\\">x<br>y</div>\"}"
+ }
+]

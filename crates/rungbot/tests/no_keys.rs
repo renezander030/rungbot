@@ -41,7 +41,12 @@ fn the_shipped_code_contains_no_signing_or_key_handling() {
     ];
 
     let mut files = Vec::new();
-    for c in ["crates/rungbot-core/src", "crates/rungbot/src"] {
+    // rungbot-notify is scanned too: the CLI links it, so it is part of what ships.
+    for c in [
+        "crates/rungbot-core/src",
+        "crates/rungbot-notify/src",
+        "crates/rungbot/src",
+    ] {
         rust_sources(&root.join(c), &mut files);
     }
     assert!(
@@ -72,6 +77,7 @@ fn no_dependency_pulls_in_an_exchange_sdk() {
     let root = workspace_root();
     let manifests = [
         "crates/rungbot-core/Cargo.toml",
+        "crates/rungbot-notify/Cargo.toml",
         "crates/rungbot/Cargo.toml",
     ];
     for m in manifests {
@@ -98,6 +104,14 @@ fn the_notify_only_binary_does_not_depend_on_the_executor() {
     assert!(
         !manifest.contains("rungbot-exec"),
         "the rungbot crate must not depend on rungbot-exec"
+    );
+    // The notifier is shared by both binaries, so it must not reach back into the
+    // executor either, or the CLI would pull it in through the side door.
+    let notify = std::fs::read_to_string(root.join("crates/rungbot-notify/Cargo.toml"))
+        .expect("read the rungbot-notify manifest");
+    assert!(
+        !notify.contains("rungbot-exec"),
+        "rungbot-notify must not depend on rungbot-exec"
     );
 
     let lock = std::fs::read_to_string(root.join("Cargo.lock")).expect("read the lockfile");
