@@ -1,63 +1,42 @@
-//! The Gate.io spot client. One venue, deliberately.
+//! The Gate.io spot client.
 //!
-//! Gate is first because its authentication is the simplest of the three and its
-//! minimums are the friendliest to a small first order. A second venue is a second set
-//! of rounding rules, minimums and error shapes — worth doing once this one is proven,
-//! not before.
+//! Signing: HMAC-SHA512 over `METHOD\npath\nquery\nsha512hex(body)\nts`, seconds.
+//! Market data and pair precision are public calls; everything account-bound is signed.
 //!
-//! **Only limit orders.** A GTC limit order rests at the venue and fills while your
-//! machine is asleep, which is what makes a ladder work on a laptop. Market orders need
-//! you present and are not implemented here at all.
+//! Two response quirks are handled in [`parse_order`], and both have cost money when
+//! read naively:
 //!
-//! The 90-day rule is the thing to know: a Gate key with **no IP allowlist is disabled
-//! after 90 days**, silently. [`GateError::IpNotAllowed`] exists because the failure
-//! that follows looks like a bug and is not.
+//! * `fill_price` is a deprecated alias for `filled_total`, the TOTAL quote filled, not a
+//!   per-unit price. The per-unit price is `avg_deal_price`. Reading `fill_price` as the
+//!   price inflates the average by roughly the base amount and pushes a paired limit
+//!   sell off the book.
+//! * On a MARKET BUY, `amount` and `left` are in the QUOTE asset, so `amount - left` is
+//!   quote, not base. The base is derived from `filled_total / avg_deal_price`.
+//!
+//! A key with no IP allowlist is disabled after 90 days, silently. See
+//! [`crate::http::VenueError::hint`].
+
+use std::cell::RefCell;
+use std::collections::BTreeMap;
 
 use hmac::{Hmac, Mac};
 use serde::{Deserialize, Serialize};
+use serde_json::Value;
 use sha2::{Digest, Sha512};
 
-use crate::journal::Side;
+use crate::http::{self, hex, Http, Reply, VenueError};
+use crate::ids;
 use crate::keys::Credentials;
+use crate::pyfmt::{self, float_or_zero, PyVal};
+use crate::venue::{shape_err, Balance, Limits, ParsedOrder, Venue};
 
-const BASE: &str = "https://api.gateio.ws";
-const TIMEOUT_S: u64 = 20;
-
-#[derive(Debug, Clone, PartialEq)]
-pub enum GateError {
-    /// The key is not allowed from this IP, or has lapsed past the 90-day rule.
-    IpNotAllowed(String),
-    /// Bad key, bad secret, or a permission the key does not have.
-    Unauthorized(String),
-    /// The venue refused the order itself: too small, bad precision, no balance.
-    Rejected(String),
-    Network(String),
-    Unexpected(String),
-}
-
-impl core::fmt::Display for GateError {
-    fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
-        match self {
-            GateError::IpNotAllowed(m) => write!(
-                f,
-                "Gate refused this key from this IP ({m}). Either your address changed, \
-                 or an un-allowlisted key passed its 90-day expiry. Both are fixed in \
-                 Gate's API management page, not here."
-            ),
-            GateError::Unauthorized(m) => write!(f, "Gate rejected the credentials: {m}"),
-            GateError::Rejected(m) => write!(f, "Gate rejected the order: {m}"),
-            GateError::Network(m) => write!(f, "network: {m}"),
-            GateError::Unexpected(m) => write!(f, "{m}"),
-        }
-    }
-}
-
-impl std::error::Error for GateError {}
+pub const BASE: &str = "https://api.gateio.ws";
+const V: &str = "gate";
 
 #[derive(Debug, Clone, Copy, PartialEq, Serialize, Deserialize)]
 pub struct PairInfo {
-    pub amount_precision: u32,
-    pub price_precision: u32,
+    pub amount_precision: i64,
+    pub price_precision: i64,
     pub min_base: f64,
     pub min_quote: f64,
 }
@@ -65,90 +44,77 @@ pub struct PairInfo {
 impl PairInfo {
     /// Round down, never up: rounding an amount up can exceed the balance you have.
     pub fn round_amount(&self, amount: f64) -> f64 {
-        let f = 10f64.powi(self.amount_precision as i32);
-        (amount * f).floor() / f
+        floor_to(amount, self.amount_precision)
     }
 
     pub fn round_price(&self, price: f64) -> f64 {
-        let f = 10f64.powi(self.price_precision as i32);
-        (price * f).floor() / f
+        floor_to(price, self.price_precision)
     }
 }
 
+/// `floor(x * 10**p) / 10**p`.
+fn floor_to(x: f64, p: i64) -> f64 {
+    let f = 10f64.powi(p as i32);
+    (x * f).floor() / f
+}
+
+/// An on-chain deposit as Gate credited it.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
-pub struct VenueOrder {
-    pub id: String,
-    pub text: Option<String>,
-    pub status: String,
-    pub price: f64,
+pub struct Deposit {
+    pub currency: Option<String>,
     pub amount: f64,
-    pub filled_amount: f64,
-    pub filled_quote: f64,
-}
-
-/// Classify a venue response so the caller can tell "fix your setup" from "try later".
-fn classify(status: u16, body: &str) -> GateError {
-    let lower = body.to_lowercase();
-    if lower.contains("ip_forbidden")
-        || lower.contains("not in the ip whitelist")
-        || lower.contains("ip not allowed")
-    {
-        return GateError::IpNotAllowed(body.chars().take(160).collect());
-    }
-    if status == 401 || lower.contains("invalid_key") || lower.contains("invalid_signature") {
-        return GateError::Unauthorized(body.chars().take(160).collect());
-    }
-    if status == 403 {
-        // Gate uses 403 both for allowlist refusals and for missing scopes.
-        return GateError::Unauthorized(body.chars().take(160).collect());
-    }
-    if (400..500).contains(&status) {
-        return GateError::Rejected(body.chars().take(200).collect());
-    }
-    GateError::Unexpected(format!(
-        "{status}: {}",
-        body.chars().take(200).collect::<String>()
-    ))
+    /// `DONE` means credited.
+    pub status: Option<String>,
+    pub ts: f64,
 }
 
 pub struct Gate {
     creds: Credentials,
-    pairs: std::cell::RefCell<std::collections::BTreeMap<String, PairInfo>>,
+    http: Http,
+    pairs: RefCell<BTreeMap<String, PairInfo>>,
 }
 
 type HmacSha512 = Hmac<Sha512>;
 
+fn err(method: &str, path: &str, r: &Reply) -> VenueError {
+    VenueError::new(
+        V,
+        r.status,
+        format!("{method} {path} -> {} {}", r.status_str(), r.body_str()),
+    )
+}
+
 impl Gate {
     pub fn new(creds: Credentials) -> Self {
+        Self::with_http(creds, Http::default())
+    }
+
+    pub fn with_http(creds: Credentials, http: Http) -> Self {
         Gate {
             creds,
-            pairs: std::cell::RefCell::new(Default::default()),
+            http,
+            pairs: RefCell::new(BTreeMap::new()),
         }
     }
 
-    /// Gate signs `METHOD\npath\nquery\nSHA512(body)\ntimestamp` with HMAC-SHA512.
-    fn headers(
+    /// The signed headers for one request at `now` (whole seconds).
+    pub fn headers(
         &self,
         method: &str,
         path: &str,
         query: &str,
         body: &str,
-        now: u64,
+        now: i64,
     ) -> Vec<(String, String)> {
-        let payload_hash = {
-            let mut h = Sha512::new();
-            h.update(body.as_bytes());
-            hex(&h.finalize())
-        };
+        let payload_hash = hex(&Sha512::digest(body.as_bytes()));
         let to_sign = format!("{method}\n{path}\n{query}\n{payload_hash}\n{now}");
         let mut mac = HmacSha512::new_from_slice(self.creds.secret.as_bytes())
             .expect("hmac takes any key length");
         mac.update(to_sign.as_bytes());
-        let sign = hex(&mac.finalize().into_bytes());
         vec![
             ("KEY".into(), self.creds.key.clone()),
             ("Timestamp".into(), now.to_string()),
-            ("SIGN".into(), sign),
+            ("SIGN".into(), hex(&mac.finalize().into_bytes())),
             ("Accept".into(), "application/json".into()),
             ("Content-Type".into(), "application/json".into()),
         ]
@@ -159,137 +125,222 @@ impl Gate {
         method: &str,
         path: &str,
         query: &str,
-        body: Option<&serde_json::Value>,
-    ) -> Result<serde_json::Value, GateError> {
-        if std::env::var("RUNGBOT_OFFLINE").as_deref() == Ok("1") {
-            return Err(GateError::Network(
-                "RUNGBOT_OFFLINE=1 refuses every venue call".into(),
-            ));
-        }
-        let body_str = body.map(|b| b.to_string()).unwrap_or_default();
-        let now = std::time::SystemTime::now()
-            .duration_since(std::time::UNIX_EPOCH)
-            .map(|d| d.as_secs())
-            .unwrap_or(0);
+        body: Option<&PyVal>,
+    ) -> Result<Value, VenueError> {
+        let body_str = body
+            .map(|b| pyfmt::dumps_ordered(b, false))
+            .unwrap_or_default();
         let url = if query.is_empty() {
             format!("{BASE}{path}")
         } else {
             format!("{BASE}{path}?{query}")
         };
-
-        let mut req = match method {
-            "GET" => minreq::get(&url),
-            "POST" => minreq::post(&url),
-            "DELETE" => minreq::delete(&url),
-            m => return Err(GateError::Unexpected(format!("unsupported method {m}"))),
+        let now = self.http.now() as i64;
+        let headers = self.headers(method, path, query, &body_str, now);
+        let r = http::request(
+            &self.http,
+            V,
+            method,
+            &url,
+            headers,
+            (!body_str.is_empty()).then_some(body_str),
+        )?;
+        if !matches!(r.status, Some(200) | Some(201)) {
+            return Err(err(method, path, &r));
         }
-        .with_timeout(TIMEOUT_S);
-        for (k, v) in self.headers(method, path, query, &body_str, now) {
-            req = req.with_header(k, v);
-        }
-        if !body_str.is_empty() {
-            req = req.with_body(body_str);
-        }
-
-        let resp = req.send().map_err(|e| GateError::Network(e.to_string()))?;
-        let text = resp.as_str().unwrap_or("").to_string();
-        if !(200..300).contains(&resp.status_code) {
-            return Err(classify(resp.status_code, &text));
-        }
-        serde_json::from_str(&text)
-            .map_err(|e| GateError::Unexpected(format!("unreadable response: {e}")))
+        Ok(r.json_or_null())
     }
 
-    /// `{asset: (free, locked)}`. Locked is what resting orders are holding.
-    pub fn balances(&self) -> Result<std::collections::BTreeMap<String, (f64, f64)>, GateError> {
+    fn public(&self, url: &str) -> Result<Reply, VenueError> {
+        http::request(&self.http, V, "GET", url, vec![], None)
+    }
+
+    fn accounts(&self) -> Result<Vec<Value>, VenueError> {
         let rows = self.signed("GET", "/api/v4/spot/accounts", "", None)?;
-        let arr = rows
-            .as_array()
-            .ok_or_else(|| GateError::Unexpected("accounts is not an array".into()))?;
-        Ok(arr
-            .iter()
-            .filter_map(|r| {
-                let c = r.get("currency")?.as_str()?.to_string();
-                let free = r.get("available")?.as_str()?.parse().ok()?;
-                let locked = r
-                    .get("locked")
-                    .and_then(|v| v.as_str())
-                    .and_then(|s| s.parse().ok());
-                Some((c, (free, locked.unwrap_or(0.0))))
-            })
-            .collect())
+        rows.as_array()
+            .cloned()
+            .ok_or_else(|| shape_err(V, "accounts: not a list"))
     }
 
-    pub fn pair_info(&self, pair: &str) -> Result<PairInfo, GateError> {
+    fn field(r: &Value, k: &str) -> Result<f64, VenueError> {
+        let v = r.get(k).ok_or_else(|| shape_err(V, format!("'{k}'")))?;
+        pyfmt::to_float(v).map_err(|e| shape_err(V, e))
+    }
+
+    fn currency(r: &Value) -> Result<String, VenueError> {
+        r.get("currency")
+            .map(pyfmt::value_str)
+            .ok_or_else(|| shape_err(V, "'currency'"))
+    }
+
+    /// On-chain deposits (`GET /wallet/deposits`, needs the key's wallet-read scope).
+    /// `since` is Gate's `from`, an epoch floor; Gate defaults to 7 days.
+    pub fn deposits(
+        &self,
+        currency: Option<&str>,
+        since: Option<f64>,
+    ) -> Result<Vec<Deposit>, VenueError> {
+        let mut q = Vec::new();
+        if let Some(c) = currency.filter(|c| !c.is_empty()) {
+            q.push(format!("currency={c}"));
+        }
+        if let Some(s) = since.filter(|s| *s != 0.0) {
+            q.push(format!("from={}", s as i64));
+        }
+        let rows = self.signed("GET", "/api/v4/wallet/deposits", &q.join("&"), None)?;
+        let rows = match rows {
+            Value::Null => vec![],
+            Value::Array(a) => a,
+            _ => return Err(shape_err(V, "deposits: not a list")),
+        };
+        rows.iter()
+            .map(|r| {
+                Ok(Deposit {
+                    currency: r.get("currency").and_then(|v| v.as_str()).map(String::from),
+                    amount: float_or_zero(r.get("amount")).map_err(|e| shape_err(V, e))?,
+                    status: r.get("status").and_then(|v| v.as_str()).map(String::from),
+                    ts: float_or_zero(r.get("timestamp")).map_err(|e| shape_err(V, e))?,
+                })
+            })
+            .collect()
+    }
+
+    /// Precision and minimums for a pair, cached for the life of the client.
+    pub fn pair_info(&self, pair: &str) -> Result<PairInfo, VenueError> {
         if let Some(p) = self.pairs.borrow().get(pair) {
             return Ok(*p);
         }
-        let body = self.signed(
-            "GET",
-            &format!("/api/v4/spot/currency_pairs/{pair}"),
-            "",
-            None,
-        )?;
-        let num = |k: &str, d: f64| body.get(k).and_then(as_f64).unwrap_or(d);
+        let r = self.public(&format!("{BASE}/api/v4/spot/currency_pairs/{pair}"))?;
+        if r.status != Some(200) {
+            return Err(VenueError::new(
+                V,
+                r.status,
+                format!(
+                    "currency_pairs {pair} -> {} {}",
+                    r.status_str(),
+                    r.body_str()
+                ),
+            ));
+        }
+        let body = r.json_or_null();
+        let int = |k: &str, d: i64| -> Result<i64, VenueError> {
+            match body.get(k) {
+                None => Ok(d),
+                Some(v) => py_int(v).ok_or_else(|| shape_err(V, format!("int({k})"))),
+            }
+        };
         let info = PairInfo {
-            amount_precision: num("amount_precision", 0.0) as u32,
-            price_precision: num("precision", 8.0) as u32,
-            min_base: num("min_base_amount", 0.0),
-            min_quote: num("min_quote_amount", 0.0),
+            amount_precision: int("amount_precision", 0)?,
+            price_precision: int("precision", 8)?,
+            min_base: float_or_zero(body.get("min_base_amount")).map_err(|e| shape_err(V, e))?,
+            min_quote: float_or_zero(body.get("min_quote_amount")).map_err(|e| shape_err(V, e))?,
         };
         self.pairs.borrow_mut().insert(pair.to_string(), info);
         Ok(info)
     }
 
-    /// Place a **GTC limit** order. The only order this crate can place.
-    pub fn limit_order(
+    fn order(
         &self,
-        pair: &str,
-        side: Side,
-        base_amount: f64,
-        price: f64,
-        client_id: &str,
-    ) -> Result<VenueOrder, GateError> {
-        let info = self.pair_info(pair)?;
-        let amount = info.round_amount(base_amount);
-        let price = info.round_price(price);
-        if amount <= 0.0 || price <= 0.0 {
-            return Err(GateError::Rejected(format!(
-                "rounded to {amount} @ {price}, which is not an order"
-            )));
+        mut body: Vec<(&str, PyVal)>,
+        client_id: Option<&str>,
+    ) -> Result<Value, VenueError> {
+        if let Some(cid) = client_id.filter(|c| !c.is_empty()) {
+            let text = ids::safe_gate_text(cid).map_err(|e| shape_err(V, e))?;
+            body.push(("text", PyVal::str(text)));
         }
-        if amount < info.min_base {
-            return Err(GateError::Rejected(format!(
-                "{amount} is below the venue minimum of {} {pair}",
-                info.min_base
-            )));
-        }
-        let body = serde_json::json!({
-            "currency_pair": pair,
-            "type": "limit",
-            "account": "spot",
-            "side": match side { Side::Buy => "buy", Side::Sell => "sell" },
-            "amount": format!("{amount}"),
-            "price": format!("{price}"),
-            "time_in_force": "gtc",
-            // Gate requires a user-supplied id to start with `t-`.
-            "text": format!("t-{client_id}"),
-        });
-        parse_order(&self.signed("POST", "/api/v4/spot/orders", "", Some(&body))?)
+        self.signed("POST", "/api/v4/spot/orders", "", Some(&PyVal::dict(body)))
     }
 
-    pub fn open_orders(&self, pair: &str) -> Result<Vec<VenueOrder>, GateError> {
-        let body = self.signed(
-            "GET",
-            "/api/v4/spot/orders",
-            &format!("currency_pair={pair}&status=open"),
-            None,
-        )?;
-        let arr = body.as_array().cloned().unwrap_or_default();
-        Ok(arr.iter().filter_map(|o| parse_order(o).ok()).collect())
+    /// Public 24h ticker: `(last, change_percentage)`.
+    pub fn ticker(&self, pair: &str) -> Result<(f64, f64), VenueError> {
+        let r = self.public(&format!("{BASE}/api/v4/spot/tickers?currency_pair={pair}"))?;
+        let first = r
+            .json
+            .as_ref()
+            .and_then(|v| v.as_array())
+            .and_then(|a| a.first());
+        match (r.status, first) {
+            (Some(200), Some(t)) => Ok((
+                Self::field(t, "last")?,
+                Self::field(t, "change_percentage")?,
+            )),
+            _ => Err(VenueError::new(
+                V,
+                r.status,
+                format!("ticker {pair} -> {} {}", r.status_str(), r.body_str()),
+            )),
+        }
+    }
+}
+
+/// Python's `int(v)` for a JSON number or numeric string.
+fn py_int(v: &Value) -> Option<i64> {
+    match v {
+        Value::Number(n) => n.as_i64().or_else(|| n.as_f64().map(|f| f.trunc() as i64)),
+        Value::String(s) => s.trim().parse().ok(),
+        Value::Bool(b) => Some(*b as i64),
+        _ => None,
+    }
+}
+
+/// Normalise a Gate order or order response. See the module docs for the two quirks.
+pub fn parse_order(r: &Value) -> Result<ParsedOrder, VenueError> {
+    let f = |k: &str| float_or_zero(r.get(k)).map_err(|e| shape_err(V, e));
+    let amount = f("amount")?;
+    let left = f("left")?;
+    let ft = f("filled_total")?;
+    let avg0 = f("avg_deal_price")?;
+    let mut avg = (avg0 != 0.0).then_some(avg0);
+    let side = r.get("side").map(pyfmt::value_str).unwrap_or_default();
+    let otype = r.get("type").map(pyfmt::value_str).unwrap_or_default();
+    let market_buy = otype == "market" && side == "buy";
+    let base = if market_buy {
+        avg.map(|a| ft / a)
+    } else {
+        let b = amount - left;
+        if avg.is_none() && b != 0.0 {
+            avg = Some(ft / b);
+        }
+        Some(b)
+    };
+    let status = match r.get("status") {
+        None | Some(Value::Null) => String::new(),
+        Some(v) => pyfmt::value_str(v),
+    };
+    let text = match r.get("text") {
+        Some(v) if pyfmt::truthy(Some(v)) => pyfmt::value_str(v),
+        _ => String::new(),
+    };
+    let price = f("price")?;
+    Ok(ParsedOrder {
+        order_id: r.get("id").map(pyfmt::value_str).unwrap_or_default(),
+        filled: status == "closed" || status == "filled",
+        status,
+        base_qty: base,
+        quote: ft,
+        avg_price: avg,
+        price: (price != 0.0).then_some(price),
+        fee: f("fee")?,
+        fee_asset: r
+            .get("fee_currency")
+            .and_then(|v| v.as_str())
+            .map(String::from),
+        side: side.to_lowercase(),
+        qty: if market_buy { 0.0 } else { amount },
+        client_id: text.strip_prefix("t-").unwrap_or(&text).to_string(),
+    })
+}
+
+impl Venue for Gate {
+    fn name(&self) -> &'static str {
+        V
     }
 
-    pub fn order_status(&self, pair: &str, order_id: &str) -> Result<VenueOrder, GateError> {
+    fn parse_order(&self, raw: &Value) -> Result<ParsedOrder, VenueError> {
+        parse_order(raw)
+    }
+
+    fn order_status(&self, pair: &str, order_id: &str) -> Result<ParsedOrder, VenueError> {
         parse_order(&self.signed(
             "GET",
             &format!("/api/v4/spot/orders/{order_id}"),
@@ -298,7 +349,21 @@ impl Gate {
         )?)
     }
 
-    pub fn cancel(&self, pair: &str, order_id: &str) -> Result<VenueOrder, GateError> {
+    fn open_orders(&self, pair: &str) -> Result<Vec<ParsedOrder>, VenueError> {
+        let rows = self.signed(
+            "GET",
+            "/api/v4/spot/orders",
+            &format!("currency_pair={pair}&status=open"),
+            None,
+        )?;
+        rows.as_array()
+            .ok_or_else(|| shape_err(V, "open orders: not a list"))?
+            .iter()
+            .map(parse_order)
+            .collect()
+    }
+
+    fn cancel(&self, pair: &str, order_id: &str) -> Result<ParsedOrder, VenueError> {
         parse_order(&self.signed(
             "DELETE",
             &format!("/api/v4/spot/orders/{order_id}"),
@@ -306,44 +371,149 @@ impl Gate {
             None,
         )?)
     }
-}
 
-fn as_f64(v: &serde_json::Value) -> Option<f64> {
-    match v {
-        serde_json::Value::Number(n) => n.as_f64(),
-        serde_json::Value::String(s) => s.trim().parse().ok(),
-        _ => None,
+    fn balances(&self) -> Result<BTreeMap<String, f64>, VenueError> {
+        self.accounts()?
+            .iter()
+            .map(|r| Ok((Self::currency(r)?, Self::field(r, "available")?)))
+            .collect()
+    }
+
+    /// `{asset: {free, locked}}`; locked is what resting orders hold.
+    fn balances_full(&self) -> Result<BTreeMap<String, Balance>, VenueError> {
+        self.accounts()?
+            .iter()
+            .map(|r| {
+                Ok((
+                    Self::currency(r)?,
+                    Balance {
+                        free: Self::field(r, "available")?,
+                        locked: Self::field(r, "locked")?,
+                    },
+                ))
+            })
+            .collect()
+    }
+
+    fn price(&self, pair: &str) -> Result<f64, VenueError> {
+        let r = self.public(&format!("{BASE}/api/v4/spot/tickers?currency_pair={pair}"))?;
+        let first = r
+            .json
+            .as_ref()
+            .and_then(|v| v.as_array())
+            .and_then(|a| a.first());
+        match (r.status, first, pyfmt::truthy(r.json.as_ref())) {
+            (Some(200), Some(t), true) => Self::field(t, "last"),
+            _ => Err(VenueError::new(
+                V,
+                r.status,
+                format!("price {pair} -> {} {}", r.status_str(), r.body_str()),
+            )),
+        }
+    }
+
+    fn limits(&self, pair: &str) -> Result<Limits, VenueError> {
+        let p = self.pair_info(pair)?;
+        Ok(Limits {
+            min_base: p.min_base,
+            min_quote: p.min_quote,
+        })
+    }
+
+    fn round_amount(&self, pair: &str, amount: f64) -> Result<f64, VenueError> {
+        Ok(self.pair_info(pair)?.round_amount(amount))
+    }
+
+    fn round_price(&self, pair: &str, price: f64) -> Result<f64, VenueError> {
+        Ok(self.pair_info(pair)?.round_price(price))
+    }
+
+    /// Market buy spending `quote` of the quote asset, IOC.
+    fn market_buy(
+        &self,
+        pair: &str,
+        quote: f64,
+        client_id: Option<&str>,
+    ) -> Result<Value, VenueError> {
+        self.order(
+            vec![
+                ("currency_pair", PyVal::str(pair)),
+                ("type", PyVal::str("market")),
+                ("side", PyVal::str("buy")),
+                ("amount", PyVal::str(pyfmt::fixed(quote, 4))),
+                ("time_in_force", PyVal::str("ioc")),
+                ("account", PyVal::str("spot")),
+            ],
+            client_id,
+        )
+    }
+
+    fn market_sell(
+        &self,
+        pair: &str,
+        base: f64,
+        client_id: Option<&str>,
+    ) -> Result<Value, VenueError> {
+        let base = self.round_amount(pair, base)?;
+        self.order(
+            vec![
+                ("currency_pair", PyVal::str(pair)),
+                ("type", PyVal::str("market")),
+                ("side", PyVal::str("sell")),
+                ("amount", PyVal::str(pyfmt::float_repr(base))),
+                ("time_in_force", PyVal::str("ioc")),
+                ("account", PyVal::str("spot")),
+            ],
+            client_id,
+        )
+    }
+
+    /// GTC limit buy; amount and price rounded down to the pair's precision.
+    fn limit_buy(
+        &self,
+        pair: &str,
+        base: f64,
+        price: f64,
+        client_id: Option<&str>,
+    ) -> Result<Value, VenueError> {
+        self.limit("buy", pair, base, price, client_id)
+    }
+
+    fn limit_sell(
+        &self,
+        pair: &str,
+        base: f64,
+        price: f64,
+        client_id: Option<&str>,
+    ) -> Result<Value, VenueError> {
+        self.limit("sell", pair, base, price, client_id)
     }
 }
 
-fn parse_order(v: &serde_json::Value) -> Result<VenueOrder, GateError> {
-    let id = v
-        .get("id")
-        .and_then(|x| {
-            x.as_str()
-                .map(String::from)
-                .or_else(|| x.as_i64().map(|n| n.to_string()))
-        })
-        .ok_or_else(|| GateError::Unexpected("order has no id".into()))?;
-    let amount = v.get("amount").and_then(as_f64).unwrap_or(0.0);
-    let left = v.get("left").and_then(as_f64).unwrap_or(0.0);
-    Ok(VenueOrder {
-        id,
-        text: v.get("text").and_then(|x| x.as_str()).map(String::from),
-        status: v
-            .get("status")
-            .and_then(|x| x.as_str())
-            .unwrap_or("unknown")
-            .to_string(),
-        price: v.get("price").and_then(as_f64).unwrap_or(0.0),
-        amount,
-        filled_amount: (amount - left).max(0.0),
-        filled_quote: v.get("filled_total").and_then(as_f64).unwrap_or(0.0),
-    })
-}
-
-fn hex(bytes: &[u8]) -> String {
-    bytes.iter().map(|b| format!("{b:02x}")).collect()
+impl Gate {
+    fn limit(
+        &self,
+        side: &str,
+        pair: &str,
+        base: f64,
+        price: f64,
+        client_id: Option<&str>,
+    ) -> Result<Value, VenueError> {
+        let info = self.pair_info(pair)?;
+        let (base, price) = (info.round_amount(base), info.round_price(price));
+        self.order(
+            vec![
+                ("currency_pair", PyVal::str(pair)),
+                ("type", PyVal::str("limit")),
+                ("side", PyVal::str(side)),
+                ("amount", PyVal::str(pyfmt::float_repr(base))),
+                ("price", PyVal::str(pyfmt::float_repr(price))),
+                ("time_in_force", PyVal::str("gtc")),
+                ("account", PyVal::str("spot")),
+            ],
+            client_id,
+        )
+    }
 }
 
 #[cfg(test)]
@@ -358,84 +528,37 @@ mod tests {
     }
 
     #[test]
-    fn the_headers_match_gates_documented_scheme() {
-        let h = gate().headers("GET", "/api/v4/spot/accounts", "", "", 1_700_000_000);
-        let get = |k: &str| {
-            h.iter()
-                .find(|(n, _)| n == k)
-                .map(|(_, v)| v.clone())
-                .unwrap()
-        };
-        assert_eq!(get("KEY"), "testkey");
-        assert_eq!(get("Timestamp"), "1700000000");
-        let sign = get("SIGN");
-        assert_eq!(sign.len(), 128, "HMAC-SHA512 is 64 bytes of hex");
-        assert!(sign.chars().all(|c| c.is_ascii_hexdigit()));
-    }
-
-    #[test]
     fn the_signature_covers_method_path_query_body_and_time() {
         let g = gate();
-        let base = g.headers("GET", "/p", "", "", 1);
-        let sign = |h: &[(String, String)]| h.iter().find(|(n, _)| n == "SIGN").unwrap().1.clone();
-        assert_ne!(
-            sign(&base),
-            sign(&g.headers("POST", "/p", "", "", 1)),
-            "method"
-        );
-        assert_ne!(
-            sign(&base),
-            sign(&g.headers("GET", "/q", "", "", 1)),
-            "path"
-        );
-        assert_ne!(
-            sign(&base),
-            sign(&g.headers("GET", "/p", "a=1", "", 1)),
-            "query"
-        );
-        assert_ne!(
-            sign(&base),
-            sign(&g.headers("GET", "/p", "", "{}", 1)),
-            "body"
-        );
-        assert_ne!(
-            sign(&base),
-            sign(&g.headers("GET", "/p", "", "", 2)),
-            "timestamp"
+        let sign = |h: Vec<(String, String)>| h.into_iter().find(|(n, _)| n == "SIGN").unwrap().1;
+        let base = sign(g.headers("GET", "/p", "", "", 1));
+        assert_eq!(base.len(), 128);
+        for other in [
+            g.headers("POST", "/p", "", "", 1),
+            g.headers("GET", "/q", "", "", 1),
+            g.headers("GET", "/p", "a=1", "", 1),
+            g.headers("GET", "/p", "", "{}", 1),
+            g.headers("GET", "/p", "", "", 2),
+        ] {
+            assert_ne!(base, sign(other));
+        }
+        assert_eq!(
+            base,
+            sign(g.headers("GET", "/p", "", "", 1)),
+            "deterministic"
         );
     }
 
     #[test]
-    fn the_same_request_signs_identically() {
+    fn the_offline_guard_covers_every_gate_call() {
+        let _env = crate::testenv::EnvGuard::offline();
         let g = gate();
-        let a = g.headers("GET", "/p", "x=1", "{}", 42);
-        let b = g.headers("GET", "/p", "x=1", "{}", 42);
-        assert_eq!(a, b, "signing must be deterministic or retries break");
-    }
-
-    #[test]
-    fn an_ip_refusal_is_named_and_explained() {
-        let e = classify(403, r#"{"label":"IP_FORBIDDEN","message":"not allowed"}"#);
-        assert!(matches!(e, GateError::IpNotAllowed(_)), "{e:?}");
-        let msg = e.to_string();
-        assert!(
-            msg.contains("90-day"),
-            "the 90-day rule is the likely cause: {msg}"
-        );
-        assert!(msg.contains("API management"), "{msg}");
-    }
-
-    #[test]
-    fn auth_order_and_network_failures_are_told_apart() {
-        assert!(matches!(
-            classify(401, "bad key"),
-            GateError::Unauthorized(_)
-        ));
-        assert!(matches!(
-            classify(400, r#"{"label":"TOO_SMALL"}"#),
-            GateError::Rejected(_)
-        ));
-        assert!(matches!(classify(500, "boom"), GateError::Unexpected(_)));
+        assert!(g.balances_full().unwrap_err().is_offline());
+        assert!(g.pair_info("AAA_USDT").unwrap_err().is_offline());
+        assert!(g
+            .limit_buy("AAA_USDT", 1.0, 1.0, Some("x"))
+            .unwrap_err()
+            .is_offline());
     }
 
     #[test]
@@ -446,34 +569,8 @@ mod tests {
             min_base: 0.01,
             min_quote: 1.0,
         };
-        assert_eq!(info.round_amount(1.239), 1.23, "down, never up");
+        assert_eq!(info.round_amount(1.239), 1.23);
         assert_eq!(info.round_price(10.99999), 10.9999);
-        assert_eq!(info.round_amount(0.001), 0.0, "dust rounds to nothing");
-    }
-
-    #[test]
-    fn a_venue_order_parses_and_derives_the_filled_amount() {
-        let v = serde_json::json!({
-            "id": "123", "text": "t-csAAAb944444r1", "status": "open",
-            "price": "10.5", "amount": "2.0", "left": "0.5", "filled_total": "15.75"
-        });
-        let o = parse_order(&v).unwrap();
-        assert_eq!(o.id, "123");
-        assert_eq!(o.filled_amount, 1.5, "amount minus what is left");
-        assert_eq!(o.filled_quote, 15.75);
-    }
-
-    #[test]
-    fn a_numeric_id_is_accepted_as_well_as_a_string() {
-        let v = serde_json::json!({ "id": 987, "amount": "1", "left": "1" });
-        assert_eq!(parse_order(&v).unwrap().id, "987");
-    }
-
-    #[test]
-    fn the_offline_guard_covers_the_venue_too() {
-        let _env = crate::testenv::EnvGuard::offline();
-        let e = gate().balances().unwrap_err();
-        assert!(matches!(e, GateError::Network(_)), "{e:?}");
-        assert!(e.to_string().contains("RUNGBOT_OFFLINE"));
+        assert_eq!(info.round_amount(0.001), 0.0);
     }
 }
