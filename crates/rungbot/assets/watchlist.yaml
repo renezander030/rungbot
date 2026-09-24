@@ -54,6 +54,17 @@ research:
   max_drawdown_pct: 92  # past this it is the graveyard, not the bargain bin
   fee_floor_30d: 50000  # 30d fees at or above this count as a real business
   limit: 10
+  # The weekly pipeline (`rungbot research <stage>`, see `rungbot research help`):
+  # dir: ~/.local/state/rungbot/research   # ledger + indexes
+  # theses: ~/.config/rungbot/theses.yaml  # `rungbot research theses --example`
+  # llm:                                   # no default: the LLM stages refuse without it
+  #   command: "your-llm-cli --print"      # prompt on stdin, answer on stdout
+  #   max_budget_usd: 0.10                 # always appended as --max-budget-usd 0.10
+  # email:                                 # key from RESEND_API_KEY
+  #   from: research@example.com
+  #   to: you@example.com
+  # notes:                                 # token from TICKTICK_TOKEN
+  #   project_id: "your-project-id"
 
 # --- Notifications (optional) --------------------------------------------------
 # The Telegram bot token is read from RUNGBOT_TELEGRAM_TOKEN, never from this file.

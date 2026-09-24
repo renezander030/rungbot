@@ -7,6 +7,7 @@ mod config_file;
 mod klines;
 mod notify;
 mod report;
+mod research_cmd;
 mod screen;
 mod state;
 #[cfg(test)]
@@ -41,6 +42,8 @@ USAGE:
   rungbot research[--config PATH] [--json] [--llm CMD]
   rungbot watch   <regime|btc|zone|froth|divergence|daily> [--config PATH]
                   [--dry-run] [--force] [--preview]
+  rungbot research <oppscan|survivor|catalyst|unlocks|report|theses> ...
+                  the weekly research pipeline; see `rungbot research help`
   rungbot --version | --help
 
 PLAN OPTIONS:
@@ -140,6 +143,16 @@ fn main() -> ExitCode {
     if argv[0] == "--version" || argv[0] == "-V" {
         println!("rungbot {VERSION}");
         return ExitCode::SUCCESS;
+    }
+
+    // `rungbot research <stage> ...` is the weekly pipeline; bare `rungbot research`
+    // (flags only) stays the one-shot screen below.
+    if argv[0] == "research"
+        && argv
+            .get(1)
+            .is_some_and(|a| !a.starts_with('-') || a == "--help" || a == "-h")
+    {
+        return ExitCode::from(research_cmd::run(&argv[1..]));
     }
 
     let args = match Args::parse(&argv) {
