@@ -637,6 +637,20 @@ impl RunConfig {
     }
 
     fn validate(&self) -> Result<(), String> {
+        // An empty path is a file that never exists: the rail would be off. (The
+        // reference read an empty HALT_FILE as the working directory, which exists, and
+        // halted.) Refuse it rather than guess which one was meant.
+        for (key, p) in [
+            ("halt_file", &self.halt_file),
+            ("sell_arm_file", &self.sell_arm_file),
+        ] {
+            if p.to_str().is_some_and(|s| s.trim().is_empty()) {
+                return Err(format!(
+                    "`{key}` ({}) is empty: name the file, or leave the key out for the default",
+                    env_name(key)
+                ));
+            }
+        }
         if self.watchlist.is_empty() {
             return Err("`watchlist` needs at least one coin".into());
         }
@@ -961,6 +975,25 @@ mod tests {
         assert!(RunConfig::from_yaml(bad, &no_env)
             .unwrap_err()
             .contains("BBB"));
+    }
+
+    #[test]
+    fn an_empty_halt_or_arm_file_is_an_error_not_a_disabled_rail() {
+        for t in [
+            format!("{MIN}halt_file: \"\"\n"),
+            format!("{MIN}sell_arm_file: \" \"\n"),
+        ] {
+            let e = RunConfig::from_yaml(&t, &no_env).unwrap_err();
+            assert!(e.contains("is empty"), "{t}: {e}");
+        }
+        for var in ["HALT_FILE", "SELL_ARM_FILE"] {
+            let env = |k: &str| (k == var).then(String::new);
+            let e = RunConfig::from_yaml(MIN, &env).unwrap_err();
+            assert!(e.contains(var), "{var}: {e}");
+        }
+        assert!(RunConfig::from_yaml(&format!("{MIN}halt_file:\n"), &no_env).is_err());
+        let c = RunConfig::from_yaml(MIN, &no_env).unwrap();
+        assert!(c.halt_file.ends_with("HALT"));
     }
 
     #[test]
