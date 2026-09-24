@@ -42,11 +42,33 @@ impl Bands {
     }
 }
 
+/// Python's float floor division `a // b`, which is not always `(a / b).floor()`: it
+/// works from the exact remainder, so `1.0 // 0.1` is `9`, where `(1.0 / 0.1).floor()`
+/// is `10`. The rung a move lands on must not depend on which of the two ran.
+pub fn floor_div(a: f64, b: f64) -> f64 {
+    if b == 0.0 {
+        return f64::NAN;
+    }
+    let m = a % b;
+    let mut div = (a - m) / b;
+    if m != 0.0 && ((b < 0.0) != (m < 0.0)) {
+        div -= 1.0;
+    }
+    if div == 0.0 {
+        return 0.0_f64.copysign(a / b);
+    }
+    let mut fl = div.floor();
+    if div - fl > 0.5 {
+        fl += 1.0;
+    }
+    fl
+}
+
 /// Dip rung from the 24h change. `None` = data missing (hold), `Some(0)` = neutral.
 pub fn buy_rung_for(chg: Option<f64>, b: Bands) -> Option<i64> {
     let chg = chg?;
     if chg <= -b.first_pct {
-        Some(((chg.abs() - b.first_pct) / b.step_pct).floor() as i64 + 1)
+        Some(floor_div(chg.abs() - b.first_pct, b.step_pct) as i64 + 1)
     } else {
         Some(0)
     }
@@ -59,7 +81,7 @@ pub fn buy_rung_for(chg: Option<f64>, b: Bands) -> Option<i64> {
 pub fn sell_rung_for(pnl: Option<f64>, b: Bands) -> Option<i64> {
     let pnl = pnl?;
     if pnl >= b.first_pct {
-        Some(((pnl - b.first_pct) / b.step_pct).floor() as i64 + 1)
+        Some(floor_div(pnl - b.first_pct, b.step_pct) as i64 + 1)
     } else {
         Some(0)
     }
@@ -85,6 +107,15 @@ pub fn ladder_increment(new_rungs: &[i64], b: Bands) -> f64 {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn floor_div_is_pythons() {
+        assert_eq!(floor_div(1.0, 0.1), 9.0);
+        assert_eq!(floor_div(8.0, 8.0), 1.0);
+        assert_eq!(floor_div(7.999, 8.0), 0.0);
+        assert_eq!(floor_div(-1.0, 8.0), -1.0);
+        assert_eq!(floor_div(0.3, 0.1), 2.0);
+    }
 
     const B: Bands = Bands {
         first_pct: 10.0,

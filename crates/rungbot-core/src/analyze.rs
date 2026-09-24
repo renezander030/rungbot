@@ -57,6 +57,10 @@ pub struct Steer {
     /// Coins running hard enough that the ladder should trail rather than harvest.
     #[serde(default)]
     pub trail_coins: Vec<String>,
+    /// Governed coins whose holding on their venue is known to be zero. The policy has
+    /// nothing to sell there, so it neither decides nor touches their memory.
+    #[serde(default)]
+    pub flat: Vec<String>,
 }
 
 impl Steer {
@@ -70,6 +74,10 @@ impl Steer {
 
     fn trails(&self, sym: &str) -> bool {
         self.trail_coins.iter().any(|s| s == sym)
+    }
+
+    fn is_flat(&self, sym: &str) -> bool {
+        self.flat.iter().any(|s| s == sym)
     }
 }
 
@@ -349,7 +357,13 @@ pub fn analyze_with(
         //     never dip-bought in the same run. ---
         let mut policy_sells = Vec::new();
         let governed = steer.governs(sym);
-        if governed {
+        if governed && steer.is_flat(sym) {
+            // Nothing held: the policy's memory stays as it was.
+            let pcfg = steer.policy.as_ref().expect("governs() checked it");
+            if let (Some(b), Some(c)) = (bull.as_ref(), cost) {
+                row.policy = Some(sellpolicy::describe(sym, b, c, pcfg));
+            }
+        } else if governed {
             let pcfg = steer.policy.as_ref().expect("governs() checked it");
             let (next, decided) = sellpolicy::decide(
                 sym,
@@ -369,6 +383,13 @@ pub fn analyze_with(
                 row.policy = Some(sellpolicy::describe(sym, &next, c, pcfg));
             }
             bull = Some(next);
+        } else if let Some(b) = bull.as_ref() {
+            // The ladder resumes after the policy: it must not sell into what the policy
+            // already sold, and never past the core once the policy exited.
+            sold = sold.max(100.0 - b.remaining);
+            if b.exited {
+                sold = sold.max(100.0 - s.min_core_pct);
+            }
         }
 
         // --- BUY side ---

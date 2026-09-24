@@ -2,7 +2,8 @@
 //!
 //! The source directory holds `orders-journal.json` (`{client_id: row}`) and, optionally,
 //! `orders-archive.jsonl` and the live run state: `ladder-state.live.json`,
-//! `pnl-ledger.json` and `ttl-warned.json`. The run state is written beside the imported
+//! `pnl-ledger.json`, `ttl-warned.json`, the decision log `decisions.jsonl`, the
+//! signal-mail dedupe `signal-notices.json` and the level alert's `btc-alert-state.json`. The run state is written beside the imported
 //! journal under the names [`crate::store`] uses. Every row is read into an [`Order`]; fields this crate does not
 //! model are carried along unchanged. The import then checks itself: each row is written
 //! back out and compared with the source, where `null` and an absent field count as the
@@ -23,6 +24,9 @@ pub const ARCHIVE_FILE: &str = "orders-archive.jsonl";
 pub const LADDER_SOURCE: &str = "ladder-state.live.json";
 pub const PNL_SOURCE: &str = "pnl-ledger.json";
 pub const TTL_SOURCE: &str = "ttl-warned.json";
+pub const DECISIONS_FILE: &str = "decisions.jsonl";
+pub const NOTICES_FILE: &str = "signal-notices.json";
+pub const BTC_ALERT_FILE: &str = "btc-alert-state.json";
 
 #[derive(Debug, Clone, Default, PartialEq)]
 pub struct ImportReport {
@@ -39,6 +43,9 @@ pub struct ImportReport {
     pub ladder_coins: Option<(usize, bool)>,
     pub pnl_records: Option<usize>,
     pub ttl_flags: Option<usize>,
+    pub decision_lines: Option<usize>,
+    pub notices: Option<usize>,
+    pub btc_band: Option<String>,
     /// Rows whose re-serialised form differs from the source beyond null/absent and
     /// int/float, with the first difference.
     pub mismatches: Vec<String>,
@@ -75,6 +82,15 @@ impl ImportReport {
         if let Some(n) = self.ttl_flags {
             out.push(format!("stale-order flags: {n}"));
         }
+        if let Some(n) = self.decision_lines {
+            out.push(format!("decision log: {n} line(s)"));
+        }
+        if let Some(n) = self.notices {
+            out.push(format!("signal notices: {n}"));
+        }
+        if let Some(b) = &self.btc_band {
+            out.push(format!("BTC level state: {b}"));
+        }
         if !self.unmodelled.is_empty() {
             out.push(format!("kept verbatim: {}", fmt(&self.unmodelled)));
         }
@@ -99,6 +115,10 @@ pub struct Imported {
     pub ladder: Option<LadderState>,
     pub pnl: Option<PnlLedger>,
     pub ttl: Option<TtlWarned>,
+    /// The decision log, verbatim (every line checked to be JSON).
+    pub decisions: Option<String>,
+    pub notices: Option<rungbot_notify::signal_notices::NoticeState>,
+    pub btc_alert: Option<Value>,
     pub report: ImportReport,
 }
 
@@ -115,6 +135,7 @@ pub fn read_dir(dir: &Path) -> Result<Imported, String> {
         store::journal_from_rows(ordered).map_err(|e| format!("{}: {e}", jpath.display()))?;
     let archive = store::read_archive(&dir.join(ARCHIVE_FILE))?;
     let (ladder, pnl, ttl) = read_run_state(dir)?;
+    let (decisions, notices, btc_alert) = read_run_logs(dir)?;
 
     let mut r = ImportReport {
         rows: journal.orders.len(),
@@ -128,6 +149,14 @@ pub fn read_dir(dir: &Path) -> Result<Imported, String> {
         }),
         pnl_records: pnl.as_ref().map(Vec::len),
         ttl_flags: ttl.as_ref().map(IndexMap::len),
+        decision_lines: decisions.as_ref().map(|d| d.lines().count()),
+        notices: notices.as_ref().map(|n| n.len()),
+        btc_band: btc_alert.as_ref().map(|b| {
+            b.get("band")
+                .and_then(Value::as_str)
+                .unwrap_or("ok")
+                .to_string()
+        }),
         ..Default::default()
     };
     for o in journal.orders.values() {
@@ -153,8 +182,56 @@ pub fn read_dir(dir: &Path) -> Result<Imported, String> {
         ladder,
         pnl,
         ttl,
+        decisions,
+        notices,
+        btc_alert,
         report: r,
     })
+}
+
+type RunLogs = (
+    Option<String>,
+    Option<rungbot_notify::signal_notices::NoticeState>,
+    Option<Value>,
+);
+
+/// The decision log, the notice dedupe and the level-alert state, when present. Each
+/// must read cleanly.
+fn read_run_logs(dir: &Path) -> Result<RunLogs, String> {
+    let read = |name: &str| -> Result<Option<(PathBuf, String)>, String> {
+        let p = dir.join(name);
+        if !p.exists() {
+            return Ok(None);
+        }
+        let t = std::fs::read_to_string(&p).map_err(|e| format!("{}: {e}", p.display()))?;
+        Ok(Some((p, t)))
+    };
+    let decisions = match read(DECISIONS_FILE)? {
+        Some((p, t)) => {
+            for (i, line) in t.lines().enumerate().filter(|(_, l)| !l.trim().is_empty()) {
+                serde_json::from_str::<Value>(line)
+                    .map_err(|e| format!("{} line {}: {e}", p.display(), i + 1))?;
+            }
+            Some(t)
+        }
+        None => None,
+    };
+    let notices = match read(NOTICES_FILE)? {
+        Some((p, t)) => Some(
+            serde_json::from_str::<rungbot_notify::signal_notices::NoticeState>(&t)
+                .map_err(|e| format!("{}: {e}", p.display()))?,
+        ),
+        None => None,
+    };
+    let btc_alert = match read(BTC_ALERT_FILE)? {
+        Some((p, t)) => match serde_json::from_str::<Value>(&t) {
+            Ok(v @ Value::Object(_)) => Some(v),
+            Ok(_) => return Err(format!("{}: expected an object", p.display())),
+            Err(e) => return Err(format!("{}: {e}", p.display())),
+        },
+        None => None,
+    };
+    Ok((decisions, notices, btc_alert))
 }
 
 type RunState = (Option<LadderState>, Option<PnlLedger>, Option<TtlWarned>);
@@ -226,6 +303,9 @@ pub fn write(imported: &Imported, journal_path: &Path, force: bool) -> Result<Pa
         (store::LADDER_FILE, imported.ladder.is_some()),
         (store::PNL_FILE, imported.pnl.is_some()),
         (store::TTL_FILE, imported.ttl.is_some()),
+        (DECISIONS_FILE, imported.decisions.is_some()),
+        (NOTICES_FILE, imported.notices.is_some()),
+        (BTC_ALERT_FILE, imported.btc_alert.is_some()),
     ];
     for (name, present) in targets {
         let p = store::sibling(journal_path, name);
@@ -247,6 +327,21 @@ pub fn write(imported: &Imported, journal_path: &Path, force: bool) -> Result<Pa
     }
     if let Some(t) = &imported.ttl {
         store::save_ttl_warned(&store::sibling(journal_path, store::TTL_FILE), t)?;
+    }
+    if let Some(d) = &imported.decisions {
+        store::write_atomic(&store::sibling(journal_path, DECISIONS_FILE), d)?;
+    }
+    if let Some(n) = &imported.notices {
+        store::write_atomic(
+            &store::sibling(journal_path, NOTICES_FILE),
+            &rungbot_notify::signal_notices::to_json(n),
+        )?;
+    }
+    if let Some(b) = &imported.btc_alert {
+        store::write_atomic(
+            &store::sibling(journal_path, BTC_ALERT_FILE),
+            &crate::pyfmt::dumps(b, None),
+        )?;
     }
     store::save_journal(journal_path, &imported.journal)?;
     Ok(apath)
