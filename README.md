@@ -152,6 +152,27 @@ fees, value first and dislocation second (CoinPaprika + DefiLlama, both keyless)
 `--llm 'claude -p'` pipes each candidate's facts to any command on stdin; without it the
 gate is arithmetic. Never wired to the ladder.
 
+**`rungbot research <stage>`** is the weekly version of that screen, as a pipeline that
+composes through one ledger file:
+
+| Stage | Does |
+|---|---|
+| `oppscan` | the tradable band, ranked by distance from the all-time high (CoinPaprika) |
+| `survivor build-index \| select \| run` | a DefiLlama fees/TVL index, a value-first pick, then web evidence and one LLM verdict per coin |
+| `catalyst search \| synthesize` | web evidence of a forward catalyst, then one LLM verdict per coin |
+| `unlocks build-index \| enrich` | the next 180 days of token-unlock cliffs (DefiLlama's open CDN) |
+| `report [--refresh] [--commit]` | reads the regime, runs the matching thesis, writes one dated note and a short email |
+| `theses [--example]` | which screen runs in which regime; the wording lives in a YAML file you edit |
+
+No model provider is built in. `research.llm.command` names any command that reads a
+prompt on stdin and answers on stdout; rungbot **always** appends a spend cap to it
+(`--max-budget-usd 0.10` by default, flag and amount configurable, never off) and adds
+nothing else, so it runs with exactly the permissions you wrote into the command. With no
+command configured, the LLM stages refuse to run. The search key (`EXA_API_KEY`), the
+Resend key and the note token are read from the environment, never from the config.
+`report` without `--commit` is a dry run. See `rungbot research help` and
+[`contrib/systemd`](contrib/systemd) for a weekly timer.
+
 **`--notify`** posts to a webhook or Telegram, deduplicated to one message per new signal
 and one reminder a day. The bot token comes from `RUNGBOT_TELEGRAM_TOKEN`, never the
 config. Every run also records why each coin did nothing; `--save` appends

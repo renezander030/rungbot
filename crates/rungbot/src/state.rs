@@ -36,6 +36,17 @@ pub fn default_config_path() -> PathBuf {
         .join("watchlist.yaml")
 }
 
+/// `$RUNGBOT_RESEARCH_DIR`, else `$XDG_STATE_HOME/rungbot/research`, else
+/// `~/.local/state/...`: where the research ledger and indexes live.
+pub fn default_research_dir() -> PathBuf {
+    if let Ok(p) = std::env::var("RUNGBOT_RESEARCH_DIR") {
+        return PathBuf::from(p);
+    }
+    base_dir("XDG_STATE_HOME", ".local/state")
+        .join("rungbot")
+        .join("research")
+}
+
 fn base_dir(env_key: &str, fallback: &str) -> PathBuf {
     match std::env::var(env_key) {
         Ok(v) if !v.trim().is_empty() => PathBuf::from(v),
