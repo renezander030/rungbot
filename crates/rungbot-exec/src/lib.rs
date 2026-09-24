@@ -23,6 +23,7 @@ pub mod gate;
 pub mod guard;
 pub mod journal;
 pub mod keys;
+pub mod store;
 #[cfg(test)]
 mod testenv;
 

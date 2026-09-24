@@ -15,11 +15,13 @@
 use std::collections::BTreeMap;
 use std::path::{Path, PathBuf};
 use std::process::ExitCode;
+use std::time::Duration;
 
 use rungbot_exec::gate::Gate;
 use rungbot_exec::guard::{self, Caps, Context, Intent, Mode, Refusal};
-use rungbot_exec::journal::{self, Journal, Order, Side, Status};
+use rungbot_exec::journal::{self, Order, Side, Status};
 use rungbot_exec::keys;
+use rungbot_exec::store;
 
 const USAGE: &str = "\
 rungbot-exec — opt-in live execution for rungbot.
@@ -151,21 +153,14 @@ fn journal_path(args: &Args) -> PathBuf {
         .unwrap_or_else(|| state_dir().join("orders-journal.json"))
 }
 
-fn load_journal(path: &Path) -> Journal {
-    std::fs::read_to_string(path)
+/// One writer at a time on the journal: see `rungbot_exec::store`. `RUNGBOT_LOCK_WAIT`
+/// (seconds, default 120) is how long a second run waits before giving up.
+fn lock_journal(jpath: &Path, who: &str) -> Result<store::RunLock, String> {
+    let wait = std::env::var("RUNGBOT_LOCK_WAIT")
         .ok()
-        .and_then(|s| serde_json::from_str(&s).ok())
-        .unwrap_or_default()
-}
-
-fn save_journal(path: &Path, j: &Journal) -> Result<(), String> {
-    if let Some(p) = path.parent() {
-        std::fs::create_dir_all(p).map_err(|e| format!("cannot create {}: {e}", p.display()))?;
-    }
-    let body = serde_json::to_string_pretty(j).map_err(|e| e.to_string())?;
-    let tmp = path.with_extension("tmp");
-    std::fs::write(&tmp, body).map_err(|e| format!("cannot write {}: {e}", tmp.display()))?;
-    std::fs::rename(&tmp, path).map_err(|e| format!("cannot replace {}: {e}", path.display()))
+        .and_then(|v| v.trim().parse::<u64>().ok())
+        .unwrap_or(120);
+    store::RunLock::acquire(&store::lock_path(jpath), who, Duration::from_secs(wait))
 }
 
 fn now() -> f64 {
@@ -305,7 +300,7 @@ fn cmd_keys(args: &Args) -> Result<(), String> {
 
 fn cmd_status(args: &Args) -> Result<(), String> {
     let jpath = journal_path(args);
-    let j = load_journal(&jpath);
+    let j = store::load_journal(&jpath)?;
     let day_ago = now() - 86_400.0;
 
     println!("journal: {}", jpath.display());
@@ -396,7 +391,7 @@ fn prepare(args: &Args) -> Result<(Vec<Planned>, Caps, f64), String> {
 fn cmd_plan(args: &Args) -> Result<(), String> {
     let (orders, caps, budget) = prepare(args)?;
     let jpath = journal_path(args);
-    let j = load_journal(&jpath);
+    let j = store::load_journal(&jpath)?;
     let day_ago = now() - 86_400.0;
 
     println!(
@@ -460,7 +455,8 @@ fn cmd_sync(args: &Args) -> Result<(), String> {
         return Err("sync without --live does nothing; use `plan` to preview".into());
     }
     let jpath = journal_path(args);
-    let mut j = load_journal(&jpath);
+    let _lock = lock_journal(&jpath, "rungbot-exec sync")?;
+    let mut j = store::load_journal(&jpath)?;
     let gate = open_gate()?;
     let day_ago = now() - 86_400.0;
     let (mut placed, mut refused, mut skipped) = (0, 0, 0);
@@ -532,7 +528,7 @@ fn cmd_sync(args: &Args) -> Result<(), String> {
             note: None,
             swept: false,
         });
-        save_journal(&jpath, &j)?;
+        store::save_journal(&jpath, &j)?;
 
         match gate.limit_order(&p.pair, p.side, base, p.price, &cid) {
             Ok(o) => {
@@ -554,7 +550,7 @@ fn cmd_sync(args: &Args) -> Result<(), String> {
                 eprintln!("  {} {cid} FAILED: {e}", p.sym);
             }
         }
-        save_journal(&jpath, &j)?;
+        store::save_journal(&jpath, &j)?;
     }
 
     println!("\nplaced {placed} · refused {refused} · already journaled {skipped}");
@@ -580,23 +576,36 @@ fn cmd_cancel(args: &Args) -> Result<(), String> {
         return Ok(());
     }
     let jpath = journal_path(args);
-    let mut j = load_journal(&jpath);
+    let _lock = lock_journal(&jpath, "rungbot-exec cancel")?;
+    let mut j = store::load_journal(&jpath)?;
     for o in &open {
         match gate.cancel(pair, &o.id) {
-            Ok(_) => {
-                println!("  cancelled {}", o.id);
+            Ok(done) => {
+                // The cancel response is the order's final state: what filled before it
+                // is booked as a fill, not dropped with the rest of the order.
+                if done.filled_amount > 0.0 {
+                    println!(
+                        "  cancelled {} after {:.6} filled ({:.2} quote)",
+                        o.id, done.filled_amount, done.filled_quote
+                    );
+                } else {
+                    println!("  cancelled {}", o.id);
+                }
                 if let Some(text) = o.text.as_ref().and_then(|t| t.strip_prefix("t-")) {
                     j.update(text, |x| {
-                        x.status = Status::Cancelled;
-                        x.status_ts = Some(now());
-                        x.note = Some("manual cancel".into());
+                        x.book_cancel(
+                            done.filled_amount,
+                            done.filled_quote,
+                            now(),
+                            "manual cancel",
+                        )
                     });
                 }
             }
             Err(e) => eprintln!("  {} failed: {e}", o.id),
         }
     }
-    save_journal(&jpath, &j)?;
+    store::save_journal(&jpath, &j)?;
     Ok(())
 }
 
