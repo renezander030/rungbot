@@ -54,6 +54,72 @@ pub fn gate_share(alloc: &[(String, f64)], routing: &[(String, String)]) -> f64 
     }
 }
 
+/// USD that should move from Revolut X to Gate; at or below 0 Gate holds its share.
+pub fn gate_gap(
+    rx_stable: f64,
+    gate_stable: f64,
+    alloc: &[(String, f64)],
+    routing: &[(String, String)],
+) -> f64 {
+    (rx_stable + gate_stable) * gate_share(alloc, routing) - gate_stable
+}
+
+/// The dashboard's top-up card, in its field order.
+#[derive(Debug, Clone, PartialEq, serde::Serialize)]
+pub struct FundingCard {
+    pub gate_stable: f64,
+    pub gate_target: f64,
+    pub gate_share_pct: f64,
+    pub gate_gap: f64,
+    pub revx_stable: f64,
+    /// Revolut X deposits the Gate cushion still absorbs before the card turns due.
+    pub deposit_headroom: f64,
+    /// What the deploy layer holds free on Revolut X so the transfer is possible.
+    pub reserved_on_revx: f64,
+    pub revx_sendable: f64,
+    /// Due, but nothing sendable yet: staging, re-laddering or in transit.
+    pub in_flight: bool,
+    pub due: bool,
+    /// Free USDC, clamped to the gap: what can be sent now.
+    pub send_now: f64,
+    pub revx_usdc_free: f64,
+}
+
+/// The top-up card from both venues' stable and Revolut X's free USDC. Only USDC can
+/// leave Revolut X, so the card names free USDC and nothing else; until the reserve is
+/// staged, or while a transfer travels, it says in flight, never an amount.
+pub fn card(
+    rx_stable: f64,
+    gate_stable: f64,
+    usdc_free: f64,
+    alloc: &[(String, f64)],
+    routing: &[(String, String)],
+) -> FundingCard {
+    let share = gate_share(alloc, routing);
+    let gap = gate_gap(rx_stable, gate_stable, alloc, routing);
+    let usdc_free = rungbot_core::watch::pyfmt::round(usdc_free.max(0.0), 2);
+    let due = gap >= DUE_MIN_USD && usdc_free >= DUE_MIN_USD;
+    let headroom = if share != 0.0 && gap < DUE_MIN_USD {
+        (-gap + DUE_MIN_USD) / share
+    } else {
+        0.0
+    };
+    FundingCard {
+        gate_stable,
+        gate_target: gap + gate_stable,
+        gate_share_pct: share * 100.0,
+        gate_gap: gap,
+        revx_stable: rx_stable,
+        deposit_headroom: headroom,
+        reserved_on_revx: onramp_reserve(rx_stable, gate_stable, alloc, routing),
+        revx_sendable: usdc_free,
+        in_flight: gap >= DUE_MIN_USD && !due,
+        due,
+        send_now: if due { gap.min(usdc_free) } else { 0.0 },
+        revx_usdc_free: usdc_free,
+    }
+}
+
 /// Stable that should stay free on Revolut X for the pending Gate top-up, 0 below
 /// [`DUE_MIN_USD`].
 pub fn onramp_reserve(
@@ -62,7 +128,7 @@ pub fn onramp_reserve(
     alloc: &[(String, f64)],
     routing: &[(String, String)],
 ) -> f64 {
-    let gap = (rx_stable + gate_stable) * gate_share(alloc, routing) - gate_stable;
+    let gap = gate_gap(rx_stable, gate_stable, alloc, routing);
     if gap >= DUE_MIN_USD {
         gap
     } else {

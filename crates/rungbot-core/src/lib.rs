@@ -36,6 +36,7 @@
 pub mod analyze;
 pub mod config;
 pub mod decisions;
+pub mod deploy;
 pub mod fmt;
 pub mod housekeeping;
 pub mod indicators;

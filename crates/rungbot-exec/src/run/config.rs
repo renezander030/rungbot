@@ -139,6 +139,12 @@ pub struct RunConfig {
     pub deploy_bull_sweep_max_age: f64,
     pub deploy_alloc: Vec<(String, f64)>,
     pub deploy_zones: BTreeMap<String, Zone>,
+    /// Coins listed on Revolut X but routed elsewhere (symbol → pair): the deploy layer
+    /// ladders the onramp venue over these while no coin is routed there.
+    pub revx_pairs: Vec<(String, String)>,
+    /// A resting buy rung under these odds of filling (at the longest horizon) counts as
+    /// sidelined cash in `rungbot-exec fillodds`.
+    pub fillodds_low: f64,
 
     // ---- coins
     pub watchlist: Vec<(String, String)>,
@@ -160,6 +166,11 @@ pub struct RunConfig {
     pub regime_state: Option<PathBuf>,
     pub froth_state: Option<PathBuf>,
     pub run_lock: Option<PathBuf>,
+    pub deploy_state: Option<PathBuf>,
+    pub audit_state: Option<PathBuf>,
+    /// Cached daily candles for `rungbot-exec fillodds` (`binance_{SYM}USDT.json`,
+    /// `gate_{SYM}_USDT.json`).
+    pub fillodds_cache: Option<PathBuf>,
 
     /// The `notify:` block as JSON, for [`rungbot_notify::Notifier`].
     pub notify: Value,
@@ -269,6 +280,8 @@ impl Default for RunConfig {
             deploy_bull_sweep_max_age: 120.0,
             deploy_alloc: Vec::new(),
             deploy_zones: BTreeMap::new(),
+            revx_pairs: Vec::new(),
+            fillodds_low: 0.30,
             watchlist: Vec::new(),
             names: BTreeMap::new(),
             entries: BTreeMap::new(),
@@ -284,6 +297,9 @@ impl Default for RunConfig {
             regime_state: None,
             froth_state: None,
             run_lock: None,
+            deploy_state: None,
+            audit_state: None,
+            fillodds_cache: None,
             notify: Value::Null,
         }
     }
@@ -394,6 +410,9 @@ fn nums_of(v: &Value, what: &str) -> Result<Vec<f64>, String> {
     match v {
         Value::Array(a) => a.iter().map(|x| num_of(x, what)).collect(),
         Value::String(s) => s
+            .trim()
+            .trim_start_matches('[')
+            .trim_end_matches(']')
             .split(',')
             .filter(|x| !x.trim().is_empty())
             .map(|x| {
@@ -573,6 +592,14 @@ impl RunConfig {
                 }
                 self.deploy_zones = m;
             }
+            "revx_pairs" => {
+                self.revx_pairs = v
+                    .map(key)?
+                    .into_iter()
+                    .map(|(k, x)| (k, x.as_str().map(str::to_string).unwrap_or_default()))
+                    .collect()
+            }
+            "fillodds_low" => self.fillodds_low = v.num(key)?,
             "watchlist" => {
                 self.watchlist = v
                     .map(key)?
@@ -626,6 +653,9 @@ impl RunConfig {
             "regime_state" => self.regime_state = Some(v.path(key)?),
             "froth_state" => self.froth_state = Some(v.path(key)?),
             "run_lock" => self.run_lock = Some(v.path(key)?),
+            "deploy_state" => self.deploy_state = Some(v.path(key)?),
+            "audit_state" => self.audit_state = Some(v.path(key)?),
+            "fillodds_cache" => self.fillodds_cache = Some(v.path(key)?),
             "notify" => {
                 if let Raw::Yaml(y) = v {
                     self.notify = to_json(y);
@@ -726,8 +756,31 @@ impl RunConfig {
     pub fn archive_path(&self) -> PathBuf {
         self.journal_path().with_file_name("orders-archive.jsonl")
     }
+    /// The deploy layer's machine state (baselines, stuck markers, the in-flight top-up).
+    pub fn deploy_state_path(&self) -> PathBuf {
+        self.file(&self.deploy_state, "deploy-state.json")
+    }
+    /// The last book audit, for the dashboard banner.
+    pub fn audit_state_path(&self) -> PathBuf {
+        self.file(&self.audit_state, "audit-state.json")
+    }
+    /// The daily audit marker: the audit state's name plus `.last`.
     pub fn audit_marker_path(&self) -> PathBuf {
-        self.state_dir.join("audit-state.json.last")
+        let mut p = self.audit_state_path().into_os_string();
+        p.push(".last");
+        PathBuf::from(p)
+    }
+    pub fn fillodds_cache_path(&self) -> PathBuf {
+        self.fillodds_cache
+            .clone()
+            .unwrap_or_else(|| self.state_dir.join("replay").join("cache"))
+    }
+    /// The Revolut X pair for a coin listed there.
+    pub fn revx_pair(&self, sym: &str) -> Option<&str> {
+        self.revx_pairs
+            .iter()
+            .find(|(s, _)| s == sym)
+            .map(|(_, p)| p.as_str())
     }
     pub fn lock_path(&self) -> PathBuf {
         self.run_lock
@@ -878,6 +931,10 @@ pub const ENV_KNOBS: &[&str] = &[
     "regime_state",
     "froth_state",
     "run_lock",
+    "deploy_state",
+    "audit_state",
+    "fillodds_cache",
+    "fillodds_low",
 ];
 
 /// The environment variable for a knob: its upper-case name, with the reference's

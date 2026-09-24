@@ -15,6 +15,7 @@
 use serde_json::Value;
 
 use super::config::RunConfig;
+use super::market::Market;
 use super::RunResult;
 use crate::housekeeping::LadderState;
 use crate::journal::Journal;
@@ -26,6 +27,11 @@ pub struct HookCtx<'a> {
     /// The run's clock, epoch seconds.
     pub now: f64,
     pub venues: &'a dyn VenueSource,
+    /// Public candles, for the deploy layer's structure levels and label history.
+    pub market: &'a dyn Market,
+    /// The run's clock and sleep: the deploy layer stamps and paces with them.
+    pub clock: &'a dyn Fn() -> f64,
+    pub sleep: &'a dyn Fn(f64),
     pub journal: &'a mut Journal,
     pub ladder: &'a mut LadderState,
     /// The regime reading of this run (`regime-state.json`'s shape).

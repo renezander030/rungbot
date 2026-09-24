@@ -424,6 +424,16 @@ impl Venue for Gate {
         Ok(self.pair_info(pair)?.round_amount(amount))
     }
 
+    fn qty_step(&self, pair: &str) -> Result<f64, VenueError> {
+        Ok(crate::venue::step_from_precision(
+            self.pair_info(pair)?.amount_precision,
+        ))
+    }
+
+    fn deposits(&self, since: f64) -> Option<Result<Vec<Deposit>, VenueError>> {
+        Some(Gate::deposits(self, None, Some(since)))
+    }
+
     fn round_price(&self, pair: &str, price: f64) -> Result<f64, VenueError> {
         Ok(self.pair_info(pair)?.round_price(price))
     }

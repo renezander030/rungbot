@@ -31,6 +31,11 @@ It places GTC limit orders from a plan, and reads back what the venues did.
 
 USAGE:
   rungbot-exec run       [--config FILE] [--dry-run] [--verbose]
+  rungbot-exec deploy    status | plan [USD] | tranche USD VENUE [--only A,B]
+                         | market SHARE% VENUE SYM | cancel [VENUE]   [--config FILE]
+  rungbot-exec churn     [--days N] [--json] [--config FILE]
+  rungbot-exec fillodds  [--horizons 30,90] [--json] [--config FILE]
+  rungbot-exec funding   [--config FILE]
   rungbot-exec status    [--pair PAIR --venue V]
   rungbot-exec plan      --from PLAN.json --budget N --pair-map SYM=PAIR,...
   rungbot-exec sync      --from PLAN.json --budget N --pair-map SYM=PAIR,...
@@ -40,6 +45,22 @@ USAGE:
   rungbot-exec archive   [--days N]
   rungbot-exec import-cex DIR [--write [--force]] | --config
   rungbot-exec keys      check [--venue V]
+
+DEPLOY (the monthly-capital layer; the run calls it every cycle with deploy: live):
+  status             baselines, each venue's quote balance, the open zones
+  plan [USD]         the zone plan for USD (default 100) per venue; places nothing
+  tranche USD VENUE  roll the venue's zones and ladder USD more; --only A,B limits it
+                     to those coins (tranche 0 VENUE --only A re-ladders A)
+  market SHARE% VENUE SYM   roll SYM's zones, buy SHARE% of their budget at market,
+                     ladder the rest
+  cancel [VENUE]     cancel every resting deploy zone (works while halted)
+  tranche, market and cancel take the run lock; tranche and market refuse while
+  live_trading_enabled is off or the halt file exists.
+
+READ-ONLY REPORTS (the run config names the journal and state files):
+  churn              how often the zones were rolled, per fill, and rung lifetimes
+  fillodds           the odds each resting buy rung fills, from the candle cache
+  funding            the onramp top-up card: Gate's gap and what Revolut X holds for it
 
 RUN (the 30-minute cycle; see contrib/rungbot-run.example.yaml):
   --config FILE      the run's one config file (default ~/.config/rungbot/run.yaml,
@@ -286,6 +307,7 @@ fn main() -> ExitCode {
 
     let r = match args.cmd.as_str() {
         "run" => return cmd_run(&args),
+        "deploy" | "churn" | "fillodds" | "funding" => cmd_layer(&argv),
         "status" => cmd_status(&args),
         "plan" => cmd_plan(&args),
         "sync" => cmd_sync(&args),
@@ -337,7 +359,11 @@ fn cmd_run(args: &Args) -> ExitCode {
     };
     let clients = Clients::new();
     let market = PublicMarket::default();
-    let (mut deploy, mut audit) = (hooks::NoDeploy, hooks::NoAudit);
+    let _ = (hooks::NoDeploy, hooks::NoAudit);
+    let (mut deploy, mut audit) = (
+        rungbot_exec::deploy::DeployLayer,
+        rungbot_exec::deploy::audit::BookAudit,
+    );
     let (mut out, mut err) = (std::io::stdout(), std::io::stderr());
     let mut deps = run::Deps {
         venues: &clients,
@@ -361,6 +387,222 @@ fn cmd_run(args: &Args) -> ExitCode {
             eprintln!("{e}");
             ExitCode::from(1)
         }
+    }
+}
+
+/// `--config FILE`, else `RUNGBOT_RUN_CONFIG`, else `~/.config/rungbot/run.yaml`.
+fn run_config_path(argv: &[String]) -> PathBuf {
+    if let Some(i) = argv.iter().position(|a| a == "--config") {
+        if let Some(p) = argv.get(i + 1) {
+            return PathBuf::from(p);
+        }
+    }
+    if let Some(p) = argv.iter().find_map(|a| a.strip_prefix("--config=")) {
+        return PathBuf::from(p);
+    }
+    match std::env::var("RUNGBOT_RUN_CONFIG") {
+        Ok(v) if !v.trim().is_empty() => PathBuf::from(v),
+        _ => config_dir().join("run.yaml"),
+    }
+}
+
+/// The value after `--flag`.
+fn flag_value<'a>(argv: &'a [String], flag: &str) -> Option<&'a str> {
+    let i = argv.iter().position(|a| a == flag)?;
+    argv.get(i + 1).map(String::as_str)
+}
+
+/// Positional words after the command, flags and their values left out.
+fn positionals(argv: &[String]) -> Vec<String> {
+    let mut out = Vec::new();
+    let mut it = argv.iter().skip(1);
+    while let Some(a) = it.next() {
+        if matches!(a.as_str(), "--config" | "--only" | "--days" | "--horizons") {
+            it.next();
+        } else if !a.starts_with("--") {
+            out.push(a.clone());
+        }
+    }
+    out
+}
+
+/// `deploy …`, `churn`, `fillodds` and `funding`: the deploy layer's commands and its
+/// read-only reports, all on the run config.
+fn cmd_layer(argv: &[String]) -> Result<(), String> {
+    use rungbot_exec::deploy::{self, cli, Layer, LiveRegime};
+    use rungbot_exec::run::{config::RunConfig, funding, market::PublicMarket};
+    let cfg = RunConfig::load(&run_config_path(argv))?;
+    let jpath = cfg.journal_path();
+    let pos = positionals(argv);
+    let json_out = argv.iter().any(|a| a == "--json");
+    let mut out = std::io::stdout();
+    match argv[0].as_str() {
+        "churn" => {
+            let j = store::load_journal(&jpath)?;
+            let days: i64 = match flag_value(argv, "--days") {
+                Some(d) => d.parse().map_err(|e| format!("--days: {e}"))?,
+                None => 7,
+            };
+            let rows: Vec<&Order> = j.orders.values().collect();
+            let m = deploy::churn::metrics(&rows, now(), days);
+            if json_out {
+                println!("{}", rungbot_exec::pyfmt::dumps(&m, Some(1)));
+            } else {
+                println!("{}", deploy::churn::summary(&m));
+            }
+            return Ok(());
+        }
+        "fillodds" => {
+            let j = store::load_journal(&jpath)?;
+            let horizons: Vec<usize> = match flag_value(argv, "--horizons") {
+                Some(h) => h
+                    .split(',')
+                    .map(|x| x.trim().parse().map_err(|e| format!("--horizons: {e}")))
+                    .collect::<Result<_, String>>()?,
+                None => vec![30, 90],
+            };
+            let read = |p: &Path| -> Option<serde_json::Value> {
+                serde_json::from_str(&std::fs::read_to_string(p).ok()?).ok()
+            };
+            let reg = read(&cfg.regime_path())
+                .ok_or_else(|| format!("{}: no regime reading yet", cfg.regime_path().display()))?;
+            let hist = read(&cfg.regime_history_path());
+            let rcfg = rungbot_core::RegimeConfig {
+                run_min_signals: cfg.run_min_signals,
+                run_ret30_min: cfg.run_ret30_min,
+            };
+            let res = deploy::fillodds::compute(
+                &j,
+                &reg,
+                hist.as_ref(),
+                &cfg.fillodds_cache_path(),
+                &horizons,
+                cfg.fillodds_low,
+                rcfg,
+            )?;
+            if json_out {
+                println!("{}", rungbot_exec::pyfmt::dumps(&res, Some(1)));
+            } else {
+                println!("{}", deploy::fillodds::render(&res));
+            }
+            return Ok(());
+        }
+        "funding" => {
+            let clients = Clients::new();
+            let rx = clients
+                .get("revx")?
+                .balances_full()
+                .map_err(|e| e.to_string())?;
+            let gt = clients
+                .get("gate")?
+                .balances_full()
+                .map_err(|e| e.to_string())?;
+            let routing: Vec<(String, String)> = cfg
+                .routing
+                .iter()
+                .map(|(s, r)| (s.clone(), r.exch.clone()))
+                .collect();
+            let alloc: Vec<(String, f64)> = cfg
+                .deploy_alloc
+                .iter()
+                .map(|(s, w)| (s.to_uppercase(), *w))
+                .collect();
+            let card = funding::card(
+                funding::revx_stable_from(&rx),
+                funding::gate_stable_from(&gt),
+                rx.get("USDC").map_or(0.0, |b| b.free),
+                &alloc,
+                &routing,
+            );
+            println!("{}", rungbot_exec::pyfmt::dumps(&card, Some(1)));
+            return Ok(());
+        }
+        _ => {}
+    }
+    let sub = pos.first().map(String::as_str).unwrap_or("");
+    let writes = matches!(sub, "tranche" | "market" | "cancel");
+    let _lock = if writes {
+        let wait = Duration::from_secs_f64(cfg.run_lock_wait.max(0.0));
+        Some(
+            store::RunLock::acquire(
+                &cfg.lock_path(),
+                &format!("rungbot-exec deploy {sub}"),
+                wait,
+            )
+            .map_err(|e| format!("not run: {e}"))?,
+        )
+    } else {
+        None
+    };
+    let mut j = store::load_journal(&jpath)?;
+    let clients = Clients::new();
+    let market = PublicMarket::default();
+    let feed = LiveRegime {
+        cfg: &cfg,
+        market: &market,
+        now: now(),
+    };
+    let persist = |j: &journal::Journal| store::save_journal(&jpath, j);
+    let stderr = |s: &str| eprintln!("{s}");
+    let sleep = |s: f64| std::thread::sleep(Duration::from_secs_f64(s));
+    let mut layer = Layer {
+        cfg: &cfg,
+        venues: &clients,
+        regime: &feed,
+        clock: &now,
+        sleep: &sleep,
+        persist: &persist,
+        stderr: &stderr,
+        j: &mut j,
+        results: Vec::new(),
+    };
+    let num = |s: Option<&String>, what: &str| -> Result<f64, String> {
+        s.ok_or_else(|| format!("usage: rungbot-exec deploy {what}"))?
+            .parse::<f64>()
+            .map_err(|e| format!("{what}: {e}"))
+    };
+    match sub {
+        "status" => cli::status(&layer, &mut out),
+        "plan" => {
+            let b = match pos.get(1) {
+                Some(v) => v.parse::<f64>().map_err(|e| format!("plan: {e}"))?,
+                None => 100.0,
+            };
+            cli::plan(&layer, b, &mut out)
+        }
+        "tranche" => {
+            let usage = "tranche <usd> <binance|gate|revx> [--only A,B]";
+            let b = num(pos.get(1), usage)?;
+            let venue = pos
+                .get(2)
+                .ok_or_else(|| format!("usage: rungbot-exec deploy {usage}"))?;
+            let only = flag_value(argv, "--only").map(|v| {
+                v.split(',')
+                    .map(|x| x.trim().to_uppercase())
+                    .collect::<std::collections::BTreeSet<String>>()
+            });
+            cli::tranche(&mut layer, b, venue, only, &mut out)
+        }
+        "market" => {
+            let usage = "market <share%> <binance|gate|revx> <SYM>";
+            let share = num(pos.get(1), usage)?;
+            let (Some(venue), Some(sym)) = (pos.get(2), pos.get(3)) else {
+                return Err(format!("usage: rungbot-exec deploy {usage}"));
+            };
+            cli::market(&mut layer, share, venue, &sym.to_uppercase(), &mut out)
+        }
+        "cancel" => {
+            let venue = pos
+                .get(1)
+                .map(String::as_str)
+                .filter(|v| deploy::VENUES.contains(v));
+            cli::cancel(&mut layer, venue, &mut out)
+        }
+        _ => Err(
+            "usage: rungbot-exec deploy status | plan [USD] | tranche USD VENUE \
+                  [--only A,B] | market SHARE% VENUE SYM | cancel [VENUE]"
+                .into(),
+        ),
     }
 }
 
@@ -912,6 +1154,8 @@ fn cmd_import(args: &Args) -> Result<(), String> {
         (import::DECISIONS_FILE, imported.decisions.is_some()),
         (import::NOTICES_FILE, imported.notices.is_some()),
         (import::BTC_ALERT_FILE, imported.btc_alert.is_some()),
+        (import::DEPLOY_FILE, imported.deploy.is_some()),
+        (import::AUDIT_FILE, imported.audit.is_some()),
     ] {
         if present {
             println!("wrote {}", store::sibling(&jpath, name).display());

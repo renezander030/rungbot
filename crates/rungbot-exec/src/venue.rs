@@ -100,10 +100,26 @@ pub trait Venue {
         price: f64,
         client_id: Option<&str>,
     ) -> Result<serde_json::Value, VenueError>;
+    /// The smallest quantity increment the venue accepts for `pair`.
+    fn qty_step(&self, _pair: &str) -> Result<f64, VenueError> {
+        Ok(1e-8)
+    }
+    /// Stable credited on-chain since `since`, from the venue's own deposit history, or
+    /// `None` when this venue cannot say (no deposit history on this client).
+    fn deposits(&self, _since: f64) -> Option<Result<Vec<crate::gate::Deposit>, VenueError>> {
+        None
+    }
     /// Does `venue_cid`, as this venue echoes it, belong to journal id `cid`?
     fn id_matches(&self, venue_cid: &str, cid: &str) -> bool {
         venue_id_matches(self.name(), venue_cid, cid)
     }
+}
+
+/// `10 ** -p` for a precision in decimal places, with `0` read as 8 (a venue that
+/// reports none).
+pub fn step_from_precision(p: i64) -> f64 {
+    let p = if p == 0 { 8 } else { p };
+    10f64.powf(-(p as f64))
 }
 
 /// Is `venue_cid` (what the venue echoes) the id we sent for journal id `cid`? Revolut X
