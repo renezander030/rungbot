@@ -1,0 +1,556 @@
+{
+ "name": "inflight_balance_growth",
+ "about": "USDC left revx while Gate has no deposit history: the marker clears on Gate's stable growth; an off-quote USDT jump on binance warns",
+ "config": {
+  "routing": [
+   [
+    "AAA",
+    "revx",
+    "AAA/USD",
+    "USD"
+   ],
+   [
+    "BBB",
+    "revx",
+    "BBB/USD",
+    "USD"
+   ],
+   [
+    "CCC",
+    "gate",
+    "CCC_USDT",
+    "USDT"
+   ],
+   [
+    "DDD",
+    "gate",
+    "DDD_USDT",
+    "USDT"
+   ],
+   [
+    "EEE",
+    "binance",
+    "EEEUSDC",
+    "USDC"
+   ]
+  ],
+  "revx_pairs": [
+   [
+    "AAA",
+    "AAA/USD"
+   ],
+   [
+    "BBB",
+    "BBB/USD"
+   ],
+   [
+    "FFF",
+    "FFF/USD"
+   ]
+  ],
+  "alloc": {
+   "AAA": 40,
+   "BBB": 20,
+   "CCC": 30,
+   "DDD": 10
+  }
+ },
+ "initial": {
+  "journal": {},
+  "venues": {
+   "revx": {
+    "prices": {
+     "AAA/USD": 10.0,
+     "BBB/USD": 2.5,
+     "FFF/USD": 1.0,
+     "USDC/USD": 1.0,
+     "USDC/EUR": 0.9
+    },
+    "info": {
+     "AAA/USD": {
+      "min_base": 0.01,
+      "min_quote": 5.0,
+      "step": 0.01,
+      "tick": 0.001
+     },
+     "BBB/USD": {
+      "min_base": 0.1,
+      "min_quote": 5.0,
+      "step": 0.1,
+      "tick": 0.0001
+     },
+     "FFF/USD": {
+      "min_base": 1.0,
+      "min_quote": 5.0,
+      "step": 1.0,
+      "tick": 0.0001
+     },
+     "USDC/USD": {
+      "min_base": 1.0,
+      "min_quote": 1.0,
+      "step": 0.01,
+      "tick": 0.0001
+     },
+     "USDC/EUR": {
+      "min_base": 1.0,
+      "min_quote": 1.0,
+      "step": 0.01,
+      "tick": 0.0001
+     }
+    },
+    "balances": {
+     "USD": {
+      "free": 400.0,
+      "locked": 0.0
+     },
+     "USDC": {
+      "free": 0.0,
+      "locked": 0.0
+     }
+    }
+   },
+   "gate": {
+    "prices": {
+     "CCC_USDT": 4.0,
+     "DDD_USDT": 0.5,
+     "USDC_USDT": 1.0
+    },
+    "info": {
+     "CCC_USDT": {
+      "min_base": 0.1,
+      "min_quote": 3.0,
+      "prec": 2,
+      "tick": 0.0001
+     },
+     "DDD_USDT": {
+      "min_base": 1.0,
+      "min_quote": 3.0,
+      "prec": 1,
+      "tick": 1e-05
+     },
+     "USDC_USDT": {
+      "min_base": 1.0,
+      "min_quote": 1.0,
+      "prec": 2,
+      "tick": 0.0001
+     }
+    },
+    "balances": {
+     "USDT": {
+      "free": 100.0,
+      "locked": 0.0
+     }
+    },
+    "deposits": null
+   },
+   "binance": {
+    "prices": {
+     "EEEUSDC": 20.0
+    },
+    "info": {
+     "EEEUSDC": {
+      "min_base": 0.001,
+      "min_quote": 5.0,
+      "step": 0.001,
+      "tick": 0.01
+     }
+    },
+    "balances": {
+     "USDC": {
+      "free": 50.0,
+      "locked": 0.0
+     }
+    }
+   }
+  },
+  "regime": {
+   "market": "chop",
+   "coins": {
+    "AAA": {
+     "running": true
+    },
+    "BBB": {
+     "running": false
+    }
+   }
+  },
+  "closes": {
+   "revx|AAA/USD": [
+    9.5,
+    9.5,
+    9.5,
+    9.5,
+    9.5,
+    9.3,
+    9.3,
+    9.3,
+    9.3,
+    9.3,
+    9.3,
+    9.3,
+    9.3,
+    9.3,
+    9.3,
+    9.3,
+    9.3,
+    9.3,
+    9.3,
+    9.3,
+    9.3,
+    9.3,
+    9.3,
+    9.3,
+    9.3,
+    9.3,
+    9.3,
+    9.3,
+    9.3,
+    9.3,
+    9.3,
+    9.3,
+    9.3,
+    9.3,
+    8.5
+   ],
+   "revx|BBB/USD": [
+    2.4,
+    2.4,
+    2.4,
+    2.4,
+    2.4,
+    2.4,
+    2.4,
+    2.4,
+    2.4,
+    2.4,
+    2.4,
+    2.4,
+    2.4,
+    2.4,
+    2.4,
+    2.4,
+    2.4,
+    2.4,
+    2.4,
+    2.4,
+    2.4,
+    2.4,
+    2.4,
+    2.4,
+    2.4,
+    2.4,
+    2.4,
+    2.4,
+    2.4,
+    2.4,
+    2.4,
+    2.4,
+    2.4,
+    2.4,
+    2.4
+   ]
+  },
+  "state": {
+   "ts": 1799998200.0,
+   "stable": {
+    "binance": 50.0,
+    "gate": 100.0,
+    "revx": 400.0
+   },
+   "part": {},
+   "offquote": {
+    "revx:USDC": 200.0,
+    "binance:USDT": 0.0
+   }
+  }
+ },
+ "steps": [
+  {
+   "op": "check",
+   "now": 1800000000.0,
+   "venues": {
+    "binance": {
+     "balances": {
+      "USDC": {
+       "free": 50.0,
+       "locked": 0.0
+      },
+      "USDT": {
+       "free": 40.0,
+       "locked": 0.0
+      }
+     }
+    }
+   },
+   "expect": {
+    "results": [
+     {
+      "mode": "live",
+      "hk": true,
+      "deploy": true,
+      "warn": "REVX: $200.00 USDC left the venue -> Gate top-up in flight; the reserve is paused until it lands on Gate"
+     },
+     {
+      "mode": "live",
+      "hk": true,
+      "deploy": true,
+      "warn": "$40.00 USDT landed on binance, but its pairs are USDC-quoted \u2014 convert to USDC for auto-deploy"
+     }
+    ],
+    "stdout": "",
+    "exit": null,
+    "raised": false,
+    "raised_text": null,
+    "calls": [],
+    "journal": {},
+    "state": {
+     "ts": 1800000000.0,
+     "stable": {
+      "binance": 50.0,
+      "gate": 100.0,
+      "revx": 400.0
+     },
+     "part": {},
+     "offquote": {
+      "revx:USDC": 0.0,
+      "binance:USDT": 40.0,
+      "gate:USDC": 0.0
+     },
+     "inflight": {
+      "amount": 200.0,
+      "ts": 1800000000.0,
+      "since": 1799997600.0,
+      "gate_stable_at": 100.0
+     }
+    }
+   }
+  },
+  {
+   "op": "check",
+   "now": 1800001800.0,
+   "venues": {
+    "gate": {
+     "balances": {
+      "USDT": {
+       "free": 290.0,
+       "locked": 0.0
+      }
+     }
+    }
+   },
+   "expect": {
+    "results": [
+     {
+      "mode": "live",
+      "hk": true,
+      "deploy": true,
+      "done": "REVX: Gate top-up landed (Gate stable +$190.00) -> reserve tracking resumes"
+     },
+     {
+      "mode": "live",
+      "hk": true,
+      "deploy": true,
+      "committed": true,
+      "done": "DEPLOY tranche on gate: $190.00 fresh USDT -> 2 coins, regime CHOP; held 0 resting price level(s)"
+     },
+     {
+      "mode": "live",
+      "hk": true,
+      "deploy": true,
+      "sym": "CCC",
+      "side": "buy",
+      "committed": true,
+      "done": "DEPLOY CCC [spot $4]: $42.75 @ $3.8 (-5%); $56.99 @ $3.6 (-10%); $42.74 @ $3.28 (-18%)"
+     },
+     {
+      "mode": "live",
+      "hk": true,
+      "deploy": true,
+      "sym": "DDD",
+      "side": "buy",
+      "committed": true,
+      "done": "DEPLOY DDD [spot $0.5]: $14.25 @ $0.47499 (-5%); $18.99 @ $0.45 (-10%); $14.23 @ $0.41 (-18%)"
+     }
+    ],
+    "stdout": "",
+    "exit": null,
+    "raised": false,
+    "raised_text": null,
+    "calls": [
+     [
+      "gate",
+      "limit_buy",
+      "CCC_USDT",
+      11.25,
+      3.8000000000000003,
+      "depCCC1800001800r1"
+     ],
+     [
+      "gate",
+      "limit_buy",
+      "CCC_USDT",
+      15.83,
+      3.6,
+      "depCCC1800001800r2"
+     ],
+     [
+      "gate",
+      "limit_buy",
+      "CCC_USDT",
+      13.03,
+      3.2800000000000002,
+      "depCCC1800001800r3"
+     ],
+     [
+      "gate",
+      "limit_buy",
+      "DDD_USDT",
+      30.0,
+      0.47499,
+      "depDDD1800001800r1"
+     ],
+     [
+      "gate",
+      "limit_buy",
+      "DDD_USDT",
+      42.2,
+      0.45,
+      "depDDD1800001800r2"
+     ],
+     [
+      "gate",
+      "limit_buy",
+      "DDD_USDT",
+      34.7,
+      0.41000000000000003,
+      "depDDD1800001800r3"
+     ]
+    ],
+    "journal": {
+     "depCCC1800001800r1": {
+      "client_id": "depCCC1800001800r1",
+      "sym": "CCC",
+      "exch": "gate",
+      "pair": "CCC_USDT",
+      "side": "buy",
+      "kind": "deploy_buy",
+      "status": "open",
+      "quote": 42.75,
+      "price": 3.8000000000000003,
+      "base": 11.25,
+      "rung": 1,
+      "ts": 1800001800.0,
+      "note": "-5%",
+      "label": "chop",
+      "first_ts": 1800001800.0,
+      "order_id": "gate-1"
+     },
+     "depCCC1800001800r2": {
+      "client_id": "depCCC1800001800r2",
+      "sym": "CCC",
+      "exch": "gate",
+      "pair": "CCC_USDT",
+      "side": "buy",
+      "kind": "deploy_buy",
+      "status": "open",
+      "quote": 56.988,
+      "price": 3.6,
+      "base": 15.83,
+      "rung": 2,
+      "ts": 1800001800.0,
+      "note": "-10%",
+      "label": "chop",
+      "first_ts": 1800001800.0,
+      "order_id": "gate-2"
+     },
+     "depCCC1800001800r3": {
+      "client_id": "depCCC1800001800r3",
+      "sym": "CCC",
+      "exch": "gate",
+      "pair": "CCC_USDT",
+      "side": "buy",
+      "kind": "deploy_buy",
+      "status": "open",
+      "quote": 42.7384,
+      "price": 3.2800000000000002,
+      "base": 13.03,
+      "rung": 3,
+      "ts": 1800001800.0,
+      "note": "-18%",
+      "label": "chop",
+      "first_ts": 1800001800.0,
+      "order_id": "gate-3"
+     },
+     "depDDD1800001800r1": {
+      "client_id": "depDDD1800001800r1",
+      "sym": "DDD",
+      "exch": "gate",
+      "pair": "DDD_USDT",
+      "side": "buy",
+      "kind": "deploy_buy",
+      "status": "open",
+      "quote": 14.2497,
+      "price": 0.47499,
+      "base": 30.0,
+      "rung": 1,
+      "ts": 1800001800.0,
+      "note": "-5%",
+      "label": "chop",
+      "first_ts": 1800001800.0,
+      "order_id": "gate-4"
+     },
+     "depDDD1800001800r2": {
+      "client_id": "depDDD1800001800r2",
+      "sym": "DDD",
+      "exch": "gate",
+      "pair": "DDD_USDT",
+      "side": "buy",
+      "kind": "deploy_buy",
+      "status": "open",
+      "quote": 18.990000000000002,
+      "price": 0.45,
+      "base": 42.2,
+      "rung": 2,
+      "ts": 1800001800.0,
+      "note": "-10%",
+      "label": "chop",
+      "first_ts": 1800001800.0,
+      "order_id": "gate-5"
+     },
+     "depDDD1800001800r3": {
+      "client_id": "depDDD1800001800r3",
+      "sym": "DDD",
+      "exch": "gate",
+      "pair": "DDD_USDT",
+      "side": "buy",
+      "kind": "deploy_buy",
+      "status": "open",
+      "quote": 14.227000000000002,
+      "price": 0.41000000000000003,
+      "base": 34.7,
+      "rung": 3,
+      "ts": 1800001800.0,
+      "note": "-18%",
+      "label": "chop",
+      "first_ts": 1800001800.0,
+      "order_id": "gate-6"
+     }
+    },
+    "state": {
+     "ts": 1800001800.0,
+     "stable": {
+      "binance": 50.0,
+      "gate": 290.0,
+      "revx": 400.0
+     },
+     "part": {},
+     "offquote": {
+      "revx:USDC": 0.0,
+      "binance:USDT": 40.0,
+      "gate:USDC": 0.0
+     }
+    }
+   }
+  }
+ ]
+}

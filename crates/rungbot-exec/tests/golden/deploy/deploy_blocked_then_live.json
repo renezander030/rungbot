@@ -1,0 +1,362 @@
+{
+ "name": "blocked_then_live",
+ "about": "live trading off: one warning, the state frozen; halt file: no second warning; unblocked: the marker goes and detection resumes",
+ "config": {
+  "routing": [
+   [
+    "AAA",
+    "revx",
+    "AAA/USD",
+    "USD"
+   ],
+   [
+    "BBB",
+    "revx",
+    "BBB/USD",
+    "USD"
+   ],
+   [
+    "CCC",
+    "gate",
+    "CCC_USDT",
+    "USDT"
+   ],
+   [
+    "DDD",
+    "gate",
+    "DDD_USDT",
+    "USDT"
+   ],
+   [
+    "EEE",
+    "binance",
+    "EEEUSDC",
+    "USDC"
+   ]
+  ],
+  "revx_pairs": [
+   [
+    "AAA",
+    "AAA/USD"
+   ],
+   [
+    "BBB",
+    "BBB/USD"
+   ],
+   [
+    "FFF",
+    "FFF/USD"
+   ]
+  ],
+  "alloc": {
+   "AAA": 40,
+   "BBB": 20,
+   "CCC": 30,
+   "DDD": 10
+  }
+ },
+ "initial": {
+  "journal": {},
+  "venues": {
+   "revx": {
+    "prices": {
+     "AAA/USD": 10.0,
+     "BBB/USD": 2.5,
+     "FFF/USD": 1.0,
+     "USDC/USD": 1.0,
+     "USDC/EUR": 0.9
+    },
+    "info": {
+     "AAA/USD": {
+      "min_base": 0.01,
+      "min_quote": 5.0,
+      "step": 0.01,
+      "tick": 0.001
+     },
+     "BBB/USD": {
+      "min_base": 0.1,
+      "min_quote": 5.0,
+      "step": 0.1,
+      "tick": 0.0001
+     },
+     "FFF/USD": {
+      "min_base": 1.0,
+      "min_quote": 5.0,
+      "step": 1.0,
+      "tick": 0.0001
+     },
+     "USDC/USD": {
+      "min_base": 1.0,
+      "min_quote": 1.0,
+      "step": 0.01,
+      "tick": 0.0001
+     },
+     "USDC/EUR": {
+      "min_base": 1.0,
+      "min_quote": 1.0,
+      "step": 0.01,
+      "tick": 0.0001
+     }
+    },
+    "balances": {
+     "USD": {
+      "free": 1000.0,
+      "locked": 0.0
+     }
+    }
+   },
+   "gate": {
+    "prices": {
+     "CCC_USDT": 4.0,
+     "DDD_USDT": 0.5,
+     "USDC_USDT": 1.0
+    },
+    "info": {
+     "CCC_USDT": {
+      "min_base": 0.1,
+      "min_quote": 3.0,
+      "prec": 2,
+      "tick": 0.0001
+     },
+     "DDD_USDT": {
+      "min_base": 1.0,
+      "min_quote": 3.0,
+      "prec": 1,
+      "tick": 1e-05
+     },
+     "USDC_USDT": {
+      "min_base": 1.0,
+      "min_quote": 1.0,
+      "prec": 2,
+      "tick": 0.0001
+     }
+    },
+    "balances": {
+     "USDT": {
+      "free": 500.0,
+      "locked": 0.0
+     }
+    },
+    "deposits": null
+   },
+   "binance": {
+    "prices": {
+     "EEEUSDC": 20.0
+    },
+    "info": {
+     "EEEUSDC": {
+      "min_base": 0.001,
+      "min_quote": 5.0,
+      "step": 0.001,
+      "tick": 0.01
+     }
+    },
+    "balances": {
+     "USDC": {
+      "free": 50.0,
+      "locked": 0.0
+     }
+    }
+   }
+  },
+  "regime": {
+   "market": "chop",
+   "coins": {
+    "AAA": {
+     "running": true
+    },
+    "BBB": {
+     "running": false
+    }
+   }
+  },
+  "closes": {
+   "revx|AAA/USD": [
+    9.5,
+    9.5,
+    9.5,
+    9.5,
+    9.5,
+    9.3,
+    9.3,
+    9.3,
+    9.3,
+    9.3,
+    9.3,
+    9.3,
+    9.3,
+    9.3,
+    9.3,
+    9.3,
+    9.3,
+    9.3,
+    9.3,
+    9.3,
+    9.3,
+    9.3,
+    9.3,
+    9.3,
+    9.3,
+    9.3,
+    9.3,
+    9.3,
+    9.3,
+    9.3,
+    9.3,
+    9.3,
+    9.3,
+    9.3,
+    8.5
+   ],
+   "revx|BBB/USD": [
+    2.4,
+    2.4,
+    2.4,
+    2.4,
+    2.4,
+    2.4,
+    2.4,
+    2.4,
+    2.4,
+    2.4,
+    2.4,
+    2.4,
+    2.4,
+    2.4,
+    2.4,
+    2.4,
+    2.4,
+    2.4,
+    2.4,
+    2.4,
+    2.4,
+    2.4,
+    2.4,
+    2.4,
+    2.4,
+    2.4,
+    2.4,
+    2.4,
+    2.4,
+    2.4,
+    2.4,
+    2.4,
+    2.4,
+    2.4,
+    2.4
+   ]
+  },
+  "state": {
+   "ts": 1799998200.0,
+   "stable": {
+    "binance": 50.0,
+    "gate": 500.0,
+    "revx": 1000.0
+   },
+   "part": {},
+   "offquote": {}
+  }
+ },
+ "steps": [
+  {
+   "op": "check",
+   "now": 1800000000.0,
+   "live": false,
+   "expect": {
+    "results": [
+     {
+      "mode": "live",
+      "hk": true,
+      "deploy": true,
+      "warn": "deploy layer idle: LIVE_TRADING_ENABLED is not 'yes'"
+     }
+    ],
+    "stdout": "",
+    "exit": null,
+    "raised": false,
+    "raised_text": null,
+    "calls": [],
+    "journal": {},
+    "state": {
+     "ts": 1799998200.0,
+     "stable": {
+      "binance": 50.0,
+      "gate": 500.0,
+      "revx": 1000.0
+     },
+     "part": {},
+     "offquote": {},
+     "blocked": "LIVE_TRADING_ENABLED is not 'yes'"
+    }
+   }
+  },
+  {
+   "op": "check",
+   "now": 1800001800.0,
+   "halt": true,
+   "expect": {
+    "results": [],
+    "stdout": "",
+    "exit": null,
+    "raised": false,
+    "raised_text": null,
+    "calls": [],
+    "journal": {},
+    "state": {
+     "ts": 1799998200.0,
+     "stable": {
+      "binance": 50.0,
+      "gate": 500.0,
+      "revx": 1000.0
+     },
+     "part": {},
+     "offquote": {},
+     "blocked": "LIVE_TRADING_ENABLED is not 'yes'"
+    }
+   }
+  },
+  {
+   "op": "check",
+   "now": 1800003600.0,
+   "expect": {
+    "results": [
+     {
+      "mode": "live",
+      "hk": true,
+      "deploy": true,
+      "committed": true,
+      "done": "REVX onramp: staged $100.00 USDC for the pending Gate top-up (send it from the app; the bot keeps it in USDC)"
+     }
+    ],
+    "stdout": "",
+    "exit": null,
+    "raised": false,
+    "raised_text": null,
+    "calls": [
+     [
+      "revx",
+      "market_buy",
+      "USDC/USD",
+      100.0,
+      null
+     ]
+    ],
+    "journal": {},
+    "state": {
+     "ts": 1800003600.0,
+     "stable": {
+      "binance": 50.0,
+      "gate": 500.0,
+      "revx": 900.0
+     },
+     "part": {},
+     "offquote": {
+      "binance:USDT": 0.0,
+      "gate:USDC": 0.0,
+      "revx:USDC": 100.0
+     }
+    }
+   }
+  }
+ ]
+}

@@ -321,11 +321,13 @@ fn result_of(v: &Value) -> RunResult {
         fatal: b("fatal"),
         policy: b("policy"),
         deploy: b("deploy"),
+        audit: b("audit"),
         plan: o("plan"),
         done: o("done"),
         skip: o("skip"),
         warn: o("warn"),
         err: o("err"),
+        info: o("info"),
     }
 }
 

@@ -4,7 +4,7 @@
 //! (`os.environ.get("FIRST_PCT", "10")`) and a cron wrapper that exports the values the
 //! bot actually runs with (`export FIRST_PCT="${FIRST_PCT:-15}"`). The effective value is
 //! the wrapper's, else the module default. The coin tables are module dicts
-//! (`WATCHLIST`, `NAMES`, `ENTRIES`, `ROUTING`, `REVX_KLINE_SRC`).
+//! (`WATCHLIST`, `NAMES`, `ENTRIES`, `ROUTING`, `REVX_KLINE_SRC`, `REVX_PAIRS`).
 //!
 //! [`generate`] reads all of that and prints the YAML. It writes nothing: the output
 //! carries personal values (addresses, cost basis, allocations) and belongs in the
@@ -259,6 +259,9 @@ pub fn generate(dir: &Path) -> Result<String, String> {
                     | "regime_state"
                     | "froth_state"
                     | "run_lock"
+                    | "deploy_state"
+                    | "audit_state"
+                    | "fillodds_cache"
             )
         {
             y.push_str(&format!("{key}: {}\n", yq(v)));
@@ -278,6 +281,7 @@ pub fn generate(dir: &Path) -> Result<String, String> {
         ("ENTRIES", "entries"),
         ("ROUTING", "routing"),
         ("REVX_KLINE_SRC", "regime_kline_source"),
+        ("REVX_PAIRS", "revx_pairs"),
     ] {
         if let Some(rows) = module_dict(&py, table) {
             y.push_str(&format!("{key}:\n"));

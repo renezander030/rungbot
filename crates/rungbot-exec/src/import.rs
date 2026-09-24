@@ -3,7 +3,9 @@
 //! The source directory holds `orders-journal.json` (`{client_id: row}`) and, optionally,
 //! `orders-archive.jsonl` and the live run state: `ladder-state.live.json`,
 //! `pnl-ledger.json`, `ttl-warned.json`, the decision log `decisions.jsonl`, the
-//! signal-mail dedupe `signal-notices.json` and the level alert's `btc-alert-state.json`. The run state is written beside the imported
+//! signal-mail dedupe `signal-notices.json`, the level alert's `btc-alert-state.json`, the
+//! deploy layer's `deploy-state.live.json` (written as `deploy-state.json`) and the last
+//! book audit `audit-state.json`. The run state is written beside the imported
 //! journal under the names [`crate::store`] uses. Every row is read into an [`Order`]; fields this crate does not
 //! model are carried along unchanged. The import then checks itself: each row is written
 //! back out and compared with the source, where `null` and an absent field count as the
@@ -27,6 +29,11 @@ pub const TTL_SOURCE: &str = "ttl-warned.json";
 pub const DECISIONS_FILE: &str = "decisions.jsonl";
 pub const NOTICES_FILE: &str = "signal-notices.json";
 pub const BTC_ALERT_FILE: &str = "btc-alert-state.json";
+/// The deploy layer's state in the source directory, and its name beside the journal.
+pub const DEPLOY_SOURCE: &str = "deploy-state.live.json";
+pub const DEPLOY_FILE: &str = "deploy-state.json";
+/// The last book audit (the dashboard banner reads it).
+pub const AUDIT_FILE: &str = "audit-state.json";
 
 #[derive(Debug, Clone, Default, PartialEq)]
 pub struct ImportReport {
@@ -46,6 +53,10 @@ pub struct ImportReport {
     pub decision_lines: Option<usize>,
     pub notices: Option<usize>,
     pub btc_band: Option<String>,
+    /// Venues with a deploy baseline, and whether a top-up is marked in flight.
+    pub deploy_venues: Option<(usize, bool)>,
+    /// Whether the last audit was clean, and its finding count.
+    pub audit: Option<(bool, usize)>,
     /// Rows whose re-serialised form differs from the source beyond null/absent and
     /// int/float, with the first difference.
     pub mismatches: Vec<String>,
@@ -91,6 +102,22 @@ impl ImportReport {
         if let Some(b) = &self.btc_band {
             out.push(format!("BTC level state: {b}"));
         }
+        if let Some((n, inflight)) = self.deploy_venues {
+            out.push(format!(
+                "deploy state: {n} venue baseline(s){}",
+                if inflight { ", a top-up in flight" } else { "" }
+            ));
+        }
+        if let Some((ok, n)) = self.audit {
+            out.push(format!(
+                "book audit: {}",
+                if ok {
+                    "clean".to_string()
+                } else {
+                    format!("{n} finding(s)")
+                }
+            ));
+        }
         if !self.unmodelled.is_empty() {
             out.push(format!("kept verbatim: {}", fmt(&self.unmodelled)));
         }
@@ -119,6 +146,8 @@ pub struct Imported {
     pub decisions: Option<String>,
     pub notices: Option<rungbot_notify::signal_notices::NoticeState>,
     pub btc_alert: Option<Value>,
+    pub deploy: Option<serde_json::Map<String, Value>>,
+    pub audit: Option<Value>,
     pub report: ImportReport,
 }
 
@@ -136,6 +165,16 @@ pub fn read_dir(dir: &Path) -> Result<Imported, String> {
     let archive = store::read_archive(&dir.join(ARCHIVE_FILE))?;
     let (ladder, pnl, ttl) = read_run_state(dir)?;
     let (decisions, notices, btc_alert) = read_run_logs(dir)?;
+    let deploy = if dir.join(DEPLOY_SOURCE).exists() {
+        Some(store::read_state(&dir.join(DEPLOY_SOURCE))?)
+    } else {
+        None
+    };
+    let audit = if dir.join(AUDIT_FILE).exists() {
+        Some(Value::Object(store::read_state(&dir.join(AUDIT_FILE))?))
+    } else {
+        None
+    };
 
     let mut r = ImportReport {
         rows: journal.orders.len(),
@@ -156,6 +195,23 @@ pub fn read_dir(dir: &Path) -> Result<Imported, String> {
                 .and_then(Value::as_str)
                 .unwrap_or("ok")
                 .to_string()
+        }),
+        deploy_venues: deploy.as_ref().map(|d| {
+            (
+                d.get("stable")
+                    .and_then(Value::as_object)
+                    .map_or(0, |m| m.len()),
+                d.get("inflight")
+                    .is_some_and(|v| crate::pyfmt::truthy(Some(v))),
+            )
+        }),
+        audit: audit.as_ref().map(|a| {
+            (
+                a.get("ok").and_then(Value::as_bool).unwrap_or(false),
+                a.get("findings")
+                    .and_then(Value::as_array)
+                    .map_or(0, Vec::len),
+            )
         }),
         ..Default::default()
     };
@@ -185,6 +241,8 @@ pub fn read_dir(dir: &Path) -> Result<Imported, String> {
         decisions,
         notices,
         btc_alert,
+        deploy,
+        audit,
         report: r,
     })
 }
@@ -306,6 +364,8 @@ pub fn write(imported: &Imported, journal_path: &Path, force: bool) -> Result<Pa
         (DECISIONS_FILE, imported.decisions.is_some()),
         (NOTICES_FILE, imported.notices.is_some()),
         (BTC_ALERT_FILE, imported.btc_alert.is_some()),
+        (DEPLOY_FILE, imported.deploy.is_some()),
+        (AUDIT_FILE, imported.audit.is_some()),
     ];
     for (name, present) in targets {
         let p = store::sibling(journal_path, name);
@@ -341,6 +401,15 @@ pub fn write(imported: &Imported, journal_path: &Path, force: bool) -> Result<Pa
         store::write_atomic(
             &store::sibling(journal_path, BTC_ALERT_FILE),
             &crate::pyfmt::dumps(b, None),
+        )?;
+    }
+    if let Some(d) = &imported.deploy {
+        crate::deploy::save_state(&store::sibling(journal_path, DEPLOY_FILE), d)?;
+    }
+    if let Some(a) = &imported.audit {
+        store::write_atomic(
+            &store::sibling(journal_path, AUDIT_FILE),
+            &crate::pyfmt::dumps(a, Some(1)),
         )?;
     }
     store::save_journal(journal_path, &imported.journal)?;

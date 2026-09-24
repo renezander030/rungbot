@@ -1,0 +1,920 @@
+{
+ "routing": [
+  [
+   "AAA",
+   "revx",
+   "AAA/USD",
+   "USD"
+  ],
+  [
+   "BBB",
+   "revx",
+   "BBB/USD",
+   "USD"
+  ],
+  [
+   "CCC",
+   "gate",
+   "CCC_USDT",
+   "USDT"
+  ],
+  [
+   "DDD",
+   "gate",
+   "DDD_USDT",
+   "USDT"
+  ],
+  [
+   "EEE",
+   "binance",
+   "EEEUSDC",
+   "USDC"
+  ]
+ ],
+ "cases": [
+  {
+   "name": "findings",
+   "journal": {
+    "a1": {
+     "client_id": "a1",
+     "sym": "AAA",
+     "exch": "revx",
+     "pair": "AAA/USD",
+     "side": "buy",
+     "kind": "deploy_buy",
+     "status": "open",
+     "quote": 95.0,
+     "price": 9.5,
+     "base": 10.0,
+     "rung": 1,
+     "ts": 1799913600.0,
+     "note": "-5%",
+     "label": "chop",
+     "first_ts": 1799913600.0,
+     "order_id": "revx-1"
+    },
+    "a2": {
+     "client_id": "a2",
+     "sym": "AAA",
+     "exch": "revx",
+     "pair": "AAA/USD",
+     "side": "buy",
+     "kind": "deploy_buy",
+     "status": "open",
+     "quote": 90.0,
+     "price": 9.0,
+     "base": 10.0,
+     "rung": 2,
+     "ts": 1799913600.0,
+     "note": "-10%",
+     "label": "chop",
+     "first_ts": 1799913600.0,
+     "order_id": "revx-2",
+     "part_quote": 45.0
+    },
+    "a3": {
+     "client_id": "a3",
+     "sym": "BBB",
+     "exch": "revx",
+     "pair": "BBB/USD",
+     "side": "buy",
+     "kind": "deploy_buy",
+     "status": "open",
+     "quote": 60.0,
+     "price": 2.4,
+     "base": 25.0,
+     "rung": 1,
+     "ts": 1799913600.0,
+     "note": "-5%",
+     "label": "chop",
+     "first_ts": 1799913600.0,
+     "order_id": "revx-3"
+    },
+    "a4": {
+     "client_id": "a4",
+     "sym": "CCC",
+     "exch": "gate",
+     "pair": "CCC_USDT",
+     "side": "buy",
+     "kind": "deploy_buy",
+     "status": "open",
+     "quote": 38.0,
+     "price": 3.8,
+     "base": 10.0,
+     "rung": 1,
+     "ts": 1799913600.0,
+     "note": "-5%",
+     "label": "chop",
+     "first_ts": 1799913600.0,
+     "order_id": "gate-1"
+    },
+    "a5": {
+     "client_id": "a5",
+     "sym": "DDD",
+     "exch": "gate",
+     "pair": "DDD_USDT",
+     "side": "buy",
+     "kind": "deploy_buy",
+     "status": "filled",
+     "quote": 45.0,
+     "price": 0.45,
+     "base": 100.0,
+     "rung": 1,
+     "ts": 1799913600.0,
+     "note": "-5%",
+     "label": "chop",
+     "first_ts": 1799913600.0,
+     "order_id": "gate-2"
+    },
+    "a6": {
+     "client_id": "a6",
+     "sym": "CCC",
+     "exch": "gate",
+     "pair": "CCC_USDT",
+     "side": "sell",
+     "kind": "limit_sell",
+     "status": "open",
+     "quote": 50.0,
+     "price": 5.0,
+     "base": 10.0,
+     "order_id": "gate-3"
+    }
+   },
+   "venues": {
+    "revx": {
+     "prices": {
+      "AAA/USD": 10.0,
+      "BBB/USD": 2.5,
+      "FFF/USD": 1.0,
+      "USDC/USD": 1.0,
+      "USDC/EUR": 0.9
+     },
+     "info": {
+      "AAA/USD": {
+       "min_base": 0.01,
+       "min_quote": 5.0,
+       "step": 0.01,
+       "tick": 0.001
+      },
+      "BBB/USD": {
+       "min_base": 0.1,
+       "min_quote": 5.0,
+       "step": 0.1,
+       "tick": 0.0001
+      },
+      "FFF/USD": {
+       "min_base": 1.0,
+       "min_quote": 5.0,
+       "step": 1.0,
+       "tick": 0.0001
+      },
+      "USDC/USD": {
+       "min_base": 1.0,
+       "min_quote": 1.0,
+       "step": 0.01,
+       "tick": 0.0001
+      },
+      "USDC/EUR": {
+       "min_base": 1.0,
+       "min_quote": 1.0,
+       "step": 0.01,
+       "tick": 0.0001
+      }
+     },
+     "balances": {
+      "USD": {
+       "free": 100.0,
+       "locked": 140.0
+      },
+      "USDC": {
+       "free": 0.0,
+       "locked": 300.0
+      }
+     },
+     "book": [
+      {
+       "order_id": "revx-1",
+       "client_id": "x",
+       "side": "buy",
+       "price": 9.5,
+       "qty": 10.0,
+       "status": "open",
+       "pair": "AAA/USD"
+      },
+      {
+       "order_id": "revx-2",
+       "client_id": "x",
+       "side": "buy",
+       "price": 9.0,
+       "qty": 7.0,
+       "status": "open",
+       "pair": "AAA/USD"
+      },
+      {
+       "order_id": "revx-9",
+       "client_id": "x",
+       "side": "BUY",
+       "price": 2.0,
+       "qty": 30.0,
+       "status": "open",
+       "pair": "BBB/USD"
+      }
+     ]
+    },
+    "gate": {
+     "prices": {
+      "CCC_USDT": 4.0,
+      "DDD_USDT": 0.5,
+      "USDC_USDT": 1.0
+     },
+     "info": {
+      "CCC_USDT": {
+       "min_base": 0.1,
+       "min_quote": 3.0,
+       "prec": 2,
+       "tick": 0.0001
+      },
+      "DDD_USDT": {
+       "min_base": 1.0,
+       "min_quote": 3.0,
+       "prec": 1,
+       "tick": 1e-05
+      },
+      "USDC_USDT": {
+       "min_base": 1.0,
+       "min_quote": 1.0,
+       "prec": 2,
+       "tick": 0.0001
+      }
+     },
+     "balances": {
+      "USDT": {
+       "free": 10.0,
+       "locked": 90.0
+      }
+     },
+     "deposits": null,
+     "book": [
+      {
+       "order_id": "gate-1",
+       "client_id": "x",
+       "side": "buy",
+       "price": 3.8,
+       "qty": 10.0,
+       "status": "open",
+       "pair": "CCC_USDT"
+      },
+      {
+       "order_id": "gate-3",
+       "client_id": "x",
+       "side": "sell",
+       "price": 5.0,
+       "qty": 10.0,
+       "status": "open",
+       "pair": "CCC_USDT"
+      }
+     ]
+    },
+    "binance": {
+     "prices": {
+      "EEEUSDC": 20.0
+     },
+     "info": {
+      "EEEUSDC": {
+       "min_base": 0.001,
+       "min_quote": 5.0,
+       "step": 0.001,
+       "tick": 0.01
+      }
+     },
+     "balances": {
+      "USDC": {
+       "free": 50.0,
+       "locked": 0.0
+      }
+     }
+    }
+   },
+   "now": 1800000000.0,
+   "expect": {
+    "results": [
+     {
+      "hk": true,
+      "audit": true,
+      "warn": "BOOK AUDIT: revx BBB deploy_buy a3: journal open, venue has no order revx-3 (missed fill or cancel?)"
+     },
+     {
+      "hk": true,
+      "audit": true,
+      "warn": "BOOK AUDIT: revx AAA rung 2 a2: venue size $63.00 vs journal $45.00 (+18.00); resized at the venue, journal not updated"
+     },
+     {
+      "hk": true,
+      "audit": true,
+      "warn": "BOOK AUDIT: revx BBB/USD buy 30 @ 2: resting at the venue, not in the journal"
+     },
+     {
+      "hk": true,
+      "audit": true,
+      "warn": "BOOK AUDIT: revx: $140.00 stable locked at the venue vs $200.00 (remaining) to $245.00 (full size) in journal open buys (tolerance $5.00)"
+     },
+     {
+      "hk": true,
+      "audit": true,
+      "warn": "BOOK AUDIT: gate: $90.00 stable locked at the venue vs $38.00 (remaining) to $38.00 (full size) in journal open buys (tolerance $5.00)"
+     }
+    ],
+    "state": {
+     "ts": 1800000000.0,
+     "ok": false,
+     "findings": [
+      "revx BBB deploy_buy a3: journal open, venue has no order revx-3 (missed fill or cancel?)",
+      "revx AAA rung 2 a2: venue size $63.00 vs journal $45.00 (+18.00); resized at the venue, journal not updated",
+      "revx BBB/USD buy 30 @ 2: resting at the venue, not in the journal",
+      "revx: $140.00 stable locked at the venue vs $200.00 (remaining) to $245.00 (full size) in journal open buys (tolerance $5.00)",
+      "gate: $90.00 stable locked at the venue vs $38.00 (remaining) to $38.00 (full size) in journal open buys (tolerance $5.00)"
+     ],
+     "checked": {
+      "revx": 2,
+      "gate": 2
+     }
+    }
+   }
+  },
+  {
+   "name": "clean_with_withdrawal_in_flight",
+   "journal": {
+    "a1": {
+     "client_id": "a1",
+     "sym": "AAA",
+     "exch": "revx",
+     "pair": "AAA/USD",
+     "side": "buy",
+     "kind": "deploy_buy",
+     "status": "open",
+     "quote": 95.0,
+     "price": 9.5,
+     "base": 10.0,
+     "rung": 1,
+     "ts": 1799913600.0,
+     "note": "-5%",
+     "label": "chop",
+     "first_ts": 1799913600.0,
+     "order_id": "revx-1"
+    },
+    "a2": {
+     "client_id": "a2",
+     "sym": "AAA",
+     "exch": "revx",
+     "pair": "AAA/USD",
+     "side": "buy",
+     "kind": "deploy_buy",
+     "status": "open",
+     "quote": 90.0,
+     "price": 9.0,
+     "base": 10.0,
+     "rung": 2,
+     "ts": 1799913600.0,
+     "note": "-10%",
+     "label": "chop",
+     "first_ts": 1799913600.0,
+     "order_id": "revx-2",
+     "part_quote": 45.0
+    },
+    "a3": {
+     "client_id": "a3",
+     "sym": "BBB",
+     "exch": "revx",
+     "pair": "BBB/USD",
+     "side": "buy",
+     "kind": "deploy_buy",
+     "status": "open",
+     "quote": 60.0,
+     "price": 2.4,
+     "base": 25.0,
+     "rung": 1,
+     "ts": 1799913600.0,
+     "note": "-5%",
+     "label": "chop",
+     "first_ts": 1799913600.0,
+     "order_id": "revx-3"
+    },
+    "a4": {
+     "client_id": "a4",
+     "sym": "CCC",
+     "exch": "gate",
+     "pair": "CCC_USDT",
+     "side": "buy",
+     "kind": "deploy_buy",
+     "status": "open",
+     "quote": 38.0,
+     "price": 3.8,
+     "base": 10.0,
+     "rung": 1,
+     "ts": 1799913600.0,
+     "note": "-5%",
+     "label": "chop",
+     "first_ts": 1799913600.0,
+     "order_id": "gate-1"
+    },
+    "a5": {
+     "client_id": "a5",
+     "sym": "DDD",
+     "exch": "gate",
+     "pair": "DDD_USDT",
+     "side": "buy",
+     "kind": "deploy_buy",
+     "status": "filled",
+     "quote": 45.0,
+     "price": 0.45,
+     "base": 100.0,
+     "rung": 1,
+     "ts": 1799913600.0,
+     "note": "-5%",
+     "label": "chop",
+     "first_ts": 1799913600.0,
+     "order_id": "gate-2"
+    },
+    "a6": {
+     "client_id": "a6",
+     "sym": "CCC",
+     "exch": "gate",
+     "pair": "CCC_USDT",
+     "side": "sell",
+     "kind": "limit_sell",
+     "status": "open",
+     "quote": 50.0,
+     "price": 5.0,
+     "base": 10.0,
+     "order_id": "gate-3"
+    }
+   },
+   "venues": {
+    "revx": {
+     "prices": {
+      "AAA/USD": 10.0,
+      "BBB/USD": 2.5,
+      "FFF/USD": 1.0,
+      "USDC/USD": 1.0,
+      "USDC/EUR": 0.9
+     },
+     "info": {
+      "AAA/USD": {
+       "min_base": 0.01,
+       "min_quote": 5.0,
+       "step": 0.01,
+       "tick": 0.001
+      },
+      "BBB/USD": {
+       "min_base": 0.1,
+       "min_quote": 5.0,
+       "step": 0.1,
+       "tick": 0.0001
+      },
+      "FFF/USD": {
+       "min_base": 1.0,
+       "min_quote": 5.0,
+       "step": 1.0,
+       "tick": 0.0001
+      },
+      "USDC/USD": {
+       "min_base": 1.0,
+       "min_quote": 1.0,
+       "step": 0.01,
+       "tick": 0.0001
+      },
+      "USDC/EUR": {
+       "min_base": 1.0,
+       "min_quote": 1.0,
+       "step": 0.01,
+       "tick": 0.0001
+      }
+     },
+     "balances": {
+      "USD": {
+       "free": 100.0,
+       "locked": 245.0
+      },
+      "USDC": {
+       "free": 0.0,
+       "locked": 500.0
+      }
+     },
+     "book": [
+      {
+       "order_id": "revx-1",
+       "client_id": "x",
+       "side": "buy",
+       "price": 9.5,
+       "qty": 10.0,
+       "status": "open",
+       "pair": "AAA/USD"
+      },
+      {
+       "order_id": "revx-2",
+       "client_id": "x",
+       "side": "buy",
+       "price": 9.0,
+       "qty": 10.0,
+       "status": "open",
+       "pair": "AAA/USD"
+      },
+      {
+       "order_id": "revx-3",
+       "client_id": "x",
+       "side": "buy",
+       "price": 2.4,
+       "qty": 25.0,
+       "status": "open",
+       "pair": "BBB/USD"
+      }
+     ]
+    },
+    "gate": {
+     "prices": {
+      "CCC_USDT": 4.0,
+      "DDD_USDT": 0.5,
+      "USDC_USDT": 1.0
+     },
+     "info": {
+      "CCC_USDT": {
+       "min_base": 0.1,
+       "min_quote": 3.0,
+       "prec": 2,
+       "tick": 0.0001
+      },
+      "DDD_USDT": {
+       "min_base": 1.0,
+       "min_quote": 3.0,
+       "prec": 1,
+       "tick": 1e-05
+      },
+      "USDC_USDT": {
+       "min_base": 1.0,
+       "min_quote": 1.0,
+       "prec": 2,
+       "tick": 0.0001
+      }
+     },
+     "balances": {
+      "USDT": {
+       "free": 10.0,
+       "locked": 38.0
+      }
+     },
+     "deposits": null,
+     "book": [
+      {
+       "order_id": "gate-1",
+       "client_id": "x",
+       "side": "buy",
+       "price": 3.8,
+       "qty": 10.0,
+       "status": "open",
+       "pair": "CCC_USDT"
+      },
+      {
+       "order_id": "gate-3",
+       "client_id": "x",
+       "side": "sell",
+       "price": 5.0,
+       "qty": 10.0,
+       "status": "open",
+       "pair": "CCC_USDT"
+      }
+     ]
+    },
+    "binance": {
+     "prices": {
+      "EEEUSDC": 20.0
+     },
+     "info": {
+      "EEEUSDC": {
+       "min_base": 0.001,
+       "min_quote": 5.0,
+       "step": 0.001,
+       "tick": 0.01
+      }
+     },
+     "balances": {
+      "USDC": {
+       "free": 50.0,
+       "locked": 0.0
+      }
+     }
+    }
+   },
+   "now": 1800000000.0,
+   "expect": {
+    "results": [
+     {
+      "hk": true,
+      "audit": true,
+      "info": "BOOK AUDIT ok: 4 pairs on 2 venues agree with the journal"
+     }
+    ],
+    "state": {
+     "ts": 1800000000.0,
+     "ok": true,
+     "findings": [],
+     "checked": {
+      "revx": 2,
+      "gate": 2
+     }
+    }
+   }
+  },
+  {
+   "name": "venue_unreadable",
+   "journal": {
+    "a1": {
+     "client_id": "a1",
+     "sym": "AAA",
+     "exch": "revx",
+     "pair": "AAA/USD",
+     "side": "buy",
+     "kind": "deploy_buy",
+     "status": "open",
+     "quote": 95.0,
+     "price": 9.5,
+     "base": 10.0,
+     "rung": 1,
+     "ts": 1799913600.0,
+     "note": "-5%",
+     "label": "chop",
+     "first_ts": 1799913600.0,
+     "order_id": "revx-1"
+    },
+    "a2": {
+     "client_id": "a2",
+     "sym": "AAA",
+     "exch": "revx",
+     "pair": "AAA/USD",
+     "side": "buy",
+     "kind": "deploy_buy",
+     "status": "open",
+     "quote": 90.0,
+     "price": 9.0,
+     "base": 10.0,
+     "rung": 2,
+     "ts": 1799913600.0,
+     "note": "-10%",
+     "label": "chop",
+     "first_ts": 1799913600.0,
+     "order_id": "revx-2",
+     "part_quote": 45.0
+    },
+    "a3": {
+     "client_id": "a3",
+     "sym": "BBB",
+     "exch": "revx",
+     "pair": "BBB/USD",
+     "side": "buy",
+     "kind": "deploy_buy",
+     "status": "open",
+     "quote": 60.0,
+     "price": 2.4,
+     "base": 25.0,
+     "rung": 1,
+     "ts": 1799913600.0,
+     "note": "-5%",
+     "label": "chop",
+     "first_ts": 1799913600.0,
+     "order_id": "revx-3"
+    },
+    "a4": {
+     "client_id": "a4",
+     "sym": "CCC",
+     "exch": "gate",
+     "pair": "CCC_USDT",
+     "side": "buy",
+     "kind": "deploy_buy",
+     "status": "open",
+     "quote": 38.0,
+     "price": 3.8,
+     "base": 10.0,
+     "rung": 1,
+     "ts": 1799913600.0,
+     "note": "-5%",
+     "label": "chop",
+     "first_ts": 1799913600.0,
+     "order_id": "gate-1"
+    },
+    "a5": {
+     "client_id": "a5",
+     "sym": "DDD",
+     "exch": "gate",
+     "pair": "DDD_USDT",
+     "side": "buy",
+     "kind": "deploy_buy",
+     "status": "filled",
+     "quote": 45.0,
+     "price": 0.45,
+     "base": 100.0,
+     "rung": 1,
+     "ts": 1799913600.0,
+     "note": "-5%",
+     "label": "chop",
+     "first_ts": 1799913600.0,
+     "order_id": "gate-2"
+    },
+    "a6": {
+     "client_id": "a6",
+     "sym": "CCC",
+     "exch": "gate",
+     "pair": "CCC_USDT",
+     "side": "sell",
+     "kind": "limit_sell",
+     "status": "open",
+     "quote": 50.0,
+     "price": 5.0,
+     "base": 10.0,
+     "order_id": "gate-3"
+    }
+   },
+   "venues": {
+    "revx": {
+     "prices": {
+      "AAA/USD": 10.0,
+      "BBB/USD": 2.5,
+      "FFF/USD": 1.0,
+      "USDC/USD": 1.0,
+      "USDC/EUR": 0.9
+     },
+     "info": {
+      "AAA/USD": {
+       "min_base": 0.01,
+       "min_quote": 5.0,
+       "step": 0.01,
+       "tick": 0.001
+      },
+      "BBB/USD": {
+       "min_base": 0.1,
+       "min_quote": 5.0,
+       "step": 0.1,
+       "tick": 0.0001
+      },
+      "FFF/USD": {
+       "min_base": 1.0,
+       "min_quote": 5.0,
+       "step": 1.0,
+       "tick": 0.0001
+      },
+      "USDC/USD": {
+       "min_base": 1.0,
+       "min_quote": 1.0,
+       "step": 0.01,
+       "tick": 0.0001
+      },
+      "USDC/EUR": {
+       "min_base": 1.0,
+       "min_quote": 1.0,
+       "step": 0.01,
+       "tick": 0.0001
+      }
+     },
+     "balances": {
+      "USD": {
+       "free": 100.0,
+       "locked": 245.0
+      },
+      "USDC": {
+       "free": 0.0,
+       "locked": 500.0
+      }
+     },
+     "book": [
+      {
+       "order_id": "revx-1",
+       "client_id": "x",
+       "side": "buy",
+       "price": 9.5,
+       "qty": 10.0,
+       "status": "open",
+       "pair": "AAA/USD"
+      },
+      {
+       "order_id": "revx-2",
+       "client_id": "x",
+       "side": "buy",
+       "price": 9.0,
+       "qty": 10.0,
+       "status": "open",
+       "pair": "AAA/USD"
+      },
+      {
+       "order_id": "revx-3",
+       "client_id": "x",
+       "side": "buy",
+       "price": 2.4,
+       "qty": 25.0,
+       "status": "open",
+       "pair": "BBB/USD"
+      }
+     ]
+    },
+    "gate": {
+     "prices": {
+      "CCC_USDT": 4.0,
+      "DDD_USDT": 0.5,
+      "USDC_USDT": 1.0
+     },
+     "info": {
+      "CCC_USDT": {
+       "min_base": 0.1,
+       "min_quote": 3.0,
+       "prec": 2,
+       "tick": 0.0001
+      },
+      "DDD_USDT": {
+       "min_base": 1.0,
+       "min_quote": 3.0,
+       "prec": 1,
+       "tick": 1e-05
+      },
+      "USDC_USDT": {
+       "min_base": 1.0,
+       "min_quote": 1.0,
+       "prec": 2,
+       "tick": 0.0001
+      }
+     },
+     "balances": {
+      "USDT": {
+       "free": 10.0,
+       "locked": 38.0
+      }
+     },
+     "deposits": null,
+     "book": [
+      {
+       "order_id": "gate-1",
+       "client_id": "x",
+       "side": "buy",
+       "price": 3.8,
+       "qty": 10.0,
+       "status": "open",
+       "pair": "CCC_USDT"
+      },
+      {
+       "order_id": "gate-3",
+       "client_id": "x",
+       "side": "sell",
+       "price": 5.0,
+       "qty": 10.0,
+       "status": "open",
+       "pair": "CCC_USDT"
+      }
+     ],
+     "fail": [
+      {
+       "method": "open_orders",
+       "key": "DDD_USDT",
+       "msg": "rate limited xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
+       "times": -1
+      }
+     ]
+    },
+    "binance": {
+     "prices": {
+      "EEEUSDC": 20.0
+     },
+     "info": {
+      "EEEUSDC": {
+       "min_base": 0.001,
+       "min_quote": 5.0,
+       "step": 0.001,
+       "tick": 0.01
+      }
+     },
+     "balances": {
+      "USDC": {
+       "free": 50.0,
+       "locked": 0.0
+      }
+     }
+    }
+   },
+   "now": 1800000000.0,
+   "expect": {
+    "results": [
+     {
+      "hk": true,
+      "audit": true,
+      "warn": "BOOK AUDIT: gate: audit could not read the venue (rate limited xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx)"
+     }
+    ],
+    "state": {
+     "ts": 1800000000.0,
+     "ok": false,
+     "findings": [
+      "gate: audit could not read the venue (rate limited xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx)"
+     ],
+     "checked": {
+      "revx": 2
+     }
+    }
+   }
+  }
+ ]
+}

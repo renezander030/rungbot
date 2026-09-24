@@ -65,11 +65,15 @@ pub struct RunResult {
     pub policy: bool,
     /// From the deploy layer.
     pub deploy: bool,
+    /// From the book audit.
+    pub audit: bool,
     pub plan: Option<String>,
     pub done: Option<String>,
     pub skip: Option<String>,
     pub warn: Option<String>,
     pub err: Option<String>,
+    /// A note for the log only: no mail, no decision line.
+    pub info: Option<String>,
 }
 
 impl RunResult {
@@ -129,12 +133,14 @@ impl RunResult {
         put("skip", &self.skip);
         put("warn", &self.warn);
         put("err", &self.err);
+        put("info", &self.info);
         for (k, b) in [
             ("hk", self.hk),
             ("committed", self.committed),
             ("fatal", self.fatal),
             ("policy", self.policy),
             ("deploy", self.deploy),
+            ("audit", self.audit),
         ] {
             if b {
                 m.insert(k.into(), json!(true));
@@ -679,6 +685,9 @@ pub fn run_once(cfg: &RunConfig, flags: Flags, deps: &mut Deps) -> Result<i32, S
             cfg,
             now: run_now,
             venues: deps.venues,
+            market: deps.market,
+            clock: deps.clock,
+            sleep: deps.sleep,
             journal: &mut stores.journal,
             ladder: &mut new_state,
             regime: Some(&reg),
