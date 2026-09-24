@@ -694,6 +694,8 @@ fn replay(sc: &Value, failures: &mut Vec<String>) {
 }
 
 #[test]
+// The reference texts name state files by POSIX path, and some cut at a fixed width.
+#[cfg_attr(windows, ignore = "reference texts carry POSIX paths")]
 fn the_run_matches_the_reference_on_every_scenario() {
     let _offline = OfflineGuard::set();
     let g = golden();
@@ -717,4 +719,34 @@ impl OfflineGuard {
         std::env::set_var("RUNGBOT_OFFLINE", "1");
         OfflineGuard
     }
+}
+
+/// The documented example under contrib/ loads, and says what it says.
+#[test]
+fn the_example_config_loads() {
+    let p = Path::new(env!("CARGO_MANIFEST_DIR")).join("../../contrib/rungbot-run.example.yaml");
+    let Ok(text) = std::fs::read_to_string(&p) else {
+        return; // not shipped in the published crate
+    };
+    let c = RunConfig::from_yaml(&text, &|_| None).unwrap();
+    assert_eq!(c.trade_mode, "live");
+    assert!(c.live_trading_enabled);
+    assert_eq!(c.bands_for("AAA"), (15.0, 7.0));
+    assert_eq!(c.sell_giveback["AAA"], 30.0);
+    assert_eq!(c.sell_trail_arm["AAA"], 3.0);
+    assert_eq!(c.sell_no_tranche, vec!["BBB"]);
+    assert_eq!(c.sell_tranches, vec![4.0, 8.0, 16.0, 32.0]);
+    assert_eq!(
+        c.deploy_alloc,
+        vec![("AAA".into(), 3.0), ("BBB".into(), 1.0)]
+    );
+    assert_eq!(c.route("BBB").unwrap().pair, "BBB_USDT");
+    assert_eq!(c.regime_kline_source["AAA/USD"].1, "AAAUSDT");
+    assert_eq!(c.deploy_zones["AAA"].weights, vec![30.0, 40.0, 30.0]);
+    assert_eq!(c.btc_alert_usd, 50000.0);
+    assert!(!c.halt_file.to_string_lossy().contains('~'));
+    assert_eq!(c.trail_tp, "off");
+    assert_eq!(c.deploy, "off");
+    let n: rungbot_notify::Notifier = serde_json::from_value(c.notify.clone()).unwrap();
+    assert!(n.email.is_some() && n.telegram.is_some());
 }
