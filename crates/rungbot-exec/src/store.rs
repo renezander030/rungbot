@@ -290,8 +290,26 @@ pub fn save_pnl(path: &Path, ledger: &PnlLedger) -> Result<(), String> {
 
 /// The lock file for a journal: `RUNGBOT_LOCK` if set, else `<journal>.lock`.
 pub fn lock_path(journal: &Path) -> PathBuf {
-    match std::env::var("RUNGBOT_LOCK") {
-        Ok(v) if !v.trim().is_empty() => PathBuf::from(v),
+    lock_path_for(journal, None)
+}
+
+/// The lock file for a journal, the one rule every writer follows: `explicit` (a run
+/// config's `run_lock`), else `RUNGBOT_LOCK` if set, else `<journal>.lock`.
+pub fn lock_path_for(journal: &Path, explicit: Option<&Path>) -> PathBuf {
+    resolve_lock(
+        journal,
+        explicit,
+        std::env::var("RUNGBOT_LOCK").ok().as_deref(),
+    )
+}
+
+/// [`lock_path_for`] with the environment variable passed in.
+pub fn resolve_lock(journal: &Path, explicit: Option<&Path>, env: Option<&str>) -> PathBuf {
+    if let Some(p) = explicit.filter(|p| !p.as_os_str().is_empty()) {
+        return p.to_path_buf();
+    }
+    match env {
+        Some(v) if !v.trim().is_empty() => PathBuf::from(v),
         _ => journal.with_extension("lock"),
     }
 }
