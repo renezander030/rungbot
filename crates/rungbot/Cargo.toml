@@ -16,6 +16,7 @@ documentation = "https://docs.rs/rungbot"
 rungbot-core = { path = "../rungbot-core", version = "0.5.6" }
 rungbot-notify = { path = "../rungbot-notify", version = "0.5.6" }
 rungbot-research = { path = "../rungbot-research", version = "0.5.6" }
+rungbot-backtest = { path = "../rungbot-backtest", version = "0.5.6" }
 serde = { workspace = true }
 # float_roundtrip: state files written by other tools must read back to the same bits.
 serde_json = { workspace = true, features = ["float_roundtrip"] }

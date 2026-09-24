@@ -224,6 +224,7 @@ pub fn run(argv: &[String]) -> u8 {
             .ok_or_else(|| "no usable config with coins to read the regime from".to_string())?;
         let r = crate::read_regime(cfg).map_err(|e| match e {
             crate::Failure::Config(m) | crate::Failure::Prices(m) | crate::Failure::Other(m) => m,
+            crate::Failure::Exit(code) => format!("regime read exited with code {code}"),
         })?;
         Ok(regime_read(&r))
     };
