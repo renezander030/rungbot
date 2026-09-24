@@ -16,6 +16,11 @@
 //!    housekeeping mails, the BTC level alert, and the error mail.
 //! 7. The ladder state (only when prices came back), and once a day the journal archive.
 //!
+//! A live run writes the journal before and after every venue call and the P&L ledger
+//! after every realized sell, as it goes. Once a venue has been called, nothing ends the
+//! run early: a journal write that fails stops further orders, becomes a fatal result
+//! and an error mail, and the ladder state, cap counters and P&L ledger are still saved.
+//!
 //! `--dry-run` places nothing, saves no state, sends nothing and prints what it would
 //! send. The exit code is 1 when every price failed and there were errors, else 0. A run
 //! that finds the lock held prints `SKIPPED run: …` and exits 0.
@@ -37,7 +42,7 @@ use std::path::Path;
 
 use serde_json::{json, Map, Value};
 
-use crate::housekeeping::{Books, LadderState, Level, Outcome};
+use crate::housekeeping::{Books, LadderState, Level, Outcome, Persist};
 use crate::journal::Journal;
 use crate::reconcile::VenueSource;
 use crate::{pyfmt, store};
@@ -423,6 +428,17 @@ fn policy_switch(
     None
 }
 
+/// The fatal result for a journal write that failed once orders may be at a venue.
+fn journal_fatal(cfg: &RunConfig, e: &str) -> RunResult {
+    RunResult {
+        mode: Some(cfg.trade_mode.clone()),
+        hk: true,
+        fatal: true,
+        err: Some(execute::journal_fatal_text(e)),
+        ..Default::default()
+    }
+}
+
 /// The files a run owns, loaded.
 struct Stores {
     journal: Journal,
@@ -619,6 +635,11 @@ pub fn run_once(cfg: &RunConfig, flags: Flags, deps: &mut Deps) -> Result<i32, S
         .map(str::to_string);
     let mut execution: Vec<RunResult> = Vec::new();
     let jpath = cfg.journal_path();
+    let mut persist = if live_run {
+        Persist::to_files(jpath.clone(), cfg.pnl_path())
+    } else {
+        Persist::none()
+    };
     if !dry_run {
         let ctx = ExecCtx {
             now: run_now,
@@ -627,7 +648,6 @@ pub fn run_once(cfg: &RunConfig, flags: Flags, deps: &mut Deps) -> Result<i32, S
             trailing: trailing.clone(),
             policy_on: pol_on,
         };
-        let mut persist = |j: &Journal| store::save_journal(&jpath, j);
         let mut io = ExecIo {
             venues: deps.venues,
             books: Books {
@@ -638,7 +658,7 @@ pub fn run_once(cfg: &RunConfig, flags: Flags, deps: &mut Deps) -> Result<i32, S
             },
             persist: &mut persist,
         };
-        execution = execute::execute_trades(cfg, &buys, &sells, &ctx, &mut io)?;
+        execution = execute::execute_trades(cfg, &buys, &sells, &ctx, &mut io);
     }
     new_state.insert(
         "_sellpolicy".into(),
@@ -673,8 +693,9 @@ pub fn run_once(cfg: &RunConfig, flags: Flags, deps: &mut Deps) -> Result<i32, S
         }
     }
 
-    // 4. The deploy layer and the daily book audit.
-    if !dry_run && cfg.trade_mode == "live" {
+    // 4. The deploy layer and the daily book audit. Not after a failed journal write:
+    // the deploy layer places orders.
+    if !dry_run && cfg.trade_mode == "live" && persist.failed().is_none() {
         let mut hctx = HookCtx {
             cfg,
             now: run_now,
@@ -684,6 +705,7 @@ pub fn run_once(cfg: &RunConfig, flags: Flags, deps: &mut Deps) -> Result<i32, S
             regime: Some(&reg),
             policy_on: pol_on,
             blocked: block.as_deref(),
+            persist: &mut persist,
         };
         if let Err(e) = deps.deploy.check(&mut hctx, &mut execution) {
             execution.push(RunResult {
@@ -706,9 +728,20 @@ pub fn run_once(cfg: &RunConfig, flags: Flags, deps: &mut Deps) -> Result<i32, S
             }
         }
     }
+    if let Some(e) = persist.failed() {
+        if !execution.iter().any(|r| r.fatal) {
+            execution.push(journal_fatal(cfg, e));
+        }
+    }
     if live_run {
+        // Best effort from here on: orders may already be at a venue, so a failed write
+        // is reported and the run goes on to save what it can and send the mails.
         if stores.journal != journal0 {
-            store::save_journal(&jpath, &stores.journal)?;
+            if let Err(e) = store::save_journal(&jpath, &stores.journal) {
+                if !execution.iter().any(|r| r.fatal) {
+                    execution.push(journal_fatal(cfg, &format!("journal write failed: {e}")));
+                }
+            }
         }
         if stores.pnl.len() != pnl0 {
             if let Err(e) = store::save_pnl(&cfg.pnl_path(), &stores.pnl) {
