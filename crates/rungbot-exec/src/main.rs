@@ -53,7 +53,8 @@ OPTIONS:
   --journal PATH     order journal (default: alongside the rungbot state)
   --pair PAIR        limit status/cancel to one pair
   --days N           archive finished cancels older than N days (default 30)
-  --write            import-cex: write the journal (default: a dry run with counts)
+  --write            import-cex: write the journal and the run state (ladder state,
+                     P&L ledger, stale-order flags) beside it (default: a dry run)
   --force            import-cex: replace a journal that already holds rows
   --max-order N      per-order cap in quote currency (default 50)
   --max-daily N      daily notional cap (default 200)
@@ -825,6 +826,15 @@ fn cmd_import(args: &Args) -> Result<(), String> {
         apath.display(),
         imported.archive.len()
     );
+    for (name, present) in [
+        (store::LADDER_FILE, imported.ladder.is_some()),
+        (store::PNL_FILE, imported.pnl.is_some()),
+        (store::TTL_FILE, imported.ttl.is_some()),
+    ] {
+        if present {
+            println!("wrote {}", store::sibling(&jpath, name).display());
+        }
+    }
     Ok(())
 }
 

@@ -65,6 +65,40 @@ pub fn fixed_stripped(x: f64, prec: usize) -> String {
     s.trim_end_matches('0').trim_end_matches('.').to_string()
 }
 
+/// `f"{x:.{prec}g}"` (`f"{x:g}"` is `prec` 6): `prec` significant digits, fixed notation
+/// for decimal exponents from -4 up to `prec - 1` and scientific outside that (`1.5e-05`,
+/// `1.23457e+08`), trailing zeros and a bare point removed.
+pub fn g(x: f64, prec: usize) -> String {
+    if x.is_nan() {
+        return "nan".into();
+    }
+    if x.is_infinite() {
+        return if x > 0.0 { "inf" } else { "-inf" }.into();
+    }
+    if x == 0.0 {
+        return if x.is_sign_negative() { "-0" } else { "0" }.into();
+    }
+    let p = prec.max(1);
+    // Round to `p` significant digits once; the exponent of that rounding picks the
+    // notation, which is how Python picks it.
+    let sci = format!("{:.*e}", p - 1, x);
+    let (mant, exp) = sci.split_once('e').expect("{:e} always has an exponent");
+    let exp: i32 = exp.parse().expect("integer exponent");
+    let strip = |s: &str| -> String {
+        if s.contains('.') {
+            s.trim_end_matches('0').trim_end_matches('.').to_string()
+        } else {
+            s.to_string()
+        }
+    };
+    if (-4..p as i32).contains(&exp) {
+        strip(&format!("{:.*}", (p as i32 - 1 - exp) as usize, x))
+    } else {
+        let sign = if exp < 0 { '-' } else { '+' };
+        format!("{}e{sign}{:02}", strip(mant), exp.abs())
+    }
+}
+
 /// `urllib.parse.urlencode(pairs)`: `quote_plus` on every key and value.
 pub fn urlencode(pairs: &[(&str, String)]) -> String {
     pairs
@@ -631,6 +665,27 @@ mod tests {
         assert_eq!(float_repr(1234567890123456.0), "1234567890123456.0");
         assert_eq!(float_repr(-2.5), "-2.5");
         assert_eq!(float_repr(100.0), "100.0");
+    }
+
+    #[test]
+    fn g_matches_python_general_format() {
+        for (x, p, want) in [
+            (0.5511022044088176, 6, "0.551102"),
+            (99.8, 6, "99.8"),
+            (1.5e-05, 6, "1.5e-05"),
+            (123456789.0, 6, "1.23457e+08"),
+            (999999.5, 6, "1e+06"),
+            (0.0001, 6, "0.0001"),
+            (0.00009999, 6, "9.999e-05"),
+            (100.0, 6, "100"),
+            (-2.5, 6, "-2.5"),
+            (1.1, 6, "1.1"),
+            (2.312312312312313, 6, "2.31231"),
+            (1099.8, 6, "1099.8"),
+            (0.0, 6, "0"),
+        ] {
+            assert_eq!(g(x, p), want, "{x}");
+        }
     }
 
     #[test]

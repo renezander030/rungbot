@@ -1,0 +1,387 @@
+{
+ "cases": [
+  {
+   "exch": "revx",
+   "pair": "AKA/USD",
+   "held": 1505.9751,
+   "price": 0.48,
+   "spec": {
+    "step": 0.01,
+    "min_quote": 1.0
+   },
+   "out": {
+    "ok": true,
+    "reason": "sellable 1505.97 (~$722.87)",
+    "qty": 1505.97,
+    "min_base": 0.0,
+    "min_quote": 1.0,
+    "notional": 722.8656
+   }
+  },
+  {
+   "exch": "gate",
+   "pair": "PHX_USDT",
+   "held": 12.0,
+   "price": 0.1,
+   "spec": {
+    "step": 1.0,
+    "min_quote": 3.0
+   },
+   "out": {
+    "ok": false,
+    "reason": "dust: $1.20 < min $3.00",
+    "qty": 12.0,
+    "min_base": 0.0,
+    "min_quote": 3.0,
+    "notional": 1.2000000000000002
+   }
+  },
+  {
+   "exch": "gate",
+   "pair": "MEX_USDT",
+   "held": 40.0,
+   "price": 1.0,
+   "spec": {
+    "step": 1.0,
+    "min_base": 100.0
+   },
+   "out": {
+    "ok": false,
+    "reason": "dust: 40 < min 100 MEX",
+    "qty": 40.0,
+    "min_base": 100.0,
+    "min_quote": 0.0,
+    "notional": 40.0
+   }
+  },
+  {
+   "exch": "revx",
+   "pair": "BTX/USD",
+   "held": 0.4,
+   "price": 70000.0,
+   "spec": {
+    "step": 1.0
+   },
+   "out": {
+    "ok": false,
+    "reason": "rounds to 0 (held 0.4)",
+    "qty": 0.0,
+    "min_base": 0.0,
+    "min_quote": 0.0,
+    "notional": 0.0
+   }
+  },
+  {
+   "exch": "revx",
+   "pair": "AKA/USD",
+   "held": 0.0,
+   "price": 0.48,
+   "spec": {},
+   "out": {
+    "ok": false,
+    "reason": "nothing held",
+    "qty": 0.0,
+    "min_base": null,
+    "min_quote": null,
+    "notional": 0.0
+   }
+  },
+  {
+   "exch": "revx",
+   "pair": "AKA/USD",
+   "held": 10.0,
+   "price": 0.0,
+   "spec": {},
+   "out": {
+    "ok": false,
+    "reason": "no price",
+    "qty": 0.0,
+    "min_base": null,
+    "min_quote": null,
+    "notional": 0.0
+   }
+  },
+  {
+   "exch": "revx",
+   "pair": "AKA/USD",
+   "held": null,
+   "price": 0.48,
+   "spec": {},
+   "out": {
+    "ok": false,
+    "reason": "nothing held",
+    "qty": 0.0,
+    "min_base": null,
+    "min_quote": null,
+    "notional": 0.0
+   }
+  },
+  {
+   "exch": "revx",
+   "pair": "AKA/USD",
+   "held": -3.0,
+   "price": 0.48,
+   "spec": {},
+   "out": {
+    "ok": false,
+    "reason": "nothing held",
+    "qty": 0.0,
+    "min_base": null,
+    "min_quote": null,
+    "notional": 0.0
+   }
+  },
+  {
+   "exch": "revx",
+   "pair": "AKA/USD",
+   "held": 10.0,
+   "price": 0.48,
+   "spec": {
+    "raise_in": "limits",
+    "raise": "configuration/pairs -> 503 xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+   },
+   "out": {
+    "ok": false,
+    "reason": "check failed: configuration/pairs -> 503 xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
+    "qty": 0.0,
+    "min_base": null,
+    "min_quote": null,
+    "notional": 0.0
+   }
+  },
+  {
+   "exch": "gate",
+   "pair": "AKA_USDT",
+   "held": 10.0,
+   "price": 0.48,
+   "spec": {
+    "raise_in": "round",
+    "raise": "short"
+   },
+   "out": {
+    "ok": false,
+    "reason": "check failed: short",
+    "qty": 0.0,
+    "min_base": null,
+    "min_quote": null,
+    "notional": 0.0
+   }
+  },
+  {
+   "exch": "binance",
+   "pair": "FEXUSDC",
+   "held": 12.34,
+   "price": 0.5,
+   "spec": {
+    "step": 0.1,
+    "min_base": 1.0,
+    "min_quote": 5.0
+   },
+   "out": {
+    "ok": true,
+    "reason": "sellable 12.3 (~$6.15)",
+    "qty": 12.3,
+    "min_base": 1.0,
+    "min_quote": 5.0,
+    "notional": 6.15
+   }
+  },
+  {
+   "exch": "binance",
+   "pair": "FEXUSDC",
+   "held": 12.34,
+   "price": 0.1,
+   "spec": {
+    "step": 0.1,
+    "min_base": 1.0,
+    "min_quote": 5.0
+   },
+   "out": {
+    "ok": false,
+    "reason": "dust: $1.23 < min $5.00",
+    "qty": 12.3,
+    "min_base": 1.0,
+    "min_quote": 5.0,
+    "notional": 1.2300000000000002
+   }
+  },
+  {
+   "exch": "binance",
+   "pair": "FEXUSDC",
+   "held": 0.05,
+   "price": 0.5,
+   "spec": {
+    "step": 0.1
+   },
+   "out": {
+    "ok": false,
+    "reason": "rounds to 0 (held 0.05)",
+    "qty": 0.0,
+    "min_base": 0.0,
+    "min_quote": 0.0,
+    "notional": 0.0
+   }
+  },
+  {
+   "exch": "gate",
+   "pair": "ABC_USDT",
+   "held": 1e-07,
+   "price": 3.0,
+   "spec": {
+    "min_base": 1e-05
+   },
+   "out": {
+    "ok": false,
+    "reason": "dust: 1e-07 < min 1e-05 ABC",
+    "qty": 1e-07,
+    "min_base": 1e-05,
+    "min_quote": 0.0,
+    "notional": 3e-07
+   }
+  },
+  {
+   "exch": "gate",
+   "pair": "ABC_USDT",
+   "held": 2.5e-05,
+   "price": 1234567.0,
+   "spec": {
+    "min_base": 1e-05
+   },
+   "out": {
+    "ok": true,
+    "reason": "sellable 2.5e-05 (~$30.86)",
+    "qty": 2.5e-05,
+    "min_base": 1e-05,
+    "min_quote": 0.0,
+    "notional": 30.864175000000003
+   }
+  }
+ ],
+ "summary": {
+  "in": {
+   "S00": {
+    "ok": true,
+    "reason": "sellable 1505.97 (~$722.87)",
+    "qty": 1505.97,
+    "min_base": 0.0,
+    "min_quote": 1.0,
+    "notional": 722.8656
+   },
+   "S01": {
+    "ok": false,
+    "reason": "dust: $1.20 < min $3.00",
+    "qty": 12.0,
+    "min_base": 0.0,
+    "min_quote": 3.0,
+    "notional": 1.2000000000000002
+   },
+   "S02": {
+    "ok": false,
+    "reason": "dust: 40 < min 100 MEX",
+    "qty": 40.0,
+    "min_base": 100.0,
+    "min_quote": 0.0,
+    "notional": 40.0
+   },
+   "S03": {
+    "ok": false,
+    "reason": "rounds to 0 (held 0.4)",
+    "qty": 0.0,
+    "min_base": 0.0,
+    "min_quote": 0.0,
+    "notional": 0.0
+   },
+   "S04": {
+    "ok": false,
+    "reason": "nothing held",
+    "qty": 0.0,
+    "min_base": null,
+    "min_quote": null,
+    "notional": 0.0
+   },
+   "S05": {
+    "ok": false,
+    "reason": "no price",
+    "qty": 0.0,
+    "min_base": null,
+    "min_quote": null,
+    "notional": 0.0
+   },
+   "S06": {
+    "ok": false,
+    "reason": "nothing held",
+    "qty": 0.0,
+    "min_base": null,
+    "min_quote": null,
+    "notional": 0.0
+   },
+   "S07": {
+    "ok": false,
+    "reason": "nothing held",
+    "qty": 0.0,
+    "min_base": null,
+    "min_quote": null,
+    "notional": 0.0
+   },
+   "S08": {
+    "ok": false,
+    "reason": "check failed: configuration/pairs -> 503 xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
+    "qty": 0.0,
+    "min_base": null,
+    "min_quote": null,
+    "notional": 0.0
+   },
+   "S09": {
+    "ok": false,
+    "reason": "check failed: short",
+    "qty": 0.0,
+    "min_base": null,
+    "min_quote": null,
+    "notional": 0.0
+   },
+   "S10": {
+    "ok": true,
+    "reason": "sellable 12.3 (~$6.15)",
+    "qty": 12.3,
+    "min_base": 1.0,
+    "min_quote": 5.0,
+    "notional": 6.15
+   },
+   "S11": {
+    "ok": false,
+    "reason": "dust: $1.23 < min $5.00",
+    "qty": 12.3,
+    "min_base": 1.0,
+    "min_quote": 5.0,
+    "notional": 1.2300000000000002
+   },
+   "S12": {
+    "ok": false,
+    "reason": "rounds to 0 (held 0.05)",
+    "qty": 0.0,
+    "min_base": 0.0,
+    "min_quote": 0.0,
+    "notional": 0.0
+   },
+   "S13": {
+    "ok": false,
+    "reason": "dust: 1e-07 < min 1e-05 ABC",
+    "qty": 1e-07,
+    "min_base": 1e-05,
+    "min_quote": 0.0,
+    "notional": 3e-07
+   },
+   "S14": {
+    "ok": true,
+    "reason": "sellable 2.5e-05 (~$30.86)",
+    "qty": 2.5e-05,
+    "min_base": 1e-05,
+    "min_quote": 0.0,
+    "notional": 30.864175000000003
+   }
+  },
+  "out": "SELL-CHECK 3/15 sellable; S01 dust: $1.20 < min $3.00; S02 dust: 40 < min 100 MEX; S03 rounds to 0 (held 0.4); S04 nothing held; S05 no price; S06 nothing held; S07 nothing held; S08 check failed: configuration/pairs -> 503 xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx; S09 check failed: short; S11 dust: $1.23 < min $5.00; S12 rounds to 0 (held 0.05); S13 dust: 1e-07 < min 1e-05 ABC"
+ },
+ "summary_all_ok": "SELL-CHECK 1/1 sellable",
+ "summary_empty": "SELL-CHECK 0/0 sellable"
+}

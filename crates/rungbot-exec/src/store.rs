@@ -8,6 +8,10 @@
 //! Journals written by rungbot-exec 0.5, `{"orders": {...}}` with `venue`,
 //! `venue_order_id` and `placed_ts`, are read too and written back in this format.
 //!
+//! The run state beside it follows the same write rule: the ladder state
+//! (`ladder-state.json`), the realized-P&L ledger (`pnl-ledger.json`) and the stale-order
+//! flags (`ttl-warned.json`).
+//!
 //! Two rules, both about not losing the one record that stops a double trade:
 //!
 //! * A state file that exists but does not parse is an **error**, never an empty state.
@@ -21,8 +25,10 @@ use std::io::{ErrorKind, Read, Seek, SeekFrom, Write};
 use std::path::{Path, PathBuf};
 use std::time::{Duration, Instant};
 
+use indexmap::IndexMap;
 use serde_json::{Map, Value};
 
+use crate::housekeeping::{LadderState, PnlLedger, TtlWarned};
 use crate::journal::{Journal, Order};
 use crate::pyfmt;
 
@@ -69,8 +75,19 @@ fn unreadable(path: &Path, e: &str) -> String {
     )
 }
 
+/// [`read_state`], keeping the file's key order. The journal's row order is behaviour:
+/// reconcile hands fills out in it, and the order fills are booked in decides which cost
+/// basis a sell is measured against.
+pub fn read_state_ordered(path: &Path) -> Result<IndexMap<String, Value>, String> {
+    if read_state(path)?.is_empty() {
+        return Ok(IndexMap::new());
+    }
+    let raw = std::fs::read_to_string(path).map_err(|e| unreadable(path, &e.to_string()))?;
+    serde_json::from_str(&raw).map_err(|e| unreadable(path, &e.to_string()))
+}
+
 /// Is this object a 0.5-era journal, `{"orders": {cid: row}}`?
-fn is_legacy(m: &Map<String, Value>) -> bool {
+fn is_legacy(m: &IndexMap<String, Value>) -> bool {
     m.len() == 1
         && m.get("orders").is_some_and(|o| {
             o.as_object()
@@ -79,15 +96,21 @@ fn is_legacy(m: &Map<String, Value>) -> bool {
         })
 }
 
-/// Turn a parsed journal object into a [`Journal`], migrating the 0.5 layout.
+/// Turn a parsed journal object into a [`Journal`], migrating the 0.5 layout. A
+/// `serde_json` map is sorted by id; use [`journal_from_rows`] to keep the file's order.
 pub fn journal_from_map(m: Map<String, Value>) -> Result<Journal, String> {
-    let (rows, legacy) = if is_legacy(&m) {
+    journal_from_rows(m.into_iter().collect())
+}
+
+/// Turn journal rows, in file order, into a [`Journal`], migrating the 0.5 layout.
+pub fn journal_from_rows(m: IndexMap<String, Value>) -> Result<Journal, String> {
+    let (rows, legacy): (Vec<(String, Value)>, bool) = if is_legacy(&m) {
         match m.into_iter().next() {
-            Some((_, Value::Object(rows))) => (rows, true),
+            Some((_, Value::Object(rows))) => (rows.into_iter().collect(), true),
             _ => unreachable!("is_legacy checked the shape"),
         }
     } else {
-        (m, false)
+        (m.into_iter().collect(), false)
     };
     let mut j = Journal::default();
     for (cid, row) in rows {
@@ -127,8 +150,8 @@ fn migrate_legacy(o: &mut Order) {
 
 /// Load the journal: see [`read_state`] for the failure rules.
 pub fn load_journal(path: &Path) -> Result<Journal, String> {
-    let m = read_state(path)?;
-    journal_from_map(m).map_err(|e| format!("{}: {e}", path.display()))
+    let m = read_state_ordered(path)?;
+    journal_from_rows(m).map_err(|e| format!("{}: {e}", path.display()))
 }
 
 /// The journal file's exact bytes.
@@ -202,6 +225,67 @@ pub fn read_archive(path: &Path) -> Result<Vec<Order>, String> {
             serde_json::from_str(l).map_err(|e| format!("{} line {}: {e}", path.display(), n + 1))
         })
         .collect()
+}
+
+// ------------------------------------------------------------------ run state files
+
+/// The ladder state, beside the journal.
+pub const LADDER_FILE: &str = "ladder-state.json";
+/// The realized-P&L ledger, beside the journal.
+pub const PNL_FILE: &str = "pnl-ledger.json";
+/// Which stale orders were flagged when, beside the journal.
+pub const TTL_FILE: &str = "ttl-warned.json";
+
+/// A run-state file that sits next to the journal.
+pub fn sibling(journal: &Path, name: &str) -> PathBuf {
+    journal.with_file_name(name)
+}
+
+/// The ladder state. The same rules as the journal: missing is a fresh start, unreadable
+/// is an error, because an empty ladder state forgets every rung already taken.
+pub fn load_ladder(path: &Path) -> Result<LadderState, String> {
+    read_state(path)
+}
+
+pub fn save_ladder(path: &Path, state: &LadderState) -> Result<(), String> {
+    write_atomic(path, &pyfmt::dumps(state, Some(2)))
+}
+
+/// The stale-order flags. They only suppress a repeated warning, so a file that is
+/// missing or unreadable starts empty; entries that are not a number are dropped.
+pub fn load_ttl_warned(path: &Path) -> TtlWarned {
+    std::fs::read_to_string(path)
+        .ok()
+        .and_then(|raw| serde_json::from_str::<IndexMap<String, Value>>(&raw).ok())
+        .map(|m| {
+            m.into_iter()
+                .filter_map(|(k, v)| v.as_f64().map(|f| (k, f)))
+                .collect()
+        })
+        .unwrap_or_default()
+}
+
+pub fn save_ttl_warned(path: &Path, ttl: &TtlWarned) -> Result<(), String> {
+    write_atomic(path, &pyfmt::dumps(ttl, Some(2)))
+}
+
+/// The P&L ledger. Missing, or not a list, starts empty; a file that does not parse is an
+/// error, so an append never overwrites records it could not read.
+pub fn load_pnl(path: &Path) -> Result<PnlLedger, String> {
+    let raw = match std::fs::read_to_string(path) {
+        Ok(s) => s,
+        Err(e) if e.kind() == ErrorKind::NotFound => return Ok(Vec::new()),
+        Err(e) => return Err(format!("cannot read {}: {e}", path.display())),
+    };
+    match serde_json::from_str::<Value>(&raw) {
+        Ok(Value::Array(v)) => Ok(v),
+        Ok(_) => Ok(Vec::new()),
+        Err(e) => Err(unreadable(path, &e.to_string())),
+    }
+}
+
+pub fn save_pnl(path: &Path, ledger: &PnlLedger) -> Result<(), String> {
+    write_atomic(path, &pyfmt::dumps(ledger, Some(2)))
 }
 
 /// The lock file for a journal: `RUNGBOT_LOCK` if set, else `<journal>.lock`.
@@ -368,6 +452,20 @@ mod tests {
         assert_eq!(std::fs::read_to_string(&p).unwrap(), cut);
         std::fs::write(&p, "[1, 2]").unwrap();
         assert!(load_journal(&p).unwrap_err().contains("holds list"));
+    }
+
+    #[test]
+    fn a_journal_reads_back_in_file_order() {
+        let d = dir("order");
+        let p = d.join("orders-journal.json");
+        std::fs::write(
+            &p,
+            r#"{"zz": {"client_id": "zz"}, "aa": {"client_id": "aa"}, "mm": {"client_id": "mm"}}"#,
+        )
+        .unwrap();
+        let j = load_journal(&p).unwrap();
+        let ids: Vec<&str> = j.orders.keys().map(String::as_str).collect();
+        assert_eq!(ids, ["zz", "aa", "mm"]);
     }
 
     #[test]
