@@ -47,6 +47,15 @@ fn print_results(layer: &Layer, out: &mut dyn Write) -> Result<(), String> {
     Ok(())
 }
 
+/// Print the results; a journal write that failed on the way makes the command fail.
+fn finish(layer: &Layer, out: &mut dyn Write) -> Result<(), String> {
+    print_results(layer, out)?;
+    match layer.write_failed() {
+        Some(e) => Err(format!("{e}; nothing more was placed")),
+        None => Ok(()),
+    }
+}
+
 fn venues_usage(what: &str) -> String {
     format!(
         "usage: rungbot-exec deploy {what}",
@@ -242,10 +251,21 @@ pub fn tranche(
             .and_then(|m| m.get_mut(venue))
         {
             *b = json!(b.as_f64().unwrap_or(0.0) + bump);
-            save_state(&path, &st)?;
+            if let Err(e) = save_state(&path, &st) {
+                layer.push(
+                    None,
+                    None,
+                    false,
+                    super::Lvl::Err,
+                    format!(
+                        "deploy state write failed, baseline not raised by ${}: {e}",
+                        fixed(bump, 2)
+                    ),
+                );
+            }
         }
     }
-    print_results(layer, out)
+    finish(layer, out)
 }
 
 /// `market <share%> <venue> <SYM>`.
@@ -303,18 +323,25 @@ pub fn market(
             )),
             ..Default::default()
         });
-        layer.save()?;
-        match client
-            .market_buy(&pair, mkt, Some(&cid))
-            .and_then(|raw| client.parse_order(&raw))
-        {
+        let placed = match layer.save() {
+            Ok(()) => client
+                .market_buy(&pair, mkt, Some(&cid))
+                .and_then(|raw| client.parse_order(&raw))
+                .map_err(|e| e.to_string()),
+            Err(e) => {
+                // Not on disk, so not sent; nothing else is placed either.
+                rest = 0.0;
+                Err(format!("not placed, {e}"))
+            }
+        };
+        match placed {
             Ok(lf) => {
                 layer.j.update(&cid, |o| {
                     o.order_id = Some(lf.order_id.clone()).filter(|s| !s.is_empty());
                     o.status = "new".into();
                     o.last_error = None;
                 });
-                layer.save()?;
+                layer.save_after();
                 layer.push(
                     Some(sym),
                     Some("buy"),
@@ -329,12 +356,11 @@ pub fn market(
                 );
             }
             Err(e) => {
-                let e = e.to_string();
                 layer.j.update(&cid, |o| {
                     o.status = "error".into();
                     o.last_error = Some(e.clone());
                 });
-                layer.save()?;
+                layer.save_after();
                 layer.push(
                     Some(sym),
                     None,
@@ -342,7 +368,9 @@ pub fn market(
                     super::Lvl::Warn,
                     format!("market buy {sym} ${} FAILED: {e}", fixed(mkt, 2)),
                 );
-                rest = budget;
+                if layer.write_failed().is_none() {
+                    rest = budget;
+                }
             }
         }
     }
@@ -371,7 +399,7 @@ pub fn market(
             }
         }
     }
-    print_results(layer, out)
+    finish(layer, out)
 }
 
 /// `cancel [venue]`.
@@ -425,5 +453,8 @@ pub fn cancel(layer: &mut Layer, venue: Option<&str>, out: &mut dyn Write) -> Re
         venue.map(|v| format!(" on {v}")).unwrap_or_default(),
         layer.cfg.halt_file.display()
     );
-    Ok(())
+    match layer.write_failed() {
+        Some(e) => Err(format!("{e}; nothing more was cancelled")),
+        None => Ok(()),
+    }
 }
