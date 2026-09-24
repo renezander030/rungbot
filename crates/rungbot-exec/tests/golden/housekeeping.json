@@ -1,0 +1,6656 @@
+{
+ "scenarios": [
+  {
+   "name": "fills_and_drift",
+   "settings": {
+    "target_pct": 10.0,
+    "fee_pct_gate": 0.2,
+    "fee_pct_revx": 0.1,
+    "fee_pct_binance": 0.1,
+    "window_hours": 24.0,
+    "limit_ttl_days": 14.0,
+    "limit_ttl_days_bear": 45.0,
+    "limit_ttl_days_chop": 30.0,
+    "ttl_renag_days": 30.0,
+    "routing": [
+     [
+      "AAA",
+      "gate",
+      "AAA_USDT",
+      "USDT"
+     ],
+     [
+      "BBB",
+      "revx",
+      "BBB/USD",
+      "USD"
+     ],
+     [
+      "CCC",
+      "binance",
+      "CCCUSDC",
+      "USDC"
+     ],
+     [
+      "DDD",
+      "gate",
+      "DDD_USDT",
+      "USDT"
+     ],
+     [
+      "EEE",
+      "revx",
+      "EEE/USD",
+      "USD"
+     ]
+    ],
+    "entries": {
+     "AAA": 0.4,
+     "BBB": 2.0,
+     "CCC": 1.5
+    }
+   },
+   "initial": {
+    "journal": {
+     "csAAAb994443r2": {
+      "client_id": "csAAAb994443r2",
+      "sym": "AAA",
+      "exch": "gate",
+      "pair": "AAA_USDT",
+      "side": "buy",
+      "kind": "market_buy",
+      "status": "open",
+      "quote": 50.0,
+      "rung": 2,
+      "ts": 1789999100.25,
+      "order_id": "g-1"
+     },
+     "csBBBb994444r1": {
+      "client_id": "csBBBb994444r1",
+      "sym": "BBB",
+      "exch": "revx",
+      "pair": "BBB/USD",
+      "side": "buy",
+      "kind": "market_buy",
+      "status": "new",
+      "quote": 21.0,
+      "rung": 1,
+      "ts": 1789999100.25,
+      "order_id": "r-1"
+     },
+     "csCCCb994444r3": {
+      "client_id": "csCCCb994444r3",
+      "sym": "CCC",
+      "exch": "binance",
+      "pair": "CCCUSDC",
+      "side": "buy",
+      "kind": "market_buy",
+      "status": "NEW",
+      "quote": 7.5,
+      "rung": 3,
+      "ts": 1789999100.25,
+      "order_id": "b-1"
+     },
+     "depDDDrx1": {
+      "client_id": "depDDDrx1",
+      "sym": "DDD",
+      "exch": "revx",
+      "pair": "DDD/USD",
+      "side": "buy",
+      "kind": "deploy_buy",
+      "status": "open",
+      "quote": 3.3,
+      "price": 1.1,
+      "base": 3.0,
+      "rung": 1,
+      "ts": 1789913600.25,
+      "order_id": "r-2",
+      "note": "zone 1"
+     },
+     "depAAAg2": {
+      "client_id": "depAAAg2",
+      "sym": "AAA",
+      "exch": "gate",
+      "pair": "AAA_USDT",
+      "side": "buy",
+      "kind": "deploy_buy",
+      "status": "open",
+      "quote": 20.0,
+      "price": 0.45,
+      "base": 44.4,
+      "rung": 2,
+      "ts": 1789913600.25,
+      "order_id": "g-2",
+      "note": "zone 2"
+     },
+     "csBBBs994000r1": {
+      "client_id": "csBBBs994000r1",
+      "sym": "BBB",
+      "exch": "revx",
+      "pair": "BBB/USD",
+      "side": "sell",
+      "kind": "limit_sell",
+      "status": "open",
+      "base": 5.0,
+      "price": 2.42,
+      "rung": 1,
+      "ts": 1789568000.25,
+      "order_id": "r-3"
+     },
+     "csEEEs994000r1": {
+      "client_id": "csEEEs994000r1",
+      "sym": "EEE",
+      "exch": "revx",
+      "pair": "EEE/USD",
+      "side": "sell",
+      "kind": "limit_sell",
+      "status": "open",
+      "base": 2.0,
+      "price": 1.5,
+      "rung": 1,
+      "ts": 1789568000.25,
+      "order_id": "r-4"
+     },
+     "csAAAs993000r1": {
+      "client_id": "csAAAs993000r1",
+      "sym": "AAA",
+      "exch": "gate",
+      "pair": "AAA_USDT",
+      "side": "sell",
+      "kind": "limit_sell",
+      "status": "canceled",
+      "base": 10.0,
+      "price": 0.6,
+      "rung": 1,
+      "ts": 1789222400.25,
+      "order_id": "g-0",
+      "note": "repriced up to new cost-basis target",
+      "filled_base": 10.0,
+      "filled_quote": 6.0,
+      "avg_price": 0.6,
+      "filled_ts": 1789999900.25,
+      "partial": true,
+      "book_pending": true
+     },
+     "depDDDg3": {
+      "client_id": "depDDDg3",
+      "sym": "DDD",
+      "exch": "gate",
+      "pair": "DDD_USDT",
+      "side": "buy",
+      "kind": "deploy_buy",
+      "status": "open",
+      "quote": 11.0,
+      "price": 1.1,
+      "base": 10.0,
+      "rung": 1,
+      "ts": 1789913600.25,
+      "order_id": "g-3",
+      "note": "zone 1"
+     },
+     "csEEEb994444r1": {
+      "client_id": "csEEEb994444r1",
+      "sym": "EEE",
+      "exch": "revx",
+      "pair": "EEE/USD",
+      "side": "buy",
+      "kind": "market_buy",
+      "status": "new",
+      "quote": 9.0,
+      "rung": 1,
+      "ts": 1789999100.25,
+      "order_id": "r-5"
+     },
+     "depAAAg4": {
+      "client_id": "depAAAg4",
+      "sym": "AAA",
+      "exch": "gate",
+      "pair": "AAA_USDT",
+      "side": "buy",
+      "kind": "deploy_buy",
+      "status": "open",
+      "quote": 40.0,
+      "price": 0.4,
+      "base": 100.0,
+      "rung": 3,
+      "ts": 1789913600.25,
+      "order_id": "g-4",
+      "note": "zone 3"
+     }
+    },
+    "state": {
+     "AAA": {
+      "buy": 1,
+      "sell": 0,
+      "deployed_pct": 5.0,
+      "sold_pct": 0.0,
+      "win_until": 0,
+      "win_dir": "",
+      "cost_basis": 0.5
+     },
+     "BBB": {
+      "buy": 0,
+      "sell": 0,
+      "cost_basis": 2.2,
+      "win_until": 0,
+      "win_dir": ""
+     },
+     "CCC": {},
+     "_bal": {
+      "ts": 1789998200.25,
+      "hold": {
+       "AAA": 1000.0,
+       "BBB": 50.0,
+       "CCC": 10.0,
+       "DDD": 5.0,
+       "EEE": 7.0
+      }
+     }
+    },
+    "ttl": {},
+    "pnl": [
+     {
+      "ts": 1.0,
+      "iso": "x",
+      "sym": "OLD",
+      "kind": "limit_sell",
+      "qty": 1,
+      "quote": 2,
+      "avg_price": 2,
+      "cost_basis": 1,
+      "realized_usd": 1,
+      "realized_pct": 100.0
+     }
+    ],
+    "journal_order": [
+     "csAAAb994443r2",
+     "csBBBb994444r1",
+     "csCCCb994444r3",
+     "depDDDrx1",
+     "depAAAg2",
+     "csBBBs994000r1",
+     "csEEEs994000r1",
+     "csAAAs993000r1",
+     "depDDDg3",
+     "csEEEb994444r1",
+     "depAAAg4"
+    ]
+   },
+   "runs": [
+    {
+     "now": 1790000000.25,
+     "market": "chop",
+     "policy": [
+      "CCC"
+     ],
+     "venues": {
+      "binance": {
+       "balances": {
+        "raise": "GET /api/v3/account -> 503 down"
+       },
+       "status": {
+        "b-1": {
+         "order_id": "",
+         "status": "FILLED",
+         "filled": true,
+         "base_qty": 5.0,
+         "quote": 7.5,
+         "avg_price": 1.5,
+         "price": null,
+         "fee": 0.0075,
+         "fee_asset": "USDC"
+        }
+       }
+      },
+      "gate": {
+       "balances": {
+        "AAA": {
+         "free": 1099.8,
+         "locked": 0.0
+        },
+        "DDD": {
+         "free": 5.0,
+         "locked": 0.0
+        },
+        "USDT": {
+         "free": 40.0,
+         "locked": 0.0
+        }
+       },
+       "status": {
+        "g-1": {
+         "order_id": "",
+         "status": "closed",
+         "filled": true,
+         "base_qty": 100.0,
+         "quote": 50.0,
+         "avg_price": 0.5,
+         "price": null,
+         "fee": 0.2,
+         "fee_asset": "AAA"
+        },
+        "g-2": {
+         "order_id": "",
+         "status": "cancelled",
+         "filled": false,
+         "base_qty": 20.0,
+         "quote": 9.0,
+         "avg_price": 0.45,
+         "price": null
+        },
+        "g-3": {
+         "order_id": "",
+         "status": "cancelled",
+         "filled": false,
+         "base_qty": 0.0,
+         "quote": 0.0,
+         "avg_price": null,
+         "price": null
+        },
+        "g-4": {
+         "order_id": "",
+         "status": "open",
+         "filled": false,
+         "base_qty": 30.0,
+         "quote": 12.0,
+         "avg_price": 0.4,
+         "price": null
+        }
+       },
+       "open": {
+        "DDD_USDT": [
+         {
+          "order_id": "g-9",
+          "status": "open",
+          "filled": false,
+          "base_qty": 0.0,
+          "quote": 0.0,
+          "avg_price": null,
+          "price": 1.1,
+          "side": "buy",
+          "qty": 12.0,
+          "client_id": ""
+         }
+        ]
+       }
+      },
+      "revx": {
+       "balances": {
+        "BBB": {
+         "free": 55.0,
+         "locked": 5.0
+        },
+        "EEE": {
+         "free": 5.0,
+         "locked": 0.0
+        },
+        "DDD": {
+         "free": 3.0,
+         "locked": 0.0
+        }
+       },
+       "status": {
+        "r-1": {
+         "order_id": "",
+         "status": "filled",
+         "filled": true,
+         "base_qty": 10.0,
+         "quote": 21.0,
+         "avg_price": null,
+         "price": null
+        },
+        "r-2": {
+         "order_id": "",
+         "status": "filled",
+         "filled": true,
+         "base_qty": 3.0,
+         "quote": 3.3,
+         "avg_price": 1.1,
+         "price": null
+        },
+        "r-3": {
+         "order_id": "",
+         "status": "filled",
+         "filled": true,
+         "base_qty": 5.0,
+         "quote": 12.1,
+         "avg_price": 2.42,
+         "price": null
+        },
+        "r-4": {
+         "order_id": "",
+         "status": "filled",
+         "filled": true,
+         "base_qty": 2.0,
+         "quote": 3.0,
+         "avg_price": 1.5,
+         "price": null
+        },
+        "r-5": {
+         "order_id": "",
+         "status": "filled",
+         "filled": true,
+         "base_qty": 6.0,
+         "quote": 9.0,
+         "avg_price": 1.5,
+         "price": null
+        }
+       },
+       "limit_sell": {
+        "csBBBs994444r1d": {
+         "raise": "POST /api/1.0/orders -> 400 {'message': 'Insufficient balance'}"
+        }
+       }
+      }
+     },
+     "out": {
+      "results": [
+       {
+        "err": "binance balances: GET /api/v3/account -> 503 down",
+        "mode": "live"
+       },
+       {
+        "sym": "DDD",
+        "mode": "live",
+        "hk": true,
+        "committed": true,
+        "done": "ZONE RESIZED AT THE VENUE: DDD rung 1 @ $1.1 is now $13.20 (was $11.00) \u2014 adopted the replacement order, the level is unchanged"
+       },
+       {
+        "sym": "AAA",
+        "side": "sell",
+        "mode": "live",
+        "committed": true,
+        "hk": true,
+        "done": "LIMIT SELL FILLED ~10 AAA (~$6.00); realized +1.00 USD (+20.0%)"
+       },
+       {
+        "sym": "AAA",
+        "mode": "live",
+        "done": "BUY FILLED ~99.8 AAA (~$50.00); LIMIT SELL placed @ $0.551102",
+        "side": "buy",
+        "hk": true,
+        "committed": true
+       },
+       {
+        "sym": "BBB",
+        "mode": "live",
+        "err": "BUY FILLED ~10 BBB (~$21.00); LIMIT-SELL FAILED (auto-retries next runs): POST /api/1.0/orders -> 400 {'message': 'Insufficient balance'}",
+        "side": "buy",
+        "hk": true,
+        "committed": true
+       },
+       {
+        "sym": "CCC",
+        "side": "buy",
+        "mode": "live",
+        "hk": true,
+        "committed": true,
+        "done": "BUY FILLED ~5 CCC (~$7.50); core add under the bull sell policy (no pair)"
+       },
+       {
+        "sym": "DDD",
+        "side": "buy",
+        "mode": "live",
+        "hk": true,
+        "committed": true,
+        "done": "REVX DEPLOY FILLED ~3 DDD (~$3.30) \u2014 held on revx, outside ladder-state"
+       },
+       {
+        "sym": "AAA",
+        "side": "buy",
+        "mode": "live",
+        "hk": true,
+        "committed": true,
+        "done": "DEPLOY BUY FILLED ~20 AAA (~$9.00 @ $0.45) (partial, the rest was cancelled) \u2014 core add: cost basis updated, no paired sell"
+       },
+       {
+        "sym": "BBB",
+        "side": "sell",
+        "mode": "live",
+        "committed": true,
+        "hk": true,
+        "done": "LIMIT SELL FILLED ~5 BBB (~$12.10); realized +1.19 USD (+10.9%)"
+       },
+       {
+        "sym": "EEE",
+        "side": "sell",
+        "mode": "live",
+        "committed": true,
+        "hk": true,
+        "done": "LIMIT SELL FILLED ~2 EEE (~$3.00)"
+       },
+       {
+        "sym": "EEE",
+        "mode": "live",
+        "done": "BUY FILLED ~6 EEE (~$9.00); LIMIT SELL placed @ $1.65165",
+        "side": "buy",
+        "hk": true,
+        "committed": true
+       },
+       {
+        "sym": "BBB",
+        "mode": "live",
+        "hk": true,
+        "committed": true,
+        "done": "RETRY OK: limit sell 10 BBB @ $2.31231"
+       },
+       {
+        "sym": "BBB",
+        "mode": "live",
+        "hk": true,
+        "committed": true,
+        "done": "REPRICED limit sell up: $2.31231 -> $2.4024 (cost basis rose; never sell below entry +10%)"
+       }
+      ],
+      "calls": [
+       {
+        "venue": "gate",
+        "call": "limit_sell",
+        "pair": "AAA_USDT",
+        "base": 99.8,
+        "price": 0.5511022044088176,
+        "client_id": "csAAAs994444r2d"
+       },
+       {
+        "venue": "revx",
+        "call": "limit_sell",
+        "pair": "BBB/USD",
+        "base": 10.0,
+        "price": 2.312312312312313,
+        "client_id": "csBBBs994444r1d"
+       },
+       {
+        "venue": "revx",
+        "call": "limit_sell",
+        "pair": "EEE/USD",
+        "base": 6.0,
+        "price": 1.6516516516516517,
+        "client_id": "csEEEs994444r1d"
+       },
+       {
+        "venue": "revx",
+        "call": "limit_sell",
+        "pair": "BBB/USD",
+        "base": 10.0,
+        "price": 2.312312312312313,
+        "client_id": "csBBBs994444r1dx1"
+       },
+       {
+        "venue": "revx",
+        "call": "cancel",
+        "pair": "BBB/USD",
+        "order_id": "L-csBBBs994444r1dx1"
+       },
+       {
+        "venue": "revx",
+        "call": "limit_sell",
+        "pair": "BBB/USD",
+        "base": 10.0,
+        "price": 2.402402402402403,
+        "client_id": "csBBBs994444r1u94444"
+       }
+      ],
+      "journal": {
+       "csAAAb994443r2": {
+        "client_id": "csAAAb994443r2",
+        "sym": "AAA",
+        "exch": "gate",
+        "pair": "AAA_USDT",
+        "side": "buy",
+        "kind": "market_buy",
+        "status": "filled",
+        "quote": 50.0,
+        "rung": 2,
+        "ts": 1789999100.25,
+        "order_id": "g-1",
+        "status_ts": 1790000000.25,
+        "filled_base": 99.8,
+        "filled_quote": 50.0,
+        "avg_price": 0.5,
+        "filled_ts": 1790000000.25
+       },
+       "csBBBb994444r1": {
+        "client_id": "csBBBb994444r1",
+        "sym": "BBB",
+        "exch": "revx",
+        "pair": "BBB/USD",
+        "side": "buy",
+        "kind": "market_buy",
+        "status": "filled",
+        "quote": 21.0,
+        "rung": 1,
+        "ts": 1789999100.25,
+        "order_id": "r-1",
+        "status_ts": 1790000000.25,
+        "filled_base": 10.0,
+        "filled_quote": 21.0,
+        "avg_price": null,
+        "filled_ts": 1790000000.25
+       },
+       "csCCCb994444r3": {
+        "client_id": "csCCCb994444r3",
+        "sym": "CCC",
+        "exch": "binance",
+        "pair": "CCCUSDC",
+        "side": "buy",
+        "kind": "market_buy",
+        "status": "filled",
+        "quote": 7.5,
+        "rung": 3,
+        "ts": 1789999100.25,
+        "order_id": "b-1",
+        "status_ts": 1790000000.25,
+        "filled_base": 5.0,
+        "filled_quote": 7.5,
+        "avg_price": 1.5,
+        "filled_ts": 1790000000.25
+       },
+       "depDDDrx1": {
+        "client_id": "depDDDrx1",
+        "sym": "DDD",
+        "exch": "revx",
+        "pair": "DDD/USD",
+        "side": "buy",
+        "kind": "deploy_buy",
+        "status": "filled",
+        "quote": 3.3,
+        "price": 1.1,
+        "base": 3.0,
+        "rung": 1,
+        "ts": 1789913600.25,
+        "order_id": "r-2",
+        "note": "zone 1",
+        "status_ts": 1790000000.25,
+        "filled_base": 3.0,
+        "filled_quote": 3.3,
+        "avg_price": 1.1,
+        "filled_ts": 1790000000.25
+       },
+       "depAAAg2": {
+        "client_id": "depAAAg2",
+        "sym": "AAA",
+        "exch": "gate",
+        "pair": "AAA_USDT",
+        "side": "buy",
+        "kind": "deploy_buy",
+        "status": "cancelled",
+        "quote": 20.0,
+        "price": 0.45,
+        "base": 44.4,
+        "rung": 2,
+        "ts": 1789913600.25,
+        "order_id": "g-2",
+        "note": "zone 2",
+        "status_ts": 1790000000.25,
+        "filled_base": 20.0,
+        "filled_quote": 9.0,
+        "avg_price": 0.45,
+        "filled_ts": 1790000000.25,
+        "partial": true
+       },
+       "csBBBs994000r1": {
+        "client_id": "csBBBs994000r1",
+        "sym": "BBB",
+        "exch": "revx",
+        "pair": "BBB/USD",
+        "side": "sell",
+        "kind": "limit_sell",
+        "status": "filled",
+        "base": 5.0,
+        "price": 2.42,
+        "rung": 1,
+        "ts": 1789568000.25,
+        "order_id": "r-3",
+        "status_ts": 1790000000.25,
+        "filled_base": 5.0,
+        "filled_quote": 12.1,
+        "avg_price": 2.42,
+        "filled_ts": 1790000000.25
+       },
+       "csEEEs994000r1": {
+        "client_id": "csEEEs994000r1",
+        "sym": "EEE",
+        "exch": "revx",
+        "pair": "EEE/USD",
+        "side": "sell",
+        "kind": "limit_sell",
+        "status": "filled",
+        "base": 2.0,
+        "price": 1.5,
+        "rung": 1,
+        "ts": 1789568000.25,
+        "order_id": "r-4",
+        "status_ts": 1790000000.25,
+        "filled_base": 2.0,
+        "filled_quote": 3.0,
+        "avg_price": 1.5,
+        "filled_ts": 1790000000.25
+       },
+       "csAAAs993000r1": {
+        "client_id": "csAAAs993000r1",
+        "sym": "AAA",
+        "exch": "gate",
+        "pair": "AAA_USDT",
+        "side": "sell",
+        "kind": "limit_sell",
+        "status": "canceled",
+        "base": 10.0,
+        "price": 0.6,
+        "rung": 1,
+        "ts": 1789222400.25,
+        "order_id": "g-0",
+        "note": "repriced up to new cost-basis target",
+        "filled_base": 10.0,
+        "filled_quote": 6.0,
+        "avg_price": 0.6,
+        "filled_ts": 1789999900.25,
+        "partial": true
+       },
+       "depDDDg3": {
+        "client_id": "depDDDg3",
+        "sym": "DDD",
+        "exch": "gate",
+        "pair": "DDD_USDT",
+        "side": "buy",
+        "kind": "deploy_buy",
+        "status": "open",
+        "quote": 13.200000000000001,
+        "price": 1.1,
+        "base": 12.0,
+        "rung": 1,
+        "ts": 1789913600.25,
+        "order_id": "g-9",
+        "note": "zone 1",
+        "last_error": null,
+        "adopted_ts": 1790000000.25,
+        "manual_size": true
+       },
+       "csEEEb994444r1": {
+        "client_id": "csEEEb994444r1",
+        "sym": "EEE",
+        "exch": "revx",
+        "pair": "EEE/USD",
+        "side": "buy",
+        "kind": "market_buy",
+        "status": "filled",
+        "quote": 9.0,
+        "rung": 1,
+        "ts": 1789999100.25,
+        "order_id": "r-5",
+        "status_ts": 1790000000.25,
+        "filled_base": 6.0,
+        "filled_quote": 9.0,
+        "avg_price": 1.5,
+        "filled_ts": 1790000000.25
+       },
+       "depAAAg4": {
+        "client_id": "depAAAg4",
+        "sym": "AAA",
+        "exch": "gate",
+        "pair": "AAA_USDT",
+        "side": "buy",
+        "kind": "deploy_buy",
+        "status": "open",
+        "quote": 40.0,
+        "price": 0.4,
+        "base": 100.0,
+        "rung": 3,
+        "ts": 1789913600.25,
+        "order_id": "g-4",
+        "note": "zone 3",
+        "part_base": 30.0,
+        "part_quote": 12.0
+       },
+       "csAAAs994444r2d": {
+        "client_id": "csAAAs994444r2d",
+        "sym": "AAA",
+        "exch": "gate",
+        "pair": "AAA_USDT",
+        "side": "sell",
+        "kind": "limit_sell",
+        "status": "open",
+        "base": 99.8,
+        "price": 0.5511022044088176,
+        "rung": 2,
+        "ts": 1790000000.25,
+        "order_id": "L-csAAAs994444r2d"
+       },
+       "csBBBs994444r1d": {
+        "client_id": "csBBBs994444r1d",
+        "sym": "BBB",
+        "exch": "revx",
+        "pair": "BBB/USD",
+        "side": "sell",
+        "kind": "limit_sell",
+        "status": "canceled",
+        "base": 10.0,
+        "price": 2.312312312312313,
+        "rung": 1,
+        "ts": 1790000000.25,
+        "last_error": null,
+        "order_id": "L-csBBBs994444r1dx1",
+        "retries": 1,
+        "note": "repriced up to new cost-basis target",
+        "settle_error": "no scripted status for L-csBBBs994444r1dx1"
+       },
+       "csEEEs994444r1d": {
+        "client_id": "csEEEs994444r1d",
+        "sym": "EEE",
+        "exch": "revx",
+        "pair": "EEE/USD",
+        "side": "sell",
+        "kind": "limit_sell",
+        "status": "open",
+        "base": 6.0,
+        "price": 1.6516516516516517,
+        "rung": 1,
+        "ts": 1790000000.25,
+        "order_id": "L-csEEEs994444r1d"
+       },
+       "csBBBs994444r1u94444": {
+        "client_id": "csBBBs994444r1u94444",
+        "sym": "BBB",
+        "exch": "revx",
+        "pair": "BBB/USD",
+        "side": "sell",
+        "kind": "limit_sell",
+        "status": "open",
+        "base": 10.0,
+        "price": 2.402402402402403,
+        "rung": 1,
+        "ts": 1790000000.25,
+        "order_id": "L-csBBBs994444r1u94444"
+       }
+      },
+      "state": {
+       "AAA": {
+        "buy": 1,
+        "sell": 0,
+        "deployed_pct": 5.0,
+        "sold_pct": 0.0,
+        "win_until": 1790086400.25,
+        "win_dir": "sell",
+        "cost_basis": 0.4991800159006576
+       },
+       "BBB": {
+        "buy": 0,
+        "sell": 0,
+        "cost_basis": 2.181818181818182,
+        "win_until": 1790086400.25,
+        "win_dir": "sell"
+       },
+       "CCC": {
+        "cost_basis": 1.5
+       },
+       "_bal": {
+        "ts": 1790000000.25,
+        "hold": {
+         "AAA": 1099.8,
+         "BBB": 60.0,
+         "CCC": 10.0,
+         "DDD": 5.0,
+         "EEE": 5.0
+        },
+        "booked": {
+         "csAAAb994443r2": 99.8,
+         "csBBBb994444r1": 10.0,
+         "depDDDrx1": 3.0,
+         "depAAAg2": 20.0,
+         "csBBBs994000r1": -5.0,
+         "csEEEs994000r1": -2.0,
+         "csAAAs993000r1": -10.0,
+         "csEEEb994444r1": 6.0,
+         "depAAAg4": 30.0
+        }
+       },
+       "EEE": {
+        "cost_basis": 1.5
+       }
+      },
+      "ttl": {},
+      "pnl": [
+       {
+        "ts": 1.0,
+        "iso": "x",
+        "sym": "OLD",
+        "kind": "limit_sell",
+        "qty": 1,
+        "quote": 2,
+        "avg_price": 2,
+        "cost_basis": 1,
+        "realized_usd": 1,
+        "realized_pct": 100.0
+       },
+       {
+        "ts": 1790000000.25,
+        "iso": "2026-09-21T14:13:20.250000+00:00",
+        "sym": "AAA",
+        "kind": "limit_sell",
+        "qty": 10.0,
+        "quote": 6.0,
+        "avg_price": 0.6,
+        "cost_basis": 0.5,
+        "realized_usd": 1.0,
+        "realized_pct": 19.999999999999996
+       },
+       {
+        "ts": 1790000000.25,
+        "iso": "2026-09-21T14:13:20.250000+00:00",
+        "sym": "BBB",
+        "kind": "limit_sell",
+        "qty": 5.0,
+        "quote": 12.1,
+        "avg_price": 2.42,
+        "cost_basis": 2.181818181818182,
+        "realized_usd": 1.1909090909090896,
+        "realized_pct": 10.916666666666641
+       },
+       {
+        "ts": 1790000000.25,
+        "iso": "2026-09-21T14:13:20.250000+00:00",
+        "sym": "EEE",
+        "kind": "limit_sell",
+        "qty": 2.0,
+        "quote": 3.0,
+        "avg_price": 1.5,
+        "cost_basis": null,
+        "realized_usd": null,
+        "realized_pct": null
+       }
+      ]
+     }
+    },
+    {
+     "now": 1790001800.25,
+     "market": "bull",
+     "venues": {
+      "binance": {
+       "balances": {
+        "CCC": {
+         "free": 15.0,
+         "locked": 0.0
+        }
+       }
+      },
+      "gate": {
+       "balances": {
+        "AAA": {
+         "free": 1000.0,
+         "locked": 99.8
+        },
+        "DDD": {
+         "free": 5.0,
+         "locked": 12.0
+        }
+       },
+       "status": {
+        "g-4": {
+         "order_id": "",
+         "status": "open",
+         "filled": false,
+         "base_qty": 30.0,
+         "quote": 12.0,
+         "avg_price": 0.4,
+         "price": null
+        },
+        "g-9": {
+         "order_id": "",
+         "status": "open",
+         "filled": false,
+         "base_qty": 0.0,
+         "quote": 0.0,
+         "avg_price": null,
+         "price": null
+        },
+        "L-csAAAs994444r2d": {
+         "order_id": "",
+         "status": "open",
+         "filled": false,
+         "base_qty": 0.0,
+         "quote": 0.0,
+         "avg_price": null,
+         "price": null
+        }
+       },
+       "price": {}
+      },
+      "revx": {
+       "balances": {
+        "BBB": {
+         "free": 50.0,
+         "locked": 5.0
+        },
+        "EEE": {
+         "free": 11.0,
+         "locked": 2.0
+        },
+        "DDD": {
+         "free": 3.0,
+         "locked": 0.0
+        }
+       },
+       "status": {
+        "L-csEEEs994444r1d": {
+         "order_id": "",
+         "status": "open",
+         "filled": false,
+         "base_qty": 0.0,
+         "quote": 0.0,
+         "avg_price": null,
+         "price": null
+        }
+       },
+       "open": {
+        "BBB/USD": []
+       }
+      }
+     },
+     "out": {
+      "results": [
+       {
+        "sym": "BBB",
+        "mode": "live",
+        "hk": true,
+        "warn": "holding drift: have ~55, journal expects ~60 -- manual trade or transfer? cost basis and ladder ledgers may be stale for BBB"
+       },
+       {
+        "sym": "DDD",
+        "mode": "live",
+        "hk": true,
+        "warn": "holding drift: have ~17, journal expects ~5 -- manual trade or transfer? cost basis and ladder ledgers may be stale for DDD"
+       },
+       {
+        "sym": "EEE",
+        "mode": "live",
+        "hk": true,
+        "warn": "holding drift: have ~13, journal expects ~5 -- manual trade or transfer? cost basis and ladder ledgers may be stale for EEE"
+       }
+      ],
+      "calls": [],
+      "journal": {
+       "csAAAb994443r2": {
+        "client_id": "csAAAb994443r2",
+        "sym": "AAA",
+        "exch": "gate",
+        "pair": "AAA_USDT",
+        "side": "buy",
+        "kind": "market_buy",
+        "status": "filled",
+        "quote": 50.0,
+        "rung": 2,
+        "ts": 1789999100.25,
+        "order_id": "g-1",
+        "status_ts": 1790000000.25,
+        "filled_base": 99.8,
+        "filled_quote": 50.0,
+        "avg_price": 0.5,
+        "filled_ts": 1790000000.25
+       },
+       "csBBBb994444r1": {
+        "client_id": "csBBBb994444r1",
+        "sym": "BBB",
+        "exch": "revx",
+        "pair": "BBB/USD",
+        "side": "buy",
+        "kind": "market_buy",
+        "status": "filled",
+        "quote": 21.0,
+        "rung": 1,
+        "ts": 1789999100.25,
+        "order_id": "r-1",
+        "status_ts": 1790000000.25,
+        "filled_base": 10.0,
+        "filled_quote": 21.0,
+        "avg_price": null,
+        "filled_ts": 1790000000.25
+       },
+       "csCCCb994444r3": {
+        "client_id": "csCCCb994444r3",
+        "sym": "CCC",
+        "exch": "binance",
+        "pair": "CCCUSDC",
+        "side": "buy",
+        "kind": "market_buy",
+        "status": "filled",
+        "quote": 7.5,
+        "rung": 3,
+        "ts": 1789999100.25,
+        "order_id": "b-1",
+        "status_ts": 1790000000.25,
+        "filled_base": 5.0,
+        "filled_quote": 7.5,
+        "avg_price": 1.5,
+        "filled_ts": 1790000000.25
+       },
+       "depDDDrx1": {
+        "client_id": "depDDDrx1",
+        "sym": "DDD",
+        "exch": "revx",
+        "pair": "DDD/USD",
+        "side": "buy",
+        "kind": "deploy_buy",
+        "status": "filled",
+        "quote": 3.3,
+        "price": 1.1,
+        "base": 3.0,
+        "rung": 1,
+        "ts": 1789913600.25,
+        "order_id": "r-2",
+        "note": "zone 1",
+        "status_ts": 1790000000.25,
+        "filled_base": 3.0,
+        "filled_quote": 3.3,
+        "avg_price": 1.1,
+        "filled_ts": 1790000000.25
+       },
+       "depAAAg2": {
+        "client_id": "depAAAg2",
+        "sym": "AAA",
+        "exch": "gate",
+        "pair": "AAA_USDT",
+        "side": "buy",
+        "kind": "deploy_buy",
+        "status": "cancelled",
+        "quote": 20.0,
+        "price": 0.45,
+        "base": 44.4,
+        "rung": 2,
+        "ts": 1789913600.25,
+        "order_id": "g-2",
+        "note": "zone 2",
+        "status_ts": 1790000000.25,
+        "filled_base": 20.0,
+        "filled_quote": 9.0,
+        "avg_price": 0.45,
+        "filled_ts": 1790000000.25,
+        "partial": true
+       },
+       "csBBBs994000r1": {
+        "client_id": "csBBBs994000r1",
+        "sym": "BBB",
+        "exch": "revx",
+        "pair": "BBB/USD",
+        "side": "sell",
+        "kind": "limit_sell",
+        "status": "filled",
+        "base": 5.0,
+        "price": 2.42,
+        "rung": 1,
+        "ts": 1789568000.25,
+        "order_id": "r-3",
+        "status_ts": 1790000000.25,
+        "filled_base": 5.0,
+        "filled_quote": 12.1,
+        "avg_price": 2.42,
+        "filled_ts": 1790000000.25
+       },
+       "csEEEs994000r1": {
+        "client_id": "csEEEs994000r1",
+        "sym": "EEE",
+        "exch": "revx",
+        "pair": "EEE/USD",
+        "side": "sell",
+        "kind": "limit_sell",
+        "status": "filled",
+        "base": 2.0,
+        "price": 1.5,
+        "rung": 1,
+        "ts": 1789568000.25,
+        "order_id": "r-4",
+        "status_ts": 1790000000.25,
+        "filled_base": 2.0,
+        "filled_quote": 3.0,
+        "avg_price": 1.5,
+        "filled_ts": 1790000000.25
+       },
+       "csAAAs993000r1": {
+        "client_id": "csAAAs993000r1",
+        "sym": "AAA",
+        "exch": "gate",
+        "pair": "AAA_USDT",
+        "side": "sell",
+        "kind": "limit_sell",
+        "status": "canceled",
+        "base": 10.0,
+        "price": 0.6,
+        "rung": 1,
+        "ts": 1789222400.25,
+        "order_id": "g-0",
+        "note": "repriced up to new cost-basis target",
+        "filled_base": 10.0,
+        "filled_quote": 6.0,
+        "avg_price": 0.6,
+        "filled_ts": 1789999900.25,
+        "partial": true
+       },
+       "depDDDg3": {
+        "client_id": "depDDDg3",
+        "sym": "DDD",
+        "exch": "gate",
+        "pair": "DDD_USDT",
+        "side": "buy",
+        "kind": "deploy_buy",
+        "status": "open",
+        "quote": 13.200000000000001,
+        "price": 1.1,
+        "base": 12.0,
+        "rung": 1,
+        "ts": 1789913600.25,
+        "order_id": "g-9",
+        "note": "zone 1",
+        "last_error": null,
+        "adopted_ts": 1790000000.25,
+        "manual_size": true
+       },
+       "csEEEb994444r1": {
+        "client_id": "csEEEb994444r1",
+        "sym": "EEE",
+        "exch": "revx",
+        "pair": "EEE/USD",
+        "side": "buy",
+        "kind": "market_buy",
+        "status": "filled",
+        "quote": 9.0,
+        "rung": 1,
+        "ts": 1789999100.25,
+        "order_id": "r-5",
+        "status_ts": 1790000000.25,
+        "filled_base": 6.0,
+        "filled_quote": 9.0,
+        "avg_price": 1.5,
+        "filled_ts": 1790000000.25
+       },
+       "depAAAg4": {
+        "client_id": "depAAAg4",
+        "sym": "AAA",
+        "exch": "gate",
+        "pair": "AAA_USDT",
+        "side": "buy",
+        "kind": "deploy_buy",
+        "status": "open",
+        "quote": 40.0,
+        "price": 0.4,
+        "base": 100.0,
+        "rung": 3,
+        "ts": 1789913600.25,
+        "order_id": "g-4",
+        "note": "zone 3",
+        "part_base": 30.0,
+        "part_quote": 12.0
+       },
+       "csAAAs994444r2d": {
+        "client_id": "csAAAs994444r2d",
+        "sym": "AAA",
+        "exch": "gate",
+        "pair": "AAA_USDT",
+        "side": "sell",
+        "kind": "limit_sell",
+        "status": "open",
+        "base": 99.8,
+        "price": 0.5511022044088176,
+        "rung": 2,
+        "ts": 1790000000.25,
+        "order_id": "L-csAAAs994444r2d"
+       },
+       "csBBBs994444r1d": {
+        "client_id": "csBBBs994444r1d",
+        "sym": "BBB",
+        "exch": "revx",
+        "pair": "BBB/USD",
+        "side": "sell",
+        "kind": "limit_sell",
+        "status": "canceled",
+        "base": 10.0,
+        "price": 2.312312312312313,
+        "rung": 1,
+        "ts": 1790000000.25,
+        "last_error": null,
+        "order_id": "L-csBBBs994444r1dx1",
+        "retries": 1,
+        "note": "repriced up to new cost-basis target",
+        "settle_error": "no scripted status for L-csBBBs994444r1dx1"
+       },
+       "csEEEs994444r1d": {
+        "client_id": "csEEEs994444r1d",
+        "sym": "EEE",
+        "exch": "revx",
+        "pair": "EEE/USD",
+        "side": "sell",
+        "kind": "limit_sell",
+        "status": "open",
+        "base": 6.0,
+        "price": 1.6516516516516517,
+        "rung": 1,
+        "ts": 1790000000.25,
+        "order_id": "L-csEEEs994444r1d"
+       },
+       "csBBBs994444r1u94444": {
+        "client_id": "csBBBs994444r1u94444",
+        "sym": "BBB",
+        "exch": "revx",
+        "pair": "BBB/USD",
+        "side": "sell",
+        "kind": "limit_sell",
+        "status": "open",
+        "base": 10.0,
+        "price": 2.402402402402403,
+        "rung": 1,
+        "ts": 1790000000.25,
+        "order_id": "L-csBBBs994444r1u94444",
+        "last_error": "no scripted status for L-csBBBs994444r1u94444"
+       }
+      },
+      "state": {
+       "AAA": {
+        "buy": 1,
+        "sell": 0,
+        "deployed_pct": 5.0,
+        "sold_pct": 0.0,
+        "win_until": 1790086400.25,
+        "win_dir": "sell",
+        "cost_basis": 0.4991800159006576
+       },
+       "BBB": {
+        "buy": 0,
+        "sell": 0,
+        "cost_basis": 2.181818181818182,
+        "win_until": 1790086400.25,
+        "win_dir": "sell"
+       },
+       "CCC": {
+        "cost_basis": 1.5
+       },
+       "_bal": {
+        "ts": 1790001800.25,
+        "hold": {
+         "AAA": 1099.8,
+         "BBB": 55.0,
+         "CCC": 15.0,
+         "DDD": 17.0,
+         "EEE": 13.0
+        },
+        "booked": {
+         "csAAAb994443r2": 99.8,
+         "csBBBb994444r1": 10.0,
+         "csCCCb994444r3": 5.0,
+         "depDDDrx1": 3.0,
+         "depAAAg2": 20.0,
+         "csBBBs994000r1": -5.0,
+         "csEEEs994000r1": -2.0,
+         "csAAAs993000r1": -10.0,
+         "csEEEb994444r1": 6.0,
+         "depAAAg4": 30.0
+        }
+       },
+       "EEE": {
+        "cost_basis": 1.5
+       }
+      },
+      "ttl": {},
+      "pnl": [
+       {
+        "ts": 1.0,
+        "iso": "x",
+        "sym": "OLD",
+        "kind": "limit_sell",
+        "qty": 1,
+        "quote": 2,
+        "avg_price": 2,
+        "cost_basis": 1,
+        "realized_usd": 1,
+        "realized_pct": 100.0
+       },
+       {
+        "ts": 1790000000.25,
+        "iso": "2026-09-21T14:13:20.250000+00:00",
+        "sym": "AAA",
+        "kind": "limit_sell",
+        "qty": 10.0,
+        "quote": 6.0,
+        "avg_price": 0.6,
+        "cost_basis": 0.5,
+        "realized_usd": 1.0,
+        "realized_pct": 19.999999999999996
+       },
+       {
+        "ts": 1790000000.25,
+        "iso": "2026-09-21T14:13:20.250000+00:00",
+        "sym": "BBB",
+        "kind": "limit_sell",
+        "qty": 5.0,
+        "quote": 12.1,
+        "avg_price": 2.42,
+        "cost_basis": 2.181818181818182,
+        "realized_usd": 1.1909090909090896,
+        "realized_pct": 10.916666666666641
+       },
+       {
+        "ts": 1790000000.25,
+        "iso": "2026-09-21T14:13:20.250000+00:00",
+        "sym": "EEE",
+        "kind": "limit_sell",
+        "qty": 2.0,
+        "quote": 3.0,
+        "avg_price": 1.5,
+        "cost_basis": null,
+        "realized_usd": null,
+        "realized_pct": null
+       }
+      ]
+     }
+    },
+    {
+     "now": 1790003600.25,
+     "market": "bear",
+     "blocked": true,
+     "venues": {
+      "binance": {
+       "balances": {
+        "CCC": {
+         "free": 14.0,
+         "locked": 0.0
+        }
+       }
+      },
+      "gate": {
+       "balances": {
+        "raise": "GET /api/v4/spot/accounts -> None timed out"
+       }
+      },
+      "revx": {
+       "balances": {
+        "BBB": {
+         "free": 50.0,
+         "locked": 5.0
+        },
+        "EEE": {
+         "free": 11.0,
+         "locked": 2.0
+        }
+       },
+       "status": {
+        "L-csEEEs994444r1d": {
+         "order_id": "",
+         "status": "open",
+         "filled": false,
+         "base_qty": 0.0,
+         "quote": 0.0,
+         "avg_price": null,
+         "price": null
+        },
+        "L-csBBBs994444r1dx1": {
+         "order_id": "",
+         "status": "open",
+         "filled": false,
+         "base_qty": 2.0,
+         "quote": 5.5,
+         "avg_price": 2.75,
+         "price": null
+        }
+       }
+      }
+     },
+     "out": {
+      "results": [
+       {
+        "err": "gate balances: GET /api/v4/spot/accounts -> None timed out",
+        "mode": "live"
+       },
+       {
+        "sym": "CCC",
+        "mode": "live",
+        "hk": true,
+        "warn": "holding drift: have ~14, journal expects ~15 -- manual trade or transfer? cost basis and ladder ledgers may be stale for CCC"
+       }
+      ],
+      "calls": [],
+      "journal": {
+       "csAAAb994443r2": {
+        "client_id": "csAAAb994443r2",
+        "sym": "AAA",
+        "exch": "gate",
+        "pair": "AAA_USDT",
+        "side": "buy",
+        "kind": "market_buy",
+        "status": "filled",
+        "quote": 50.0,
+        "rung": 2,
+        "ts": 1789999100.25,
+        "order_id": "g-1",
+        "status_ts": 1790000000.25,
+        "filled_base": 99.8,
+        "filled_quote": 50.0,
+        "avg_price": 0.5,
+        "filled_ts": 1790000000.25
+       },
+       "csBBBb994444r1": {
+        "client_id": "csBBBb994444r1",
+        "sym": "BBB",
+        "exch": "revx",
+        "pair": "BBB/USD",
+        "side": "buy",
+        "kind": "market_buy",
+        "status": "filled",
+        "quote": 21.0,
+        "rung": 1,
+        "ts": 1789999100.25,
+        "order_id": "r-1",
+        "status_ts": 1790000000.25,
+        "filled_base": 10.0,
+        "filled_quote": 21.0,
+        "avg_price": null,
+        "filled_ts": 1790000000.25
+       },
+       "csCCCb994444r3": {
+        "client_id": "csCCCb994444r3",
+        "sym": "CCC",
+        "exch": "binance",
+        "pair": "CCCUSDC",
+        "side": "buy",
+        "kind": "market_buy",
+        "status": "filled",
+        "quote": 7.5,
+        "rung": 3,
+        "ts": 1789999100.25,
+        "order_id": "b-1",
+        "status_ts": 1790000000.25,
+        "filled_base": 5.0,
+        "filled_quote": 7.5,
+        "avg_price": 1.5,
+        "filled_ts": 1790000000.25
+       },
+       "depDDDrx1": {
+        "client_id": "depDDDrx1",
+        "sym": "DDD",
+        "exch": "revx",
+        "pair": "DDD/USD",
+        "side": "buy",
+        "kind": "deploy_buy",
+        "status": "filled",
+        "quote": 3.3,
+        "price": 1.1,
+        "base": 3.0,
+        "rung": 1,
+        "ts": 1789913600.25,
+        "order_id": "r-2",
+        "note": "zone 1",
+        "status_ts": 1790000000.25,
+        "filled_base": 3.0,
+        "filled_quote": 3.3,
+        "avg_price": 1.1,
+        "filled_ts": 1790000000.25
+       },
+       "depAAAg2": {
+        "client_id": "depAAAg2",
+        "sym": "AAA",
+        "exch": "gate",
+        "pair": "AAA_USDT",
+        "side": "buy",
+        "kind": "deploy_buy",
+        "status": "cancelled",
+        "quote": 20.0,
+        "price": 0.45,
+        "base": 44.4,
+        "rung": 2,
+        "ts": 1789913600.25,
+        "order_id": "g-2",
+        "note": "zone 2",
+        "status_ts": 1790000000.25,
+        "filled_base": 20.0,
+        "filled_quote": 9.0,
+        "avg_price": 0.45,
+        "filled_ts": 1790000000.25,
+        "partial": true
+       },
+       "csBBBs994000r1": {
+        "client_id": "csBBBs994000r1",
+        "sym": "BBB",
+        "exch": "revx",
+        "pair": "BBB/USD",
+        "side": "sell",
+        "kind": "limit_sell",
+        "status": "filled",
+        "base": 5.0,
+        "price": 2.42,
+        "rung": 1,
+        "ts": 1789568000.25,
+        "order_id": "r-3",
+        "status_ts": 1790000000.25,
+        "filled_base": 5.0,
+        "filled_quote": 12.1,
+        "avg_price": 2.42,
+        "filled_ts": 1790000000.25
+       },
+       "csEEEs994000r1": {
+        "client_id": "csEEEs994000r1",
+        "sym": "EEE",
+        "exch": "revx",
+        "pair": "EEE/USD",
+        "side": "sell",
+        "kind": "limit_sell",
+        "status": "filled",
+        "base": 2.0,
+        "price": 1.5,
+        "rung": 1,
+        "ts": 1789568000.25,
+        "order_id": "r-4",
+        "status_ts": 1790000000.25,
+        "filled_base": 2.0,
+        "filled_quote": 3.0,
+        "avg_price": 1.5,
+        "filled_ts": 1790000000.25
+       },
+       "csAAAs993000r1": {
+        "client_id": "csAAAs993000r1",
+        "sym": "AAA",
+        "exch": "gate",
+        "pair": "AAA_USDT",
+        "side": "sell",
+        "kind": "limit_sell",
+        "status": "canceled",
+        "base": 10.0,
+        "price": 0.6,
+        "rung": 1,
+        "ts": 1789222400.25,
+        "order_id": "g-0",
+        "note": "repriced up to new cost-basis target",
+        "filled_base": 10.0,
+        "filled_quote": 6.0,
+        "avg_price": 0.6,
+        "filled_ts": 1789999900.25,
+        "partial": true
+       },
+       "depDDDg3": {
+        "client_id": "depDDDg3",
+        "sym": "DDD",
+        "exch": "gate",
+        "pair": "DDD_USDT",
+        "side": "buy",
+        "kind": "deploy_buy",
+        "status": "open",
+        "quote": 13.200000000000001,
+        "price": 1.1,
+        "base": 12.0,
+        "rung": 1,
+        "ts": 1789913600.25,
+        "order_id": "g-9",
+        "note": "zone 1",
+        "last_error": "no scripted status for g-9",
+        "adopted_ts": 1790000000.25,
+        "manual_size": true
+       },
+       "csEEEb994444r1": {
+        "client_id": "csEEEb994444r1",
+        "sym": "EEE",
+        "exch": "revx",
+        "pair": "EEE/USD",
+        "side": "buy",
+        "kind": "market_buy",
+        "status": "filled",
+        "quote": 9.0,
+        "rung": 1,
+        "ts": 1789999100.25,
+        "order_id": "r-5",
+        "status_ts": 1790000000.25,
+        "filled_base": 6.0,
+        "filled_quote": 9.0,
+        "avg_price": 1.5,
+        "filled_ts": 1790000000.25
+       },
+       "depAAAg4": {
+        "client_id": "depAAAg4",
+        "sym": "AAA",
+        "exch": "gate",
+        "pair": "AAA_USDT",
+        "side": "buy",
+        "kind": "deploy_buy",
+        "status": "open",
+        "quote": 40.0,
+        "price": 0.4,
+        "base": 100.0,
+        "rung": 3,
+        "ts": 1789913600.25,
+        "order_id": "g-4",
+        "note": "zone 3",
+        "part_base": 30.0,
+        "part_quote": 12.0,
+        "last_error": "no scripted status for g-4"
+       },
+       "csAAAs994444r2d": {
+        "client_id": "csAAAs994444r2d",
+        "sym": "AAA",
+        "exch": "gate",
+        "pair": "AAA_USDT",
+        "side": "sell",
+        "kind": "limit_sell",
+        "status": "open",
+        "base": 99.8,
+        "price": 0.5511022044088176,
+        "rung": 2,
+        "ts": 1790000000.25,
+        "order_id": "L-csAAAs994444r2d",
+        "last_error": "no scripted status for L-csAAAs994444r2d"
+       },
+       "csBBBs994444r1d": {
+        "client_id": "csBBBs994444r1d",
+        "sym": "BBB",
+        "exch": "revx",
+        "pair": "BBB/USD",
+        "side": "sell",
+        "kind": "limit_sell",
+        "status": "canceled",
+        "base": 10.0,
+        "price": 2.312312312312313,
+        "rung": 1,
+        "ts": 1790000000.25,
+        "last_error": null,
+        "order_id": "L-csBBBs994444r1dx1",
+        "retries": 1,
+        "note": "repriced up to new cost-basis target",
+        "settle_error": "no scripted status for L-csBBBs994444r1dx1"
+       },
+       "csEEEs994444r1d": {
+        "client_id": "csEEEs994444r1d",
+        "sym": "EEE",
+        "exch": "revx",
+        "pair": "EEE/USD",
+        "side": "sell",
+        "kind": "limit_sell",
+        "status": "open",
+        "base": 6.0,
+        "price": 1.6516516516516517,
+        "rung": 1,
+        "ts": 1790000000.25,
+        "order_id": "L-csEEEs994444r1d"
+       },
+       "csBBBs994444r1u94444": {
+        "client_id": "csBBBs994444r1u94444",
+        "sym": "BBB",
+        "exch": "revx",
+        "pair": "BBB/USD",
+        "side": "sell",
+        "kind": "limit_sell",
+        "status": "open",
+        "base": 10.0,
+        "price": 2.402402402402403,
+        "rung": 1,
+        "ts": 1790000000.25,
+        "order_id": "L-csBBBs994444r1u94444",
+        "last_error": "no scripted status for L-csBBBs994444r1u94444"
+       }
+      },
+      "state": {
+       "AAA": {
+        "buy": 1,
+        "sell": 0,
+        "deployed_pct": 5.0,
+        "sold_pct": 0.0,
+        "win_until": 1790086400.25,
+        "win_dir": "sell",
+        "cost_basis": 0.4991800159006576
+       },
+       "BBB": {
+        "buy": 0,
+        "sell": 0,
+        "cost_basis": 2.181818181818182,
+        "win_until": 1790086400.25,
+        "win_dir": "sell"
+       },
+       "CCC": {
+        "cost_basis": 1.5
+       },
+       "_bal": {
+        "ts": 1790003600.25,
+        "hold": {
+         "AAA": 1099.8,
+         "BBB": 55.0,
+         "CCC": 14.0,
+         "DDD": 17.0,
+         "EEE": 13.0
+        },
+        "booked": {
+         "csAAAb994443r2": 99.8,
+         "csBBBb994444r1": 10.0,
+         "csCCCb994444r3": 5.0,
+         "depDDDrx1": 3.0,
+         "depAAAg2": 20.0,
+         "csBBBs994000r1": -5.0,
+         "csEEEs994000r1": -2.0,
+         "csAAAs993000r1": -10.0,
+         "csEEEb994444r1": 6.0,
+         "depAAAg4": 30.0
+        }
+       },
+       "EEE": {
+        "cost_basis": 1.5
+       }
+      },
+      "ttl": {},
+      "pnl": [
+       {
+        "ts": 1.0,
+        "iso": "x",
+        "sym": "OLD",
+        "kind": "limit_sell",
+        "qty": 1,
+        "quote": 2,
+        "avg_price": 2,
+        "cost_basis": 1,
+        "realized_usd": 1,
+        "realized_pct": 100.0
+       },
+       {
+        "ts": 1790000000.25,
+        "iso": "2026-09-21T14:13:20.250000+00:00",
+        "sym": "AAA",
+        "kind": "limit_sell",
+        "qty": 10.0,
+        "quote": 6.0,
+        "avg_price": 0.6,
+        "cost_basis": 0.5,
+        "realized_usd": 1.0,
+        "realized_pct": 19.999999999999996
+       },
+       {
+        "ts": 1790000000.25,
+        "iso": "2026-09-21T14:13:20.250000+00:00",
+        "sym": "BBB",
+        "kind": "limit_sell",
+        "qty": 5.0,
+        "quote": 12.1,
+        "avg_price": 2.42,
+        "cost_basis": 2.181818181818182,
+        "realized_usd": 1.1909090909090896,
+        "realized_pct": 10.916666666666641
+       },
+       {
+        "ts": 1790000000.25,
+        "iso": "2026-09-21T14:13:20.250000+00:00",
+        "sym": "EEE",
+        "kind": "limit_sell",
+        "qty": 2.0,
+        "quote": 3.0,
+        "avg_price": 1.5,
+        "cost_basis": null,
+        "realized_usd": null,
+        "realized_pct": null
+       }
+      ]
+     }
+    },
+    {
+     "now": 1790005400.25,
+     "market": "bear",
+     "venues": {
+      "binance": {
+       "balances": {
+        "CCC": {
+         "free": 14.0,
+         "locked": 0.0
+        }
+       }
+      },
+      "gate": {
+       "balances": {
+        "AAA": {
+         "free": 1000.0,
+         "locked": 99.8
+        },
+        "DDD": {
+         "free": 5.0,
+         "locked": 12.0
+        }
+       },
+       "status": {
+        "g-4": {
+         "order_id": "",
+         "status": "cancelled",
+         "filled": false,
+         "base_qty": 50.0,
+         "quote": 20.0,
+         "avg_price": 0.4,
+         "price": null
+        },
+        "g-9": {
+         "order_id": "",
+         "status": "closed",
+         "filled": true,
+         "base_qty": 12.0,
+         "quote": 13.2,
+         "avg_price": 1.1,
+         "price": null
+        },
+        "L-csAAAs994444r2d": {
+         "order_id": "",
+         "status": "open",
+         "filled": false,
+         "base_qty": 0.0,
+         "quote": 0.0,
+         "avg_price": null,
+         "price": null
+        }
+       }
+      },
+      "revx": {
+       "balances": {
+        "BBB": {
+         "free": 50.0,
+         "locked": 3.0
+        },
+        "EEE": {
+         "free": 11.0,
+         "locked": 2.0
+        }
+       },
+       "status": {
+        "L-csEEEs994444r1d": {
+         "order_id": "",
+         "status": "open",
+         "filled": false,
+         "base_qty": 0.0,
+         "quote": 0.0,
+         "avg_price": null,
+         "price": null
+        },
+        "L-csBBBs994444r1dx1": {
+         "order_id": "",
+         "status": "open",
+         "filled": false,
+         "base_qty": 2.0,
+         "quote": 5.5,
+         "avg_price": 2.75,
+         "price": null
+        }
+       }
+      }
+     },
+     "out": {
+      "results": [
+       {
+        "sym": "DDD",
+        "side": "buy",
+        "mode": "live",
+        "hk": true,
+        "committed": true,
+        "done": "DEPLOY BUY FILLED ~12 DDD (~$13.20 @ $1.1) \u2014 core add: cost basis updated, no paired sell"
+       },
+       {
+        "sym": "AAA",
+        "side": "buy",
+        "mode": "live",
+        "hk": true,
+        "committed": true,
+        "done": "DEPLOY BUY FILLED ~50 AAA (~$20.00 @ $0.4) (partial, the rest was cancelled) \u2014 core add: cost basis updated, no paired sell"
+       },
+       {
+        "sym": "AAA",
+        "mode": "live",
+        "hk": true,
+        "warn": "holding drift: have ~1099.8, journal expects ~1119.8 -- manual trade or transfer? cost basis and ladder ledgers may be stale for AAA"
+       },
+       {
+        "sym": "BBB",
+        "mode": "live",
+        "hk": true,
+        "warn": "holding drift: have ~53, journal expects ~55 -- manual trade or transfer? cost basis and ladder ledgers may be stale for BBB"
+       },
+       {
+        "sym": "DDD",
+        "mode": "live",
+        "hk": true,
+        "warn": "holding drift: have ~17, journal expects ~29 -- manual trade or transfer? cost basis and ladder ledgers may be stale for DDD"
+       }
+      ],
+      "calls": [],
+      "journal": {
+       "csAAAb994443r2": {
+        "client_id": "csAAAb994443r2",
+        "sym": "AAA",
+        "exch": "gate",
+        "pair": "AAA_USDT",
+        "side": "buy",
+        "kind": "market_buy",
+        "status": "filled",
+        "quote": 50.0,
+        "rung": 2,
+        "ts": 1789999100.25,
+        "order_id": "g-1",
+        "status_ts": 1790000000.25,
+        "filled_base": 99.8,
+        "filled_quote": 50.0,
+        "avg_price": 0.5,
+        "filled_ts": 1790000000.25
+       },
+       "csBBBb994444r1": {
+        "client_id": "csBBBb994444r1",
+        "sym": "BBB",
+        "exch": "revx",
+        "pair": "BBB/USD",
+        "side": "buy",
+        "kind": "market_buy",
+        "status": "filled",
+        "quote": 21.0,
+        "rung": 1,
+        "ts": 1789999100.25,
+        "order_id": "r-1",
+        "status_ts": 1790000000.25,
+        "filled_base": 10.0,
+        "filled_quote": 21.0,
+        "avg_price": null,
+        "filled_ts": 1790000000.25
+       },
+       "csCCCb994444r3": {
+        "client_id": "csCCCb994444r3",
+        "sym": "CCC",
+        "exch": "binance",
+        "pair": "CCCUSDC",
+        "side": "buy",
+        "kind": "market_buy",
+        "status": "filled",
+        "quote": 7.5,
+        "rung": 3,
+        "ts": 1789999100.25,
+        "order_id": "b-1",
+        "status_ts": 1790000000.25,
+        "filled_base": 5.0,
+        "filled_quote": 7.5,
+        "avg_price": 1.5,
+        "filled_ts": 1790000000.25
+       },
+       "depDDDrx1": {
+        "client_id": "depDDDrx1",
+        "sym": "DDD",
+        "exch": "revx",
+        "pair": "DDD/USD",
+        "side": "buy",
+        "kind": "deploy_buy",
+        "status": "filled",
+        "quote": 3.3,
+        "price": 1.1,
+        "base": 3.0,
+        "rung": 1,
+        "ts": 1789913600.25,
+        "order_id": "r-2",
+        "note": "zone 1",
+        "status_ts": 1790000000.25,
+        "filled_base": 3.0,
+        "filled_quote": 3.3,
+        "avg_price": 1.1,
+        "filled_ts": 1790000000.25
+       },
+       "depAAAg2": {
+        "client_id": "depAAAg2",
+        "sym": "AAA",
+        "exch": "gate",
+        "pair": "AAA_USDT",
+        "side": "buy",
+        "kind": "deploy_buy",
+        "status": "cancelled",
+        "quote": 20.0,
+        "price": 0.45,
+        "base": 44.4,
+        "rung": 2,
+        "ts": 1789913600.25,
+        "order_id": "g-2",
+        "note": "zone 2",
+        "status_ts": 1790000000.25,
+        "filled_base": 20.0,
+        "filled_quote": 9.0,
+        "avg_price": 0.45,
+        "filled_ts": 1790000000.25,
+        "partial": true
+       },
+       "csBBBs994000r1": {
+        "client_id": "csBBBs994000r1",
+        "sym": "BBB",
+        "exch": "revx",
+        "pair": "BBB/USD",
+        "side": "sell",
+        "kind": "limit_sell",
+        "status": "filled",
+        "base": 5.0,
+        "price": 2.42,
+        "rung": 1,
+        "ts": 1789568000.25,
+        "order_id": "r-3",
+        "status_ts": 1790000000.25,
+        "filled_base": 5.0,
+        "filled_quote": 12.1,
+        "avg_price": 2.42,
+        "filled_ts": 1790000000.25
+       },
+       "csEEEs994000r1": {
+        "client_id": "csEEEs994000r1",
+        "sym": "EEE",
+        "exch": "revx",
+        "pair": "EEE/USD",
+        "side": "sell",
+        "kind": "limit_sell",
+        "status": "filled",
+        "base": 2.0,
+        "price": 1.5,
+        "rung": 1,
+        "ts": 1789568000.25,
+        "order_id": "r-4",
+        "status_ts": 1790000000.25,
+        "filled_base": 2.0,
+        "filled_quote": 3.0,
+        "avg_price": 1.5,
+        "filled_ts": 1790000000.25
+       },
+       "csAAAs993000r1": {
+        "client_id": "csAAAs993000r1",
+        "sym": "AAA",
+        "exch": "gate",
+        "pair": "AAA_USDT",
+        "side": "sell",
+        "kind": "limit_sell",
+        "status": "canceled",
+        "base": 10.0,
+        "price": 0.6,
+        "rung": 1,
+        "ts": 1789222400.25,
+        "order_id": "g-0",
+        "note": "repriced up to new cost-basis target",
+        "filled_base": 10.0,
+        "filled_quote": 6.0,
+        "avg_price": 0.6,
+        "filled_ts": 1789999900.25,
+        "partial": true
+       },
+       "depDDDg3": {
+        "client_id": "depDDDg3",
+        "sym": "DDD",
+        "exch": "gate",
+        "pair": "DDD_USDT",
+        "side": "buy",
+        "kind": "deploy_buy",
+        "status": "filled",
+        "quote": 13.200000000000001,
+        "price": 1.1,
+        "base": 12.0,
+        "rung": 1,
+        "ts": 1789913600.25,
+        "order_id": "g-9",
+        "note": "zone 1",
+        "adopted_ts": 1790000000.25,
+        "manual_size": true,
+        "status_ts": 1790005400.25,
+        "filled_base": 12.0,
+        "filled_quote": 13.2,
+        "avg_price": 1.1,
+        "filled_ts": 1790005400.25
+       },
+       "csEEEb994444r1": {
+        "client_id": "csEEEb994444r1",
+        "sym": "EEE",
+        "exch": "revx",
+        "pair": "EEE/USD",
+        "side": "buy",
+        "kind": "market_buy",
+        "status": "filled",
+        "quote": 9.0,
+        "rung": 1,
+        "ts": 1789999100.25,
+        "order_id": "r-5",
+        "status_ts": 1790000000.25,
+        "filled_base": 6.0,
+        "filled_quote": 9.0,
+        "avg_price": 1.5,
+        "filled_ts": 1790000000.25
+       },
+       "depAAAg4": {
+        "client_id": "depAAAg4",
+        "sym": "AAA",
+        "exch": "gate",
+        "pair": "AAA_USDT",
+        "side": "buy",
+        "kind": "deploy_buy",
+        "status": "cancelled",
+        "quote": 40.0,
+        "price": 0.4,
+        "base": 100.0,
+        "rung": 3,
+        "ts": 1789913600.25,
+        "order_id": "g-4",
+        "note": "zone 3",
+        "part_base": 30.0,
+        "part_quote": 12.0,
+        "status_ts": 1790005400.25,
+        "filled_base": 50.0,
+        "filled_quote": 20.0,
+        "avg_price": 0.4,
+        "filled_ts": 1790005400.25,
+        "partial": true
+       },
+       "csAAAs994444r2d": {
+        "client_id": "csAAAs994444r2d",
+        "sym": "AAA",
+        "exch": "gate",
+        "pair": "AAA_USDT",
+        "side": "sell",
+        "kind": "limit_sell",
+        "status": "open",
+        "base": 99.8,
+        "price": 0.5511022044088176,
+        "rung": 2,
+        "ts": 1790000000.25,
+        "order_id": "L-csAAAs994444r2d"
+       },
+       "csBBBs994444r1d": {
+        "client_id": "csBBBs994444r1d",
+        "sym": "BBB",
+        "exch": "revx",
+        "pair": "BBB/USD",
+        "side": "sell",
+        "kind": "limit_sell",
+        "status": "canceled",
+        "base": 10.0,
+        "price": 2.312312312312313,
+        "rung": 1,
+        "ts": 1790000000.25,
+        "last_error": null,
+        "order_id": "L-csBBBs994444r1dx1",
+        "retries": 1,
+        "note": "repriced up to new cost-basis target",
+        "settle_error": "no scripted status for L-csBBBs994444r1dx1"
+       },
+       "csEEEs994444r1d": {
+        "client_id": "csEEEs994444r1d",
+        "sym": "EEE",
+        "exch": "revx",
+        "pair": "EEE/USD",
+        "side": "sell",
+        "kind": "limit_sell",
+        "status": "open",
+        "base": 6.0,
+        "price": 1.6516516516516517,
+        "rung": 1,
+        "ts": 1790000000.25,
+        "order_id": "L-csEEEs994444r1d"
+       },
+       "csBBBs994444r1u94444": {
+        "client_id": "csBBBs994444r1u94444",
+        "sym": "BBB",
+        "exch": "revx",
+        "pair": "BBB/USD",
+        "side": "sell",
+        "kind": "limit_sell",
+        "status": "open",
+        "base": 10.0,
+        "price": 2.402402402402403,
+        "rung": 1,
+        "ts": 1790000000.25,
+        "order_id": "L-csBBBs994444r1u94444",
+        "last_error": "no scripted status for L-csBBBs994444r1u94444"
+       }
+      },
+      "state": {
+       "AAA": {
+        "buy": 1,
+        "sell": 0,
+        "deployed_pct": 5.0,
+        "sold_pct": 0.0,
+        "win_until": 1790086400.25,
+        "win_dir": "sell",
+        "cost_basis": 0.4942210151056247
+       },
+       "BBB": {
+        "buy": 0,
+        "sell": 0,
+        "cost_basis": 2.181818181818182,
+        "win_until": 1790086400.25,
+        "win_dir": "sell"
+       },
+       "CCC": {
+        "cost_basis": 1.5
+       },
+       "_bal": {
+        "ts": 1790005400.25,
+        "hold": {
+         "AAA": 1099.8,
+         "BBB": 53.0,
+         "CCC": 14.0,
+         "DDD": 17.0,
+         "EEE": 13.0
+        },
+        "booked": {
+         "csAAAb994443r2": 99.8,
+         "csBBBb994444r1": 10.0,
+         "csCCCb994444r3": 5.0,
+         "depDDDrx1": 3.0,
+         "depAAAg2": 20.0,
+         "csBBBs994000r1": -5.0,
+         "csEEEs994000r1": -2.0,
+         "csAAAs993000r1": -10.0,
+         "depDDDg3": 12.0,
+         "csEEEb994444r1": 6.0,
+         "depAAAg4": 50.0
+        }
+       },
+       "EEE": {
+        "cost_basis": 1.5
+       },
+       "DDD": {
+        "cost_basis": 1.0999999999999999
+       }
+      },
+      "ttl": {},
+      "pnl": [
+       {
+        "ts": 1.0,
+        "iso": "x",
+        "sym": "OLD",
+        "kind": "limit_sell",
+        "qty": 1,
+        "quote": 2,
+        "avg_price": 2,
+        "cost_basis": 1,
+        "realized_usd": 1,
+        "realized_pct": 100.0
+       },
+       {
+        "ts": 1790000000.25,
+        "iso": "2026-09-21T14:13:20.250000+00:00",
+        "sym": "AAA",
+        "kind": "limit_sell",
+        "qty": 10.0,
+        "quote": 6.0,
+        "avg_price": 0.6,
+        "cost_basis": 0.5,
+        "realized_usd": 1.0,
+        "realized_pct": 19.999999999999996
+       },
+       {
+        "ts": 1790000000.25,
+        "iso": "2026-09-21T14:13:20.250000+00:00",
+        "sym": "BBB",
+        "kind": "limit_sell",
+        "qty": 5.0,
+        "quote": 12.1,
+        "avg_price": 2.42,
+        "cost_basis": 2.181818181818182,
+        "realized_usd": 1.1909090909090896,
+        "realized_pct": 10.916666666666641
+       },
+       {
+        "ts": 1790000000.25,
+        "iso": "2026-09-21T14:13:20.250000+00:00",
+        "sym": "EEE",
+        "kind": "limit_sell",
+        "qty": 2.0,
+        "quote": 3.0,
+        "avg_price": 1.5,
+        "cost_basis": null,
+        "realized_usd": null,
+        "realized_pct": null
+       }
+      ]
+     }
+    }
+   ]
+  },
+  {
+   "name": "retry",
+   "settings": {
+    "target_pct": 10.0,
+    "fee_pct_gate": 0.2,
+    "fee_pct_revx": 0.1,
+    "fee_pct_binance": 0.1,
+    "window_hours": 24.0,
+    "limit_ttl_days": 14.0,
+    "limit_ttl_days_bear": 45.0,
+    "limit_ttl_days_chop": 30.0,
+    "ttl_renag_days": 30.0,
+    "routing": [
+     [
+      "AAA",
+      "gate",
+      "AAA_USDT",
+      "USDT"
+     ],
+     [
+      "BBB",
+      "revx",
+      "BBB/USD",
+      "USD"
+     ],
+     [
+      "CCC",
+      "binance",
+      "CCCUSDC",
+      "USDC"
+     ],
+     [
+      "DDD",
+      "gate",
+      "DDD_USDT",
+      "USDT"
+     ],
+     [
+      "EEE",
+      "revx",
+      "EEE/USD",
+      "USD"
+     ]
+    ],
+    "entries": {
+     "AAA": 0.4,
+     "BBB": 2.0,
+     "CCC": 1.5
+    }
+   },
+   "initial": {
+    "journal": {
+     "csAAAs990000r1": {
+      "client_id": "csAAAs990000r1",
+      "sym": "AAA",
+      "exch": "gate",
+      "pair": "AAA_USDT",
+      "side": "sell",
+      "kind": "limit_sell",
+      "status": "error",
+      "base": 100.0,
+      "price": 0.55,
+      "rung": 1,
+      "ts": 1789913600.25,
+      "retries": 5,
+      "last_error": "x"
+     },
+     "csAAAs990001r1": {
+      "client_id": "csAAAs990001r1",
+      "sym": "AAA",
+      "exch": "gate",
+      "pair": "AAA_USDT",
+      "side": "sell",
+      "kind": "limit_sell",
+      "status": "error",
+      "base": 12.5,
+      "price": 0.61,
+      "rung": 1,
+      "ts": 1789913600.25,
+      "retries": 6,
+      "gave_up": true
+     },
+     "csBBBs990002r1": {
+      "client_id": "csBBBs990002r1",
+      "sym": "BBB",
+      "exch": "revx",
+      "pair": "BBB/USD",
+      "side": "sell",
+      "kind": "limit_sell",
+      "status": "error",
+      "base": 3.0,
+      "price": 2.5,
+      "rung": 1,
+      "ts": 1789913600.25,
+      "retries": 1,
+      "last_error": "x"
+     },
+     "csBBBs990003r2": {
+      "client_id": "csBBBs990003r2",
+      "sym": "BBB",
+      "exch": "revx",
+      "pair": "BBB/USD",
+      "side": "sell",
+      "kind": "limit_sell",
+      "status": "error",
+      "base": 4.0,
+      "price": 2.6,
+      "rung": 2,
+      "ts": 1789913600.25
+     },
+     "csDDDs990004r1": {
+      "client_id": "csDDDs990004r1",
+      "sym": "DDD",
+      "exch": "gate",
+      "pair": "DDD_USDT",
+      "side": "sell",
+      "kind": "limit_sell",
+      "status": "error",
+      "base": 7.0,
+      "price": 1.3,
+      "rung": 1,
+      "ts": 1789913600.25
+     },
+     "csDDDs990005r1": {
+      "client_id": "csDDDs990005r1",
+      "sym": "DDD",
+      "exch": "gate",
+      "pair": "DDD_USDT",
+      "side": "sell",
+      "kind": "limit_sell",
+      "status": "error",
+      "base": 8.0,
+      "price": 1.21,
+      "rung": 1,
+      "ts": 1789913600.25,
+      "retries": 2
+     },
+     "csCCCs990006r1": {
+      "client_id": "csCCCs990006r1",
+      "sym": "CCC",
+      "exch": "binance",
+      "pair": "CCCUSDC",
+      "side": "sell",
+      "kind": "limit_sell",
+      "status": "error",
+      "base": 2.0,
+      "price": 1.8,
+      "rung": 1,
+      "ts": 1789913600.25,
+      "retries": 4
+     },
+     "csCCCs990007r1": {
+      "client_id": "csCCCs990007r1",
+      "sym": "CCC",
+      "exch": "binance",
+      "pair": "CCCUSDC",
+      "side": "sell",
+      "kind": "limit_sell",
+      "status": "error",
+      "base": 0,
+      "price": 1.8,
+      "rung": 1,
+      "ts": 1789913600.25
+     },
+     "csEEEs990008r1": {
+      "client_id": "csEEEs990008r1",
+      "sym": "EEE",
+      "exch": "revx",
+      "pair": "EEE/USD",
+      "side": "sell",
+      "kind": "limit_sell",
+      "status": "error",
+      "base": 1.25,
+      "price": 3.3333333,
+      "rung": 1,
+      "ts": 1789913600.25,
+      "retries": 3
+     },
+     "mcsEEEs990009r1": {
+      "client_id": "mcsEEEs990009r1",
+      "sym": "EEE",
+      "exch": "revx",
+      "pair": "EEE/USD",
+      "side": "sell",
+      "kind": "market_sell",
+      "status": "error",
+      "base": 1.0,
+      "rung": 1,
+      "ts": 1789913600.25
+     }
+    },
+    "state": {},
+    "ttl": {},
+    "pnl": [],
+    "journal_order": [
+     "csAAAs990000r1",
+     "csAAAs990001r1",
+     "csBBBs990002r1",
+     "csBBBs990003r2",
+     "csDDDs990004r1",
+     "csDDDs990005r1",
+     "csCCCs990006r1",
+     "csCCCs990007r1",
+     "csEEEs990008r1",
+     "mcsEEEs990009r1"
+    ]
+   },
+   "runs": [
+    {
+     "now": 1790000000.25,
+     "market": "bull",
+     "venues": {
+      "gate": {
+       "balances": {},
+       "open": {
+        "DDD_USDT": [
+         {
+          "order_id": "gd-1",
+          "status": "open",
+          "filled": false,
+          "base_qty": 0.0,
+          "quote": 0.0,
+          "avg_price": null,
+          "price": 1.25,
+          "side": "sell",
+          "qty": 7.0,
+          "client_id": "csDDDs990004r1"
+         },
+         {
+          "order_id": "gd-2",
+          "status": "open",
+          "filled": false,
+          "base_qty": 0.0,
+          "quote": 0.0,
+          "avg_price": null,
+          "price": 1.212,
+          "side": "sell",
+          "qty": 8.0,
+          "client_id": ""
+         }
+        ]
+       }
+      },
+      "revx": {
+       "balances": {},
+       "open": {
+        "BBB/USD": [
+         {
+          "order_id": "rb-1",
+          "status": "open",
+          "filled": false,
+          "base_qty": 0.0,
+          "quote": 0.0,
+          "avg_price": null,
+          "price": 2.4,
+          "side": "sell",
+          "qty": 3.0,
+          "client_id": ""
+         },
+         {
+          "order_id": "rb-2",
+          "status": "open",
+          "filled": false,
+          "base_qty": 0.0,
+          "quote": 0.0,
+          "avg_price": null,
+          "price": 2.6,
+          "side": "sell",
+          "qty": 4.0,
+          "client_id": "E32A8A1C-DDEE-5513-91AE-D9E65EE3EFEF"
+         }
+        ],
+        "EEE/USD": {
+         "raise": "GET /api/1.0/orders/active -> 503 {'message': 'busy'}"
+        }
+       }
+      },
+      "binance": {
+       "balances": {},
+       "open": {
+        "CCCUSDC": []
+       },
+       "limit_sell": {
+        "csCCCs990006r1x5": {
+         "raise": "POST /api/v3/order -> 400 {'code': -2010, 'msg': 'insufficient'}"
+        }
+       }
+      }
+     },
+     "out": {
+      "results": [
+       {
+        "sym": "AAA",
+        "mode": "live",
+        "hk": true,
+        "warn": "limit sell failed 5x, giving up -- place ~100 AAA @ $0.55 manually"
+       },
+       {
+        "sym": "BBB",
+        "mode": "live",
+        "hk": true,
+        "committed": true,
+        "done": "RETRY OK: limit sell 3 BBB @ $2.5"
+       },
+       {
+        "sym": "BBB",
+        "mode": "live",
+        "hk": true,
+        "done": "adopted resting limit sell @ $2.6 (original placement had succeeded)"
+       },
+       {
+        "sym": "DDD",
+        "mode": "live",
+        "hk": true,
+        "done": "adopted resting limit sell @ $1.25 (original placement had succeeded)"
+       },
+       {
+        "sym": "DDD",
+        "mode": "live",
+        "hk": true,
+        "done": "adopted resting limit sell @ $1.212 (original placement had succeeded)"
+       },
+       {
+        "sym": "CCC",
+        "mode": "live",
+        "hk": true,
+        "warn": "limit-sell retry 5/5 failed: POST /api/v3/order -> 400 {'code': -2010, 'msg': 'insufficient'}"
+       },
+       {
+        "sym": "EEE",
+        "mode": "live",
+        "hk": true,
+        "warn": "limit-sell retry: open_orders failed: GET /api/1.0/orders/active -> 503 {'message': 'busy'}"
+       }
+      ],
+      "calls": [
+       {
+        "venue": "revx",
+        "call": "limit_sell",
+        "pair": "BBB/USD",
+        "base": 3.0,
+        "price": 2.5,
+        "client_id": "csBBBs990002r1x2"
+       },
+       {
+        "venue": "binance",
+        "call": "limit_sell",
+        "pair": "CCCUSDC",
+        "base": 2.0,
+        "price": 1.8,
+        "client_id": "csCCCs990006r1x5"
+       }
+      ],
+      "journal": {
+       "csAAAs990000r1": {
+        "client_id": "csAAAs990000r1",
+        "sym": "AAA",
+        "exch": "gate",
+        "pair": "AAA_USDT",
+        "side": "sell",
+        "kind": "limit_sell",
+        "status": "error",
+        "base": 100.0,
+        "price": 0.55,
+        "rung": 1,
+        "ts": 1789913600.25,
+        "retries": 5,
+        "last_error": "x",
+        "gave_up": true
+       },
+       "csAAAs990001r1": {
+        "client_id": "csAAAs990001r1",
+        "sym": "AAA",
+        "exch": "gate",
+        "pair": "AAA_USDT",
+        "side": "sell",
+        "kind": "limit_sell",
+        "status": "error",
+        "base": 12.5,
+        "price": 0.61,
+        "rung": 1,
+        "ts": 1789913600.25,
+        "retries": 6,
+        "gave_up": true
+       },
+       "csBBBs990002r1": {
+        "client_id": "csBBBs990002r1",
+        "sym": "BBB",
+        "exch": "revx",
+        "pair": "BBB/USD",
+        "side": "sell",
+        "kind": "limit_sell",
+        "status": "open",
+        "base": 3.0,
+        "price": 2.5,
+        "rung": 1,
+        "ts": 1789913600.25,
+        "retries": 2,
+        "last_error": null,
+        "order_id": "L-csBBBs990002r1x2"
+       },
+       "csBBBs990003r2": {
+        "client_id": "csBBBs990003r2",
+        "sym": "BBB",
+        "exch": "revx",
+        "pair": "BBB/USD",
+        "side": "sell",
+        "kind": "limit_sell",
+        "status": "open",
+        "base": 4.0,
+        "price": 2.6,
+        "rung": 2,
+        "ts": 1789913600.25,
+        "order_id": "rb-2",
+        "last_error": null
+       },
+       "csDDDs990004r1": {
+        "client_id": "csDDDs990004r1",
+        "sym": "DDD",
+        "exch": "gate",
+        "pair": "DDD_USDT",
+        "side": "sell",
+        "kind": "limit_sell",
+        "status": "open",
+        "base": 7.0,
+        "price": 1.3,
+        "rung": 1,
+        "ts": 1789913600.25,
+        "order_id": "gd-1",
+        "last_error": null
+       },
+       "csDDDs990005r1": {
+        "client_id": "csDDDs990005r1",
+        "sym": "DDD",
+        "exch": "gate",
+        "pair": "DDD_USDT",
+        "side": "sell",
+        "kind": "limit_sell",
+        "status": "open",
+        "base": 8.0,
+        "price": 1.21,
+        "rung": 1,
+        "ts": 1789913600.25,
+        "retries": 2,
+        "order_id": "gd-2",
+        "last_error": null
+       },
+       "csCCCs990006r1": {
+        "client_id": "csCCCs990006r1",
+        "sym": "CCC",
+        "exch": "binance",
+        "pair": "CCCUSDC",
+        "side": "sell",
+        "kind": "limit_sell",
+        "status": "error",
+        "base": 2.0,
+        "price": 1.8,
+        "rung": 1,
+        "ts": 1789913600.25,
+        "retries": 5,
+        "last_error": "POST /api/v3/order -> 400 {'code': -2010, 'msg': 'insufficient'}"
+       },
+       "csCCCs990007r1": {
+        "client_id": "csCCCs990007r1",
+        "sym": "CCC",
+        "exch": "binance",
+        "pair": "CCCUSDC",
+        "side": "sell",
+        "kind": "limit_sell",
+        "status": "error",
+        "base": 0,
+        "price": 1.8,
+        "rung": 1,
+        "ts": 1789913600.25
+       },
+       "csEEEs990008r1": {
+        "client_id": "csEEEs990008r1",
+        "sym": "EEE",
+        "exch": "revx",
+        "pair": "EEE/USD",
+        "side": "sell",
+        "kind": "limit_sell",
+        "status": "error",
+        "base": 1.25,
+        "price": 3.3333333,
+        "rung": 1,
+        "ts": 1789913600.25,
+        "retries": 3
+       },
+       "mcsEEEs990009r1": {
+        "client_id": "mcsEEEs990009r1",
+        "sym": "EEE",
+        "exch": "revx",
+        "pair": "EEE/USD",
+        "side": "sell",
+        "kind": "market_sell",
+        "status": "error",
+        "base": 1.0,
+        "rung": 1,
+        "ts": 1789913600.25
+       }
+      },
+      "state": {
+       "_bal": {
+        "ts": 1790000000.25,
+        "hold": {
+         "AAA": 0.0,
+         "BBB": 0.0,
+         "CCC": 0.0,
+         "DDD": 0.0,
+         "EEE": 0.0
+        },
+        "booked": {}
+       }
+      },
+      "ttl": {},
+      "pnl": []
+     }
+    },
+    {
+     "now": 1790001800.25,
+     "market": "bull",
+     "venues": {
+      "gate": {
+       "balances": {},
+       "status": {
+        "gd-1": {
+         "order_id": "",
+         "status": "open",
+         "filled": false,
+         "base_qty": 0.0,
+         "quote": 0.0,
+         "avg_price": null,
+         "price": null
+        },
+        "gd-2": {
+         "order_id": "",
+         "status": "open",
+         "filled": false,
+         "base_qty": 0.0,
+         "quote": 0.0,
+         "avg_price": null,
+         "price": null
+        },
+        "L-csAAAs990000r1x6": {
+         "order_id": "",
+         "status": "open",
+         "filled": false,
+         "base_qty": 0.0,
+         "quote": 0.0,
+         "avg_price": null,
+         "price": null
+        }
+       }
+      },
+      "revx": {
+       "balances": {},
+       "open": {
+        "EEE/USD": []
+       },
+       "status": {
+        "rb-2": {
+         "order_id": "",
+         "status": "open",
+         "filled": false,
+         "base_qty": 0.0,
+         "quote": 0.0,
+         "avg_price": null,
+         "price": null
+        },
+        "L-csBBBs990002r1x2": {
+         "order_id": "",
+         "status": "open",
+         "filled": false,
+         "base_qty": 0.0,
+         "quote": 0.0,
+         "avg_price": null,
+         "price": null
+        }
+       },
+       "limit_sell": {
+        "csEEEs990008r1x4": {
+         "status": "",
+         "order_id": "re-4"
+        }
+       }
+      },
+      "binance": {
+       "balances": {},
+       "open": {
+        "CCCUSDC": []
+       }
+      }
+     },
+     "out": {
+      "results": [
+       {
+        "sym": "CCC",
+        "mode": "live",
+        "hk": true,
+        "warn": "limit sell failed 5x, giving up -- place ~2 CCC @ $1.8 manually"
+       },
+       {
+        "sym": "EEE",
+        "mode": "live",
+        "hk": true,
+        "committed": true,
+        "done": "RETRY OK: limit sell 1.25 EEE @ $3.33333"
+       }
+      ],
+      "calls": [
+       {
+        "venue": "revx",
+        "call": "limit_sell",
+        "pair": "EEE/USD",
+        "base": 1.25,
+        "price": 3.3333333,
+        "client_id": "csEEEs990008r1x4"
+       }
+      ],
+      "journal": {
+       "csAAAs990000r1": {
+        "client_id": "csAAAs990000r1",
+        "sym": "AAA",
+        "exch": "gate",
+        "pair": "AAA_USDT",
+        "side": "sell",
+        "kind": "limit_sell",
+        "status": "error",
+        "base": 100.0,
+        "price": 0.55,
+        "rung": 1,
+        "ts": 1789913600.25,
+        "retries": 5,
+        "last_error": "x",
+        "gave_up": true
+       },
+       "csAAAs990001r1": {
+        "client_id": "csAAAs990001r1",
+        "sym": "AAA",
+        "exch": "gate",
+        "pair": "AAA_USDT",
+        "side": "sell",
+        "kind": "limit_sell",
+        "status": "error",
+        "base": 12.5,
+        "price": 0.61,
+        "rung": 1,
+        "ts": 1789913600.25,
+        "retries": 6,
+        "gave_up": true
+       },
+       "csBBBs990002r1": {
+        "client_id": "csBBBs990002r1",
+        "sym": "BBB",
+        "exch": "revx",
+        "pair": "BBB/USD",
+        "side": "sell",
+        "kind": "limit_sell",
+        "status": "open",
+        "base": 3.0,
+        "price": 2.5,
+        "rung": 1,
+        "ts": 1789913600.25,
+        "retries": 2,
+        "last_error": null,
+        "order_id": "L-csBBBs990002r1x2"
+       },
+       "csBBBs990003r2": {
+        "client_id": "csBBBs990003r2",
+        "sym": "BBB",
+        "exch": "revx",
+        "pair": "BBB/USD",
+        "side": "sell",
+        "kind": "limit_sell",
+        "status": "open",
+        "base": 4.0,
+        "price": 2.6,
+        "rung": 2,
+        "ts": 1789913600.25,
+        "order_id": "rb-2",
+        "last_error": null
+       },
+       "csDDDs990004r1": {
+        "client_id": "csDDDs990004r1",
+        "sym": "DDD",
+        "exch": "gate",
+        "pair": "DDD_USDT",
+        "side": "sell",
+        "kind": "limit_sell",
+        "status": "open",
+        "base": 7.0,
+        "price": 1.3,
+        "rung": 1,
+        "ts": 1789913600.25,
+        "order_id": "gd-1",
+        "last_error": null
+       },
+       "csDDDs990005r1": {
+        "client_id": "csDDDs990005r1",
+        "sym": "DDD",
+        "exch": "gate",
+        "pair": "DDD_USDT",
+        "side": "sell",
+        "kind": "limit_sell",
+        "status": "open",
+        "base": 8.0,
+        "price": 1.21,
+        "rung": 1,
+        "ts": 1789913600.25,
+        "retries": 2,
+        "order_id": "gd-2",
+        "last_error": null
+       },
+       "csCCCs990006r1": {
+        "client_id": "csCCCs990006r1",
+        "sym": "CCC",
+        "exch": "binance",
+        "pair": "CCCUSDC",
+        "side": "sell",
+        "kind": "limit_sell",
+        "status": "error",
+        "base": 2.0,
+        "price": 1.8,
+        "rung": 1,
+        "ts": 1789913600.25,
+        "retries": 5,
+        "last_error": "POST /api/v3/order -> 400 {'code': -2010, 'msg': 'insufficient'}",
+        "gave_up": true
+       },
+       "csCCCs990007r1": {
+        "client_id": "csCCCs990007r1",
+        "sym": "CCC",
+        "exch": "binance",
+        "pair": "CCCUSDC",
+        "side": "sell",
+        "kind": "limit_sell",
+        "status": "error",
+        "base": 0,
+        "price": 1.8,
+        "rung": 1,
+        "ts": 1789913600.25
+       },
+       "csEEEs990008r1": {
+        "client_id": "csEEEs990008r1",
+        "sym": "EEE",
+        "exch": "revx",
+        "pair": "EEE/USD",
+        "side": "sell",
+        "kind": "limit_sell",
+        "status": "open",
+        "base": 1.25,
+        "price": 3.3333333,
+        "rung": 1,
+        "ts": 1789913600.25,
+        "retries": 4,
+        "order_id": "re-4",
+        "last_error": null
+       },
+       "mcsEEEs990009r1": {
+        "client_id": "mcsEEEs990009r1",
+        "sym": "EEE",
+        "exch": "revx",
+        "pair": "EEE/USD",
+        "side": "sell",
+        "kind": "market_sell",
+        "status": "error",
+        "base": 1.0,
+        "rung": 1,
+        "ts": 1789913600.25
+       }
+      },
+      "state": {
+       "_bal": {
+        "ts": 1790001800.25,
+        "hold": {
+         "AAA": 0.0,
+         "BBB": 0.0,
+         "CCC": 0.0,
+         "DDD": 0.0,
+         "EEE": 0.0
+        },
+        "booked": {}
+       }
+      },
+      "ttl": {},
+      "pnl": []
+     }
+    }
+   ]
+  },
+  {
+   "name": "reprice_ttl",
+   "settings": {
+    "target_pct": 10.0,
+    "fee_pct_gate": 0.2,
+    "fee_pct_revx": 0.1,
+    "fee_pct_binance": 0.1,
+    "window_hours": 24.0,
+    "limit_ttl_days": 14.0,
+    "limit_ttl_days_bear": 45.0,
+    "limit_ttl_days_chop": 30.0,
+    "ttl_renag_days": 30.0,
+    "routing": [
+     [
+      "AAA",
+      "gate",
+      "AAA_USDT",
+      "USDT"
+     ],
+     [
+      "BBB",
+      "revx",
+      "BBB/USD",
+      "USD"
+     ],
+     [
+      "CCC",
+      "binance",
+      "CCCUSDC",
+      "USDC"
+     ],
+     [
+      "DDD",
+      "gate",
+      "DDD_USDT",
+      "USDT"
+     ],
+     [
+      "EEE",
+      "revx",
+      "EEE/USD",
+      "USD"
+     ]
+    ],
+    "entries": {
+     "AAA": 0.4,
+     "BBB": 2.0,
+     "CCC": 1.5
+    }
+   },
+   "initial": {
+    "journal": {
+     "csAAAs990000r1": {
+      "client_id": "csAAAs990000r1",
+      "sym": "AAA",
+      "exch": "gate",
+      "pair": "AAA_USDT",
+      "side": "sell",
+      "kind": "limit_sell",
+      "status": "open",
+      "base": 100.0,
+      "price": 0.5,
+      "rung": 1,
+      "ts": 1789827200.25,
+      "order_id": "g-1"
+     },
+     "csAAAs990100r2d": {
+      "client_id": "csAAAs990100r2d",
+      "sym": "AAA",
+      "exch": "gate",
+      "pair": "AAA_USDT",
+      "side": "sell",
+      "kind": "limit_sell",
+      "status": "open",
+      "base": 50.0,
+      "price": 0.52,
+      "rung": 2,
+      "ts": 1789827200.25,
+      "order_id": "g-2"
+     },
+     "csAAAs990200r3u12345": {
+      "client_id": "csAAAs990200r3u12345",
+      "sym": "AAA",
+      "exch": "gate",
+      "pair": "AAA_USDT",
+      "side": "sell",
+      "kind": "limit_sell",
+      "status": "open",
+      "base": 40.0,
+      "price": 0.53,
+      "rung": 3,
+      "ts": 1789827200.25,
+      "order_id": "g-3"
+     },
+     "csAAAs990300r4": {
+      "client_id": "csAAAs990300r4",
+      "sym": "AAA",
+      "exch": "gate",
+      "pair": "AAA_USDT",
+      "side": "sell",
+      "kind": "limit_sell",
+      "status": "open",
+      "base": 30.0,
+      "price": 0.54,
+      "rung": 4,
+      "ts": 1789827200.25,
+      "order_id": "g-4"
+     },
+     "csBBBs990000r1": {
+      "client_id": "csBBBs990000r1",
+      "sym": "BBB",
+      "exch": "revx",
+      "pair": "BBB/USD",
+      "side": "sell",
+      "kind": "limit_sell",
+      "status": "open",
+      "base": 5.0,
+      "price": 2.2,
+      "rung": 1,
+      "ts": 1789827200.25,
+      "order_id": "r-1"
+     },
+     "csBBBs990100r2": {
+      "client_id": "csBBBs990100r2",
+      "sym": "BBB",
+      "exch": "revx",
+      "pair": "BBB/USD",
+      "side": "sell",
+      "kind": "limit_sell",
+      "status": "open",
+      "base": 6.0,
+      "price": 2.21,
+      "rung": 2,
+      "ts": 1789827200.25,
+      "order_id": "r-2"
+     },
+     "csBBBs990200r3": {
+      "client_id": "csBBBs990200r3",
+      "sym": "BBB",
+      "exch": "revx",
+      "pair": "BBB/USD",
+      "side": "sell",
+      "kind": "limit_sell",
+      "status": "open",
+      "base": 7.0,
+      "price": 2.22,
+      "rung": 3,
+      "ts": 1789827200.25,
+      "order_id": "r-3"
+     },
+     "csCCCs990000r1": {
+      "client_id": "csCCCs990000r1",
+      "sym": "CCC",
+      "exch": "binance",
+      "pair": "CCCUSDC",
+      "side": "sell",
+      "kind": "limit_sell",
+      "status": "open",
+      "base": 2.0,
+      "price": 2.0,
+      "rung": 1,
+      "ts": 1788272000.25,
+      "order_id": "b-1"
+     },
+     "csCCCs990100r1": {
+      "client_id": "csCCCs990100r1",
+      "sym": "CCC",
+      "exch": "binance",
+      "pair": "CCCUSDC",
+      "side": "sell",
+      "kind": "limit_sell",
+      "status": "open",
+      "base": 2.0,
+      "price": 2.5,
+      "rung": 1,
+      "ts": 1786544000.25,
+      "order_id": "b-2"
+     },
+     "csDDDs990000r1": {
+      "client_id": "csDDDs990000r1",
+      "sym": "DDD",
+      "exch": "gate",
+      "pair": "DDD_USDT",
+      "side": "sell",
+      "kind": "limit_sell",
+      "status": "open",
+      "base": 9.0,
+      "price": 1.0,
+      "rung": 1,
+      "ts": 1789827200.25,
+      "order_id": "g-5"
+     },
+     "csEEEs990000r1": {
+      "client_id": "csEEEs990000r1",
+      "sym": "EEE",
+      "exch": "revx",
+      "pair": "EEE/USD",
+      "side": "sell",
+      "kind": "limit_sell",
+      "status": "open",
+      "base": 4.0,
+      "price": 3.0,
+      "rung": 1,
+      "ts": 1785680000.25,
+      "order_id": "r-4"
+     },
+     "csEEEs990100r1": {
+      "client_id": "csEEEs990100r1",
+      "sym": "EEE",
+      "exch": "revx",
+      "pair": "EEE/USD",
+      "side": "sell",
+      "kind": "limit_sell",
+      "status": "open",
+      "base": 4.0,
+      "price": 3.0,
+      "rung": 1,
+      "ts": 1785680000.25,
+      "order_id": null
+     },
+     "csEEEs990200r1": {
+      "client_id": "csEEEs990200r1",
+      "sym": "EEE",
+      "exch": "revx",
+      "pair": "EEE/USD",
+      "side": "sell",
+      "kind": "limit_sell",
+      "status": "open",
+      "base": 4.0,
+      "price": 3.0,
+      "rung": 1,
+      "ts": null,
+      "order_id": "r-6"
+     },
+     "csAAAs990300r4u94444": {
+      "client_id": "csAAAs990300r4u94444",
+      "sym": "AAA",
+      "exch": "gate",
+      "pair": "AAA_USDT",
+      "side": "sell",
+      "kind": "limit_sell",
+      "status": "error",
+      "base": 30.0,
+      "price": 0.6,
+      "rung": 4,
+      "ts": 1790000000.25,
+      "last_error": "earlier"
+     },
+     "csBBBs990300r4": {
+      "client_id": "csBBBs990300r4",
+      "sym": "BBB",
+      "exch": "revx",
+      "pair": "BBB/USD",
+      "side": "sell",
+      "kind": "limit_sell",
+      "status": "open",
+      "base": 8.0,
+      "price": 2.23,
+      "rung": 4,
+      "ts": 1789827200.25,
+      "order_id": "r-7"
+     },
+     "csBBBs990300r4v94444": {
+      "client_id": "csBBBs990300r4v94444",
+      "sym": "BBB",
+      "exch": "revx",
+      "pair": "BBB/USD",
+      "side": "sell",
+      "kind": "limit_sell",
+      "status": "canceled",
+      "base": 8.0,
+      "price": 2.23,
+      "rung": 4,
+      "ts": 1790000000.25,
+      "note": "earlier restore"
+     }
+    },
+    "state": {
+     "AAA": {
+      "cost_basis": 0.5
+     },
+     "BBB": {
+      "cost_basis": 2.1
+     },
+     "CCC": {
+      "cost_basis": 1.5
+     },
+     "DDD": {
+      "cost_basis": 0.8
+     },
+     "EEE": {}
+    },
+    "ttl": {
+     "csCCCs990100r1": 1787321600.25,
+     "gone-cid": 1789827200.25
+    },
+    "pnl": [],
+    "journal_order": [
+     "csAAAs990000r1",
+     "csAAAs990100r2d",
+     "csAAAs990200r3u12345",
+     "csAAAs990300r4",
+     "csBBBs990000r1",
+     "csBBBs990100r2",
+     "csBBBs990200r3",
+     "csCCCs990000r1",
+     "csCCCs990100r1",
+     "csDDDs990000r1",
+     "csEEEs990000r1",
+     "csEEEs990100r1",
+     "csEEEs990200r1",
+     "csAAAs990300r4u94444",
+     "csBBBs990300r4",
+     "csBBBs990300r4v94444"
+    ]
+   },
+   "runs": [
+    {
+     "now": 1790000000.25,
+     "market": "chop",
+     "trailing": [
+      "DDD",
+      "EEE"
+     ],
+     "venues": {
+      "gate": {
+       "balances": {},
+       "status": {
+        "g-1": {
+         "seq": [
+          {
+           "order_id": "",
+           "status": "open",
+           "filled": false,
+           "base_qty": 0.0,
+           "quote": 0.0,
+           "avg_price": null,
+           "price": null
+          },
+          {
+           "order_id": "",
+           "status": "cancelled",
+           "filled": false,
+           "base_qty": 0.0,
+           "quote": 0.0,
+           "avg_price": null,
+           "price": null
+          }
+         ]
+        },
+        "g-2": {
+         "seq": [
+          {
+           "order_id": "",
+           "status": "open",
+           "filled": false,
+           "base_qty": 0.0,
+           "quote": 0.0,
+           "avg_price": null,
+           "price": null
+          },
+          {
+           "order_id": "",
+           "status": "cancelled",
+           "filled": false,
+           "base_qty": 20.0,
+           "quote": 11.0,
+           "avg_price": 0.55,
+           "price": null
+          }
+         ]
+        },
+        "g-3": {
+         "seq": [
+          {
+           "order_id": "",
+           "status": "open",
+           "filled": false,
+           "base_qty": 0.0,
+           "quote": 0.0,
+           "avg_price": null,
+           "price": null
+          },
+          {
+           "order_id": "",
+           "status": "cancelled",
+           "filled": false,
+           "base_qty": 40.0,
+           "quote": 22.0,
+           "avg_price": 0.55,
+           "price": null
+          }
+         ]
+        },
+        "g-5": {
+         "raise": "GET /api/v4/spot/orders/g-5 -> 500 {'message': 'x'}"
+        }
+       },
+       "price": {
+        "DDD_USDT": 1.0
+       },
+       "limit_sell": {
+        "csAAAs990000r1u94444": {
+         "order_id": "g-11",
+         "status": ""
+        }
+       }
+      },
+      "revx": {
+       "balances": {},
+       "cancel": {
+        "r-1": {
+         "raise": "DELETE /api/1.0/orders/r-1 -> 404 {'message': 'not found'}"
+        }
+       },
+       "status": {
+        "r-2": {
+         "seq": [
+          {
+           "order_id": "",
+           "status": "open",
+           "filled": false,
+           "base_qty": 0.0,
+           "quote": 0.0,
+           "avg_price": null,
+           "price": null
+          },
+          {
+           "order_id": "",
+           "status": "cancelled",
+           "filled": false,
+           "base_qty": 0.0,
+           "quote": 0.0,
+           "avg_price": null,
+           "price": null
+          }
+         ]
+        },
+        "r-3": {
+         "seq": [
+          {
+           "order_id": "",
+           "status": "open",
+           "filled": false,
+           "base_qty": 0.0,
+           "quote": 0.0,
+           "avg_price": null,
+           "price": null
+          },
+          {
+           "order_id": "",
+           "status": "cancelled",
+           "filled": false,
+           "base_qty": 0.0,
+           "quote": 0.0,
+           "avg_price": null,
+           "price": null
+          }
+         ]
+        },
+        "r-7": {
+         "seq": [
+          {
+           "order_id": "",
+           "status": "open",
+           "filled": false,
+           "base_qty": 0.0,
+           "quote": 0.0,
+           "avg_price": null,
+           "price": null
+          },
+          {
+           "order_id": "",
+           "status": "cancelled",
+           "filled": false,
+           "base_qty": 0.0,
+           "quote": 0.0,
+           "avg_price": null,
+           "price": null
+          }
+         ]
+        }
+       },
+       "limit_sell": {
+        "csBBBs990100r2u94444": {
+         "raise": "POST /api/1.0/orders -> 400 {'message': 'price out of band'}"
+        },
+        "csBBBs990200r3u94444": {
+         "raise": "POST /api/1.0/orders -> 400 {'message': 'price out of band'}"
+        },
+        "csBBBs990200r3v94444": {
+         "raise": "POST /api/1.0/orders -> 400 {'message': 'insufficient'}"
+        },
+        "csBBBs990300r4u94444": {
+         "raise": "POST /api/1.0/orders -> 400 {'message': 'price out of band'}"
+        }
+       },
+       "price": {
+        "EEE/USD": {
+         "raise": "GET ticker -> 503"
+        }
+       }
+      },
+      "binance": {
+       "balances": {}
+      }
+     },
+     "out": {
+      "results": [
+       {
+        "sym": "AAA",
+        "mode": "live",
+        "hk": true,
+        "committed": true,
+        "done": "RETRY OK: limit sell 30 AAA @ $0.6"
+       },
+       {
+        "sym": "AAA",
+        "mode": "live",
+        "hk": true,
+        "committed": true,
+        "done": "REPRICED limit sell up: $0.5 -> $0.551102 (cost basis rose; never sell below entry +10%)"
+       },
+       {
+        "sym": "AAA",
+        "mode": "live",
+        "hk": true,
+        "committed": true,
+        "done": "REPRICED limit sell up: $0.52 -> $0.551102 (cost basis rose; never sell below entry +10%)"
+       },
+       {
+        "sym": "BBB",
+        "mode": "live",
+        "hk": true,
+        "warn": "reprice: cancel failed (may have just filled, reconciles next run): DELETE /api/1.0/orders/r-1 -> 404 {'message': 'not found'}"
+       },
+       {
+        "sym": "BBB",
+        "mode": "live",
+        "hk": true,
+        "committed": true,
+        "warn": "reprice to $2.31231 rejected (POST /api/1.0/orders -> 400 {'message': 'price out of band'}); cover RESTORED at $2.21 -- position is protected, retries next run"
+       },
+       {
+        "sym": "BBB",
+        "mode": "live",
+        "hk": true,
+        "warn": "reprice re-place failed (POST /api/1.0/orders -> 400 {'message': 'price out of band'}) AND restore failed (POST /api/1.0/orders -> 400 {'message': 'insufficient'}) -- 7 BBB is UNPROTECTED, place @ $2.22 manually"
+       },
+       {
+        "sym": "CCC",
+        "mode": "live",
+        "hk": true,
+        "warn": "resting limit sell (2 CCC @ $2.5) is older than 30d -- price never reached the target even for this regime; review whether to keep it"
+       },
+       {
+        "sym": "DDD",
+        "mode": "live",
+        "hk": true,
+        "committed": true,
+        "done": "REPRICED limit sell up: $1 -> $1.1022 (cost basis rose; never sell below entry +10%)"
+       },
+       {
+        "sym": "EEE",
+        "mode": "live",
+        "hk": true,
+        "warn": "resting limit sell (4 EEE @ $3) is older than 30d -- price never reached the target even for this regime; review whether to keep it"
+       }
+      ],
+      "calls": [
+       {
+        "venue": "gate",
+        "call": "limit_sell",
+        "pair": "AAA_USDT",
+        "base": 30.0,
+        "price": 0.6,
+        "client_id": "csAAAs990300r4u94444x1"
+       },
+       {
+        "venue": "gate",
+        "call": "cancel",
+        "pair": "AAA_USDT",
+        "order_id": "g-1"
+       },
+       {
+        "venue": "gate",
+        "call": "limit_sell",
+        "pair": "AAA_USDT",
+        "base": 100.0,
+        "price": 0.5511022044088176,
+        "client_id": "csAAAs990000r1u94444"
+       },
+       {
+        "venue": "gate",
+        "call": "cancel",
+        "pair": "AAA_USDT",
+        "order_id": "g-2"
+       },
+       {
+        "venue": "gate",
+        "call": "limit_sell",
+        "pair": "AAA_USDT",
+        "base": 30.0,
+        "price": 0.5511022044088176,
+        "client_id": "csAAAs990100r2u94444"
+       },
+       {
+        "venue": "gate",
+        "call": "cancel",
+        "pair": "AAA_USDT",
+        "order_id": "g-3"
+       },
+       {
+        "venue": "revx",
+        "call": "cancel",
+        "pair": "BBB/USD",
+        "order_id": "r-1"
+       },
+       {
+        "venue": "revx",
+        "call": "cancel",
+        "pair": "BBB/USD",
+        "order_id": "r-2"
+       },
+       {
+        "venue": "revx",
+        "call": "limit_sell",
+        "pair": "BBB/USD",
+        "base": 6.0,
+        "price": 2.312312312312313,
+        "client_id": "csBBBs990100r2u94444"
+       },
+       {
+        "venue": "revx",
+        "call": "limit_sell",
+        "pair": "BBB/USD",
+        "base": 6.0,
+        "price": 2.21,
+        "client_id": "csBBBs990100r2v94444"
+       },
+       {
+        "venue": "revx",
+        "call": "cancel",
+        "pair": "BBB/USD",
+        "order_id": "r-3"
+       },
+       {
+        "venue": "revx",
+        "call": "limit_sell",
+        "pair": "BBB/USD",
+        "base": 7.0,
+        "price": 2.312312312312313,
+        "client_id": "csBBBs990200r3u94444"
+       },
+       {
+        "venue": "revx",
+        "call": "limit_sell",
+        "pair": "BBB/USD",
+        "base": 7.0,
+        "price": 2.22,
+        "client_id": "csBBBs990200r3v94444"
+       },
+       {
+        "venue": "gate",
+        "call": "cancel",
+        "pair": "DDD_USDT",
+        "order_id": "g-5"
+       },
+       {
+        "venue": "gate",
+        "call": "limit_sell",
+        "pair": "DDD_USDT",
+        "base": 9.0,
+        "price": 1.1022044088176353,
+        "client_id": "csDDDs990000r1u94444"
+       },
+       {
+        "venue": "revx",
+        "call": "cancel",
+        "pair": "BBB/USD",
+        "order_id": "r-7"
+       },
+       {
+        "venue": "revx",
+        "call": "limit_sell",
+        "pair": "BBB/USD",
+        "base": 8.0,
+        "price": 2.312312312312313,
+        "client_id": "csBBBs990300r4u94444"
+       }
+      ],
+      "journal": {
+       "csAAAs990000r1": {
+        "client_id": "csAAAs990000r1",
+        "sym": "AAA",
+        "exch": "gate",
+        "pair": "AAA_USDT",
+        "side": "sell",
+        "kind": "limit_sell",
+        "status": "canceled",
+        "base": 100.0,
+        "price": 0.5,
+        "rung": 1,
+        "ts": 1789827200.25,
+        "order_id": "g-1",
+        "note": "repriced up to new cost-basis target"
+       },
+       "csAAAs990100r2d": {
+        "client_id": "csAAAs990100r2d",
+        "sym": "AAA",
+        "exch": "gate",
+        "pair": "AAA_USDT",
+        "side": "sell",
+        "kind": "limit_sell",
+        "status": "canceled",
+        "base": 50.0,
+        "price": 0.52,
+        "rung": 2,
+        "ts": 1789827200.25,
+        "order_id": "g-2",
+        "note": "repriced up to new cost-basis target",
+        "filled_base": 20.0,
+        "filled_quote": 11.0,
+        "avg_price": 0.55,
+        "filled_ts": 1790000000.25,
+        "partial": true,
+        "book_pending": true
+       },
+       "csAAAs990200r3u12345": {
+        "client_id": "csAAAs990200r3u12345",
+        "sym": "AAA",
+        "exch": "gate",
+        "pair": "AAA_USDT",
+        "side": "sell",
+        "kind": "limit_sell",
+        "status": "canceled",
+        "base": 40.0,
+        "price": 0.53,
+        "rung": 3,
+        "ts": 1789827200.25,
+        "order_id": "g-3",
+        "note": "repriced up to new cost-basis target",
+        "filled_base": 40.0,
+        "filled_quote": 22.0,
+        "avg_price": 0.55,
+        "filled_ts": 1790000000.25,
+        "partial": true,
+        "book_pending": true
+       },
+       "csAAAs990300r4": {
+        "client_id": "csAAAs990300r4",
+        "sym": "AAA",
+        "exch": "gate",
+        "pair": "AAA_USDT",
+        "side": "sell",
+        "kind": "limit_sell",
+        "status": "open",
+        "base": 30.0,
+        "price": 0.54,
+        "rung": 4,
+        "ts": 1789827200.25,
+        "order_id": "g-4",
+        "last_error": "no scripted status for g-4"
+       },
+       "csBBBs990000r1": {
+        "client_id": "csBBBs990000r1",
+        "sym": "BBB",
+        "exch": "revx",
+        "pair": "BBB/USD",
+        "side": "sell",
+        "kind": "limit_sell",
+        "status": "open",
+        "base": 5.0,
+        "price": 2.2,
+        "rung": 1,
+        "ts": 1789827200.25,
+        "order_id": "r-1",
+        "last_error": "no scripted status for r-1"
+       },
+       "csBBBs990100r2": {
+        "client_id": "csBBBs990100r2",
+        "sym": "BBB",
+        "exch": "revx",
+        "pair": "BBB/USD",
+        "side": "sell",
+        "kind": "limit_sell",
+        "status": "canceled",
+        "base": 6.0,
+        "price": 2.21,
+        "rung": 2,
+        "ts": 1789827200.25,
+        "order_id": "r-2",
+        "note": "repriced up to new cost-basis target"
+       },
+       "csBBBs990200r3": {
+        "client_id": "csBBBs990200r3",
+        "sym": "BBB",
+        "exch": "revx",
+        "pair": "BBB/USD",
+        "side": "sell",
+        "kind": "limit_sell",
+        "status": "canceled",
+        "base": 7.0,
+        "price": 2.22,
+        "rung": 3,
+        "ts": 1789827200.25,
+        "order_id": "r-3",
+        "note": "repriced up to new cost-basis target"
+       },
+       "csCCCs990000r1": {
+        "client_id": "csCCCs990000r1",
+        "sym": "CCC",
+        "exch": "binance",
+        "pair": "CCCUSDC",
+        "side": "sell",
+        "kind": "limit_sell",
+        "status": "open",
+        "base": 2.0,
+        "price": 2.0,
+        "rung": 1,
+        "ts": 1788272000.25,
+        "order_id": "b-1",
+        "last_error": "no scripted status for b-1"
+       },
+       "csCCCs990100r1": {
+        "client_id": "csCCCs990100r1",
+        "sym": "CCC",
+        "exch": "binance",
+        "pair": "CCCUSDC",
+        "side": "sell",
+        "kind": "limit_sell",
+        "status": "open",
+        "base": 2.0,
+        "price": 2.5,
+        "rung": 1,
+        "ts": 1786544000.25,
+        "order_id": "b-2",
+        "last_error": "no scripted status for b-2"
+       },
+       "csDDDs990000r1": {
+        "client_id": "csDDDs990000r1",
+        "sym": "DDD",
+        "exch": "gate",
+        "pair": "DDD_USDT",
+        "side": "sell",
+        "kind": "limit_sell",
+        "status": "canceled",
+        "base": 9.0,
+        "price": 1.0,
+        "rung": 1,
+        "ts": 1789827200.25,
+        "order_id": "g-5",
+        "last_error": "GET /api/v4/spot/orders/g-5 -> 500 {'message': 'x'}",
+        "note": "repriced up to new cost-basis target",
+        "settle_error": "GET /api/v4/spot/orders/g-5 -> 500 {'message': 'x'}"
+       },
+       "csEEEs990000r1": {
+        "client_id": "csEEEs990000r1",
+        "sym": "EEE",
+        "exch": "revx",
+        "pair": "EEE/USD",
+        "side": "sell",
+        "kind": "limit_sell",
+        "status": "open",
+        "base": 4.0,
+        "price": 3.0,
+        "rung": 1,
+        "ts": 1785680000.25,
+        "order_id": "r-4",
+        "last_error": "no scripted status for r-4"
+       },
+       "csEEEs990100r1": {
+        "client_id": "csEEEs990100r1",
+        "sym": "EEE",
+        "exch": "revx",
+        "pair": "EEE/USD",
+        "side": "sell",
+        "kind": "limit_sell",
+        "status": "open",
+        "base": 4.0,
+        "price": 3.0,
+        "rung": 1,
+        "ts": 1785680000.25,
+        "order_id": null
+       },
+       "csEEEs990200r1": {
+        "client_id": "csEEEs990200r1",
+        "sym": "EEE",
+        "exch": "revx",
+        "pair": "EEE/USD",
+        "side": "sell",
+        "kind": "limit_sell",
+        "status": "open",
+        "base": 4.0,
+        "price": 3.0,
+        "rung": 1,
+        "ts": null,
+        "order_id": "r-6",
+        "last_error": "no scripted status for r-6"
+       },
+       "csAAAs990300r4u94444": {
+        "client_id": "csAAAs990300r4u94444",
+        "sym": "AAA",
+        "exch": "gate",
+        "pair": "AAA_USDT",
+        "side": "sell",
+        "kind": "limit_sell",
+        "status": "open",
+        "base": 30.0,
+        "price": 0.6,
+        "rung": 4,
+        "ts": 1790000000.25,
+        "last_error": null,
+        "order_id": "L-csAAAs990300r4u94444x1",
+        "retries": 1
+       },
+       "csBBBs990300r4": {
+        "client_id": "csBBBs990300r4",
+        "sym": "BBB",
+        "exch": "revx",
+        "pair": "BBB/USD",
+        "side": "sell",
+        "kind": "limit_sell",
+        "status": "canceled",
+        "base": 8.0,
+        "price": 2.23,
+        "rung": 4,
+        "ts": 1789827200.25,
+        "order_id": "r-7",
+        "note": "repriced up to new cost-basis target"
+       },
+       "csBBBs990300r4v94444": {
+        "client_id": "csBBBs990300r4v94444",
+        "sym": "BBB",
+        "exch": "revx",
+        "pair": "BBB/USD",
+        "side": "sell",
+        "kind": "limit_sell",
+        "status": "canceled",
+        "base": 8.0,
+        "price": 2.23,
+        "rung": 4,
+        "ts": 1790000000.25,
+        "note": "earlier restore"
+       },
+       "csAAAs990000r1u94444": {
+        "client_id": "csAAAs990000r1u94444",
+        "sym": "AAA",
+        "exch": "gate",
+        "pair": "AAA_USDT",
+        "side": "sell",
+        "kind": "limit_sell",
+        "status": "open",
+        "base": 100.0,
+        "price": 0.5511022044088176,
+        "rung": 1,
+        "ts": 1790000000.25,
+        "order_id": "g-11"
+       },
+       "csAAAs990100r2u94444": {
+        "client_id": "csAAAs990100r2u94444",
+        "sym": "AAA",
+        "exch": "gate",
+        "pair": "AAA_USDT",
+        "side": "sell",
+        "kind": "limit_sell",
+        "status": "open",
+        "base": 30.0,
+        "price": 0.5511022044088176,
+        "rung": 2,
+        "ts": 1790000000.25,
+        "order_id": "L-csAAAs990100r2u94444"
+       },
+       "csBBBs990100r2u94444": {
+        "client_id": "csBBBs990100r2u94444",
+        "sym": "BBB",
+        "exch": "revx",
+        "pair": "BBB/USD",
+        "side": "sell",
+        "kind": "limit_sell",
+        "status": "canceled",
+        "base": 6.0,
+        "price": 2.312312312312313,
+        "rung": 2,
+        "ts": 1790000000.25,
+        "last_error": "POST /api/1.0/orders -> 400 {'message': 'price out of band'}",
+        "note": "cover restored as csBBBs990100r2v94444"
+       },
+       "csBBBs990100r2v94444": {
+        "client_id": "csBBBs990100r2v94444",
+        "sym": "BBB",
+        "exch": "revx",
+        "pair": "BBB/USD",
+        "side": "sell",
+        "kind": "limit_sell",
+        "status": "open",
+        "order_id": "L-csBBBs990100r2v94444",
+        "base": 6.0,
+        "price": 2.21,
+        "rung": 2,
+        "ts": 1790000000.25,
+        "note": "cover restored at prior price after csBBBs990100r2u94444 was rejected"
+       },
+       "csBBBs990200r3u94444": {
+        "client_id": "csBBBs990200r3u94444",
+        "sym": "BBB",
+        "exch": "revx",
+        "pair": "BBB/USD",
+        "side": "sell",
+        "kind": "limit_sell",
+        "status": "error",
+        "base": 7.0,
+        "price": 2.312312312312313,
+        "rung": 3,
+        "ts": 1790000000.25,
+        "last_error": "POST /api/1.0/orders -> 400 {'message': 'price out of band'}"
+       },
+       "csDDDs990000r1u94444": {
+        "client_id": "csDDDs990000r1u94444",
+        "sym": "DDD",
+        "exch": "gate",
+        "pair": "DDD_USDT",
+        "side": "sell",
+        "kind": "limit_sell",
+        "status": "open",
+        "base": 9.0,
+        "price": 1.1022044088176353,
+        "rung": 1,
+        "ts": 1790000000.25,
+        "order_id": "L-csDDDs990000r1u94444"
+       },
+       "csBBBs990300r4u94444": {
+        "client_id": "csBBBs990300r4u94444",
+        "sym": "BBB",
+        "exch": "revx",
+        "pair": "BBB/USD",
+        "side": "sell",
+        "kind": "limit_sell",
+        "status": "error",
+        "base": 8.0,
+        "price": 2.312312312312313,
+        "rung": 4,
+        "ts": 1790000000.25,
+        "last_error": "POST /api/1.0/orders -> 400 {'message': 'price out of band'}"
+       }
+      },
+      "state": {
+       "AAA": {
+        "cost_basis": 0.5
+       },
+       "BBB": {
+        "cost_basis": 2.1
+       },
+       "CCC": {
+        "cost_basis": 1.5
+       },
+       "DDD": {
+        "cost_basis": 0.8
+       },
+       "EEE": {},
+       "_bal": {
+        "ts": 1790000000.25,
+        "hold": {
+         "AAA": 0.0,
+         "BBB": 0.0,
+         "CCC": 0.0,
+         "DDD": 0.0,
+         "EEE": 0.0
+        },
+        "booked": {
+         "csAAAs990100r2d": -20.0,
+         "csAAAs990200r3u12345": -40.0
+        }
+       }
+      },
+      "ttl": {
+       "csCCCs990100r1": 1790000000.25,
+       "csEEEs990000r1": 1790000000.25
+      },
+      "pnl": []
+     }
+    },
+    {
+     "now": 1790001800.25,
+     "market": "chop",
+     "trailing": [
+      "DDD"
+     ],
+     "venues": {
+      "gate": {
+       "balances": {}
+      },
+      "revx": {
+       "balances": {}
+      },
+      "binance": {
+       "balances": {}
+      }
+     },
+     "out": {
+      "results": [
+       {
+        "sym": "AAA",
+        "side": "sell",
+        "mode": "live",
+        "committed": true,
+        "hk": true,
+        "done": "LIMIT SELL FILLED ~20 AAA (~$11.00); realized +1.00 USD (+10.0%)"
+       },
+       {
+        "sym": "AAA",
+        "side": "sell",
+        "mode": "live",
+        "committed": true,
+        "hk": true,
+        "done": "LIMIT SELL FILLED ~40 AAA (~$22.00); realized +2.00 USD (+10.0%)"
+       },
+       {
+        "sym": "BBB",
+        "mode": "live",
+        "hk": true,
+        "committed": true,
+        "done": "RETRY OK: limit sell 7 BBB @ $2.31231"
+       },
+       {
+        "sym": "BBB",
+        "mode": "live",
+        "hk": true,
+        "committed": true,
+        "done": "RETRY OK: limit sell 8 BBB @ $2.31231"
+       },
+       {
+        "sym": "AAA",
+        "mode": "live",
+        "hk": true,
+        "committed": true,
+        "done": "REPRICED limit sell up: $0.54 -> $0.551102 (cost basis rose; never sell below entry +10%)"
+       },
+       {
+        "sym": "BBB",
+        "mode": "live",
+        "hk": true,
+        "committed": true,
+        "done": "REPRICED limit sell up: $2.2 -> $2.31231 (cost basis rose; never sell below entry +10%)"
+       },
+       {
+        "sym": "BBB",
+        "mode": "live",
+        "hk": true,
+        "committed": true,
+        "done": "REPRICED limit sell up: $2.21 -> $2.31231 (cost basis rose; never sell below entry +10%)"
+       }
+      ],
+      "calls": [
+       {
+        "venue": "revx",
+        "call": "limit_sell",
+        "pair": "BBB/USD",
+        "base": 7.0,
+        "price": 2.312312312312313,
+        "client_id": "csBBBs990200r3u94444x1"
+       },
+       {
+        "venue": "revx",
+        "call": "limit_sell",
+        "pair": "BBB/USD",
+        "base": 8.0,
+        "price": 2.312312312312313,
+        "client_id": "csBBBs990300r4u94444x1"
+       },
+       {
+        "venue": "gate",
+        "call": "cancel",
+        "pair": "AAA_USDT",
+        "order_id": "g-4"
+       },
+       {
+        "venue": "gate",
+        "call": "limit_sell",
+        "pair": "AAA_USDT",
+        "base": 30.0,
+        "price": 0.5511022044088176,
+        "client_id": "csAAAs990300r4u94445"
+       },
+       {
+        "venue": "revx",
+        "call": "cancel",
+        "pair": "BBB/USD",
+        "order_id": "r-1"
+       },
+       {
+        "venue": "revx",
+        "call": "limit_sell",
+        "pair": "BBB/USD",
+        "base": 5.0,
+        "price": 2.312312312312313,
+        "client_id": "csBBBs990000r1u94445"
+       },
+       {
+        "venue": "revx",
+        "call": "cancel",
+        "pair": "BBB/USD",
+        "order_id": "L-csBBBs990100r2v94444"
+       },
+       {
+        "venue": "revx",
+        "call": "limit_sell",
+        "pair": "BBB/USD",
+        "base": 6.0,
+        "price": 2.312312312312313,
+        "client_id": "csBBBs990100r2u94445"
+       }
+      ],
+      "journal": {
+       "csAAAs990000r1": {
+        "client_id": "csAAAs990000r1",
+        "sym": "AAA",
+        "exch": "gate",
+        "pair": "AAA_USDT",
+        "side": "sell",
+        "kind": "limit_sell",
+        "status": "canceled",
+        "base": 100.0,
+        "price": 0.5,
+        "rung": 1,
+        "ts": 1789827200.25,
+        "order_id": "g-1",
+        "note": "repriced up to new cost-basis target"
+       },
+       "csAAAs990100r2d": {
+        "client_id": "csAAAs990100r2d",
+        "sym": "AAA",
+        "exch": "gate",
+        "pair": "AAA_USDT",
+        "side": "sell",
+        "kind": "limit_sell",
+        "status": "canceled",
+        "base": 50.0,
+        "price": 0.52,
+        "rung": 2,
+        "ts": 1789827200.25,
+        "order_id": "g-2",
+        "note": "repriced up to new cost-basis target",
+        "filled_base": 20.0,
+        "filled_quote": 11.0,
+        "avg_price": 0.55,
+        "filled_ts": 1790000000.25,
+        "partial": true
+       },
+       "csAAAs990200r3u12345": {
+        "client_id": "csAAAs990200r3u12345",
+        "sym": "AAA",
+        "exch": "gate",
+        "pair": "AAA_USDT",
+        "side": "sell",
+        "kind": "limit_sell",
+        "status": "canceled",
+        "base": 40.0,
+        "price": 0.53,
+        "rung": 3,
+        "ts": 1789827200.25,
+        "order_id": "g-3",
+        "note": "repriced up to new cost-basis target",
+        "filled_base": 40.0,
+        "filled_quote": 22.0,
+        "avg_price": 0.55,
+        "filled_ts": 1790000000.25,
+        "partial": true
+       },
+       "csAAAs990300r4": {
+        "client_id": "csAAAs990300r4",
+        "sym": "AAA",
+        "exch": "gate",
+        "pair": "AAA_USDT",
+        "side": "sell",
+        "kind": "limit_sell",
+        "status": "canceled",
+        "base": 30.0,
+        "price": 0.54,
+        "rung": 4,
+        "ts": 1789827200.25,
+        "order_id": "g-4",
+        "last_error": "no scripted status for g-4",
+        "note": "repriced up to new cost-basis target",
+        "settle_error": "no scripted status for g-4"
+       },
+       "csBBBs990000r1": {
+        "client_id": "csBBBs990000r1",
+        "sym": "BBB",
+        "exch": "revx",
+        "pair": "BBB/USD",
+        "side": "sell",
+        "kind": "limit_sell",
+        "status": "canceled",
+        "base": 5.0,
+        "price": 2.2,
+        "rung": 1,
+        "ts": 1789827200.25,
+        "order_id": "r-1",
+        "last_error": "no scripted status for r-1",
+        "note": "repriced up to new cost-basis target",
+        "settle_error": "no scripted status for r-1"
+       },
+       "csBBBs990100r2": {
+        "client_id": "csBBBs990100r2",
+        "sym": "BBB",
+        "exch": "revx",
+        "pair": "BBB/USD",
+        "side": "sell",
+        "kind": "limit_sell",
+        "status": "canceled",
+        "base": 6.0,
+        "price": 2.21,
+        "rung": 2,
+        "ts": 1789827200.25,
+        "order_id": "r-2",
+        "note": "repriced up to new cost-basis target"
+       },
+       "csBBBs990200r3": {
+        "client_id": "csBBBs990200r3",
+        "sym": "BBB",
+        "exch": "revx",
+        "pair": "BBB/USD",
+        "side": "sell",
+        "kind": "limit_sell",
+        "status": "canceled",
+        "base": 7.0,
+        "price": 2.22,
+        "rung": 3,
+        "ts": 1789827200.25,
+        "order_id": "r-3",
+        "note": "repriced up to new cost-basis target"
+       },
+       "csCCCs990000r1": {
+        "client_id": "csCCCs990000r1",
+        "sym": "CCC",
+        "exch": "binance",
+        "pair": "CCCUSDC",
+        "side": "sell",
+        "kind": "limit_sell",
+        "status": "open",
+        "base": 2.0,
+        "price": 2.0,
+        "rung": 1,
+        "ts": 1788272000.25,
+        "order_id": "b-1",
+        "last_error": "no scripted status for b-1"
+       },
+       "csCCCs990100r1": {
+        "client_id": "csCCCs990100r1",
+        "sym": "CCC",
+        "exch": "binance",
+        "pair": "CCCUSDC",
+        "side": "sell",
+        "kind": "limit_sell",
+        "status": "open",
+        "base": 2.0,
+        "price": 2.5,
+        "rung": 1,
+        "ts": 1786544000.25,
+        "order_id": "b-2",
+        "last_error": "no scripted status for b-2"
+       },
+       "csDDDs990000r1": {
+        "client_id": "csDDDs990000r1",
+        "sym": "DDD",
+        "exch": "gate",
+        "pair": "DDD_USDT",
+        "side": "sell",
+        "kind": "limit_sell",
+        "status": "canceled",
+        "base": 9.0,
+        "price": 1.0,
+        "rung": 1,
+        "ts": 1789827200.25,
+        "order_id": "g-5",
+        "last_error": "GET /api/v4/spot/orders/g-5 -> 500 {'message': 'x'}",
+        "note": "repriced up to new cost-basis target",
+        "settle_error": "GET /api/v4/spot/orders/g-5 -> 500 {'message': 'x'}"
+       },
+       "csEEEs990000r1": {
+        "client_id": "csEEEs990000r1",
+        "sym": "EEE",
+        "exch": "revx",
+        "pair": "EEE/USD",
+        "side": "sell",
+        "kind": "limit_sell",
+        "status": "open",
+        "base": 4.0,
+        "price": 3.0,
+        "rung": 1,
+        "ts": 1785680000.25,
+        "order_id": "r-4",
+        "last_error": "no scripted status for r-4"
+       },
+       "csEEEs990100r1": {
+        "client_id": "csEEEs990100r1",
+        "sym": "EEE",
+        "exch": "revx",
+        "pair": "EEE/USD",
+        "side": "sell",
+        "kind": "limit_sell",
+        "status": "open",
+        "base": 4.0,
+        "price": 3.0,
+        "rung": 1,
+        "ts": 1785680000.25,
+        "order_id": null
+       },
+       "csEEEs990200r1": {
+        "client_id": "csEEEs990200r1",
+        "sym": "EEE",
+        "exch": "revx",
+        "pair": "EEE/USD",
+        "side": "sell",
+        "kind": "limit_sell",
+        "status": "open",
+        "base": 4.0,
+        "price": 3.0,
+        "rung": 1,
+        "ts": null,
+        "order_id": "r-6",
+        "last_error": "no scripted status for r-6"
+       },
+       "csAAAs990300r4u94444": {
+        "client_id": "csAAAs990300r4u94444",
+        "sym": "AAA",
+        "exch": "gate",
+        "pair": "AAA_USDT",
+        "side": "sell",
+        "kind": "limit_sell",
+        "status": "open",
+        "base": 30.0,
+        "price": 0.6,
+        "rung": 4,
+        "ts": 1790000000.25,
+        "last_error": "no scripted status for L-csAAAs990300r4u94444x1",
+        "order_id": "L-csAAAs990300r4u94444x1",
+        "retries": 1
+       },
+       "csBBBs990300r4": {
+        "client_id": "csBBBs990300r4",
+        "sym": "BBB",
+        "exch": "revx",
+        "pair": "BBB/USD",
+        "side": "sell",
+        "kind": "limit_sell",
+        "status": "canceled",
+        "base": 8.0,
+        "price": 2.23,
+        "rung": 4,
+        "ts": 1789827200.25,
+        "order_id": "r-7",
+        "note": "repriced up to new cost-basis target"
+       },
+       "csBBBs990300r4v94444": {
+        "client_id": "csBBBs990300r4v94444",
+        "sym": "BBB",
+        "exch": "revx",
+        "pair": "BBB/USD",
+        "side": "sell",
+        "kind": "limit_sell",
+        "status": "canceled",
+        "base": 8.0,
+        "price": 2.23,
+        "rung": 4,
+        "ts": 1790000000.25,
+        "note": "earlier restore"
+       },
+       "csAAAs990000r1u94444": {
+        "client_id": "csAAAs990000r1u94444",
+        "sym": "AAA",
+        "exch": "gate",
+        "pair": "AAA_USDT",
+        "side": "sell",
+        "kind": "limit_sell",
+        "status": "open",
+        "base": 100.0,
+        "price": 0.5511022044088176,
+        "rung": 1,
+        "ts": 1790000000.25,
+        "order_id": "g-11",
+        "last_error": "no scripted status for g-11"
+       },
+       "csAAAs990100r2u94444": {
+        "client_id": "csAAAs990100r2u94444",
+        "sym": "AAA",
+        "exch": "gate",
+        "pair": "AAA_USDT",
+        "side": "sell",
+        "kind": "limit_sell",
+        "status": "open",
+        "base": 30.0,
+        "price": 0.5511022044088176,
+        "rung": 2,
+        "ts": 1790000000.25,
+        "order_id": "L-csAAAs990100r2u94444",
+        "last_error": "no scripted status for L-csAAAs990100r2u94444"
+       },
+       "csBBBs990100r2u94444": {
+        "client_id": "csBBBs990100r2u94444",
+        "sym": "BBB",
+        "exch": "revx",
+        "pair": "BBB/USD",
+        "side": "sell",
+        "kind": "limit_sell",
+        "status": "canceled",
+        "base": 6.0,
+        "price": 2.312312312312313,
+        "rung": 2,
+        "ts": 1790000000.25,
+        "last_error": "POST /api/1.0/orders -> 400 {'message': 'price out of band'}",
+        "note": "cover restored as csBBBs990100r2v94444"
+       },
+       "csBBBs990100r2v94444": {
+        "client_id": "csBBBs990100r2v94444",
+        "sym": "BBB",
+        "exch": "revx",
+        "pair": "BBB/USD",
+        "side": "sell",
+        "kind": "limit_sell",
+        "status": "canceled",
+        "order_id": "L-csBBBs990100r2v94444",
+        "base": 6.0,
+        "price": 2.21,
+        "rung": 2,
+        "ts": 1790000000.25,
+        "note": "repriced up to new cost-basis target",
+        "last_error": "no scripted status for L-csBBBs990100r2v94444",
+        "settle_error": "no scripted status for L-csBBBs990100r2v94444"
+       },
+       "csBBBs990200r3u94444": {
+        "client_id": "csBBBs990200r3u94444",
+        "sym": "BBB",
+        "exch": "revx",
+        "pair": "BBB/USD",
+        "side": "sell",
+        "kind": "limit_sell",
+        "status": "open",
+        "base": 7.0,
+        "price": 2.312312312312313,
+        "rung": 3,
+        "ts": 1790000000.25,
+        "last_error": null,
+        "order_id": "L-csBBBs990200r3u94444x1",
+        "retries": 1
+       },
+       "csDDDs990000r1u94444": {
+        "client_id": "csDDDs990000r1u94444",
+        "sym": "DDD",
+        "exch": "gate",
+        "pair": "DDD_USDT",
+        "side": "sell",
+        "kind": "limit_sell",
+        "status": "open",
+        "base": 9.0,
+        "price": 1.1022044088176353,
+        "rung": 1,
+        "ts": 1790000000.25,
+        "order_id": "L-csDDDs990000r1u94444",
+        "last_error": "no scripted status for L-csDDDs990000r1u94444"
+       },
+       "csBBBs990300r4u94444": {
+        "client_id": "csBBBs990300r4u94444",
+        "sym": "BBB",
+        "exch": "revx",
+        "pair": "BBB/USD",
+        "side": "sell",
+        "kind": "limit_sell",
+        "status": "open",
+        "base": 8.0,
+        "price": 2.312312312312313,
+        "rung": 4,
+        "ts": 1790000000.25,
+        "last_error": null,
+        "order_id": "L-csBBBs990300r4u94444x1",
+        "retries": 1
+       },
+       "csAAAs990300r4u94445": {
+        "client_id": "csAAAs990300r4u94445",
+        "sym": "AAA",
+        "exch": "gate",
+        "pair": "AAA_USDT",
+        "side": "sell",
+        "kind": "limit_sell",
+        "status": "open",
+        "base": 30.0,
+        "price": 0.5511022044088176,
+        "rung": 4,
+        "ts": 1790001800.25,
+        "order_id": "L-csAAAs990300r4u94445"
+       },
+       "csBBBs990000r1u94445": {
+        "client_id": "csBBBs990000r1u94445",
+        "sym": "BBB",
+        "exch": "revx",
+        "pair": "BBB/USD",
+        "side": "sell",
+        "kind": "limit_sell",
+        "status": "open",
+        "base": 5.0,
+        "price": 2.312312312312313,
+        "rung": 1,
+        "ts": 1790001800.25,
+        "order_id": "L-csBBBs990000r1u94445"
+       },
+       "csBBBs990100r2u94445": {
+        "client_id": "csBBBs990100r2u94445",
+        "sym": "BBB",
+        "exch": "revx",
+        "pair": "BBB/USD",
+        "side": "sell",
+        "kind": "limit_sell",
+        "status": "open",
+        "base": 6.0,
+        "price": 2.312312312312313,
+        "rung": 2,
+        "ts": 1790001800.25,
+        "order_id": "L-csBBBs990100r2u94445"
+       }
+      },
+      "state": {
+       "AAA": {
+        "cost_basis": 0.5,
+        "win_until": 1790088200.25,
+        "win_dir": "sell"
+       },
+       "BBB": {
+        "cost_basis": 2.1
+       },
+       "CCC": {
+        "cost_basis": 1.5
+       },
+       "DDD": {
+        "cost_basis": 0.8
+       },
+       "EEE": {},
+       "_bal": {
+        "ts": 1790001800.25,
+        "hold": {
+         "AAA": 0.0,
+         "BBB": 0.0,
+         "CCC": 0.0,
+         "DDD": 0.0,
+         "EEE": 0.0
+        },
+        "booked": {
+         "csAAAs990100r2d": -20.0,
+         "csAAAs990200r3u12345": -40.0
+        }
+       }
+      },
+      "ttl": {
+       "csCCCs990100r1": 1790000000.25,
+       "csEEEs990000r1": 1790000000.25
+      },
+      "pnl": [
+       {
+        "ts": 1790001800.25,
+        "iso": "2026-09-21T14:43:20.250000+00:00",
+        "sym": "AAA",
+        "kind": "limit_sell",
+        "qty": 20.0,
+        "quote": 11.0,
+        "avg_price": 0.55,
+        "cost_basis": 0.5,
+        "realized_usd": 1.0,
+        "realized_pct": 10.000000000000009
+       },
+       {
+        "ts": 1790001800.25,
+        "iso": "2026-09-21T14:43:20.250000+00:00",
+        "sym": "AAA",
+        "kind": "limit_sell",
+        "qty": 40.0,
+        "quote": 22.0,
+        "avg_price": 0.55,
+        "cost_basis": 0.5,
+        "realized_usd": 2.0,
+        "realized_pct": 10.000000000000009
+       }
+      ]
+     }
+    },
+    {
+     "now": 1791036800.25,
+     "market": "bull",
+     "venues": {
+      "gate": {
+       "balances": {}
+      },
+      "revx": {
+       "balances": {}
+      },
+      "binance": {
+       "balances": {}
+      }
+     },
+     "out": {
+      "results": [
+       {
+        "sym": "CCC",
+        "mode": "live",
+        "hk": true,
+        "warn": "resting limit sell (2 CCC @ $2) is older than 14d -- price never reached the target even for this regime; review whether to keep it"
+       }
+      ],
+      "calls": [],
+      "journal": {
+       "csAAAs990000r1": {
+        "client_id": "csAAAs990000r1",
+        "sym": "AAA",
+        "exch": "gate",
+        "pair": "AAA_USDT",
+        "side": "sell",
+        "kind": "limit_sell",
+        "status": "canceled",
+        "base": 100.0,
+        "price": 0.5,
+        "rung": 1,
+        "ts": 1789827200.25,
+        "order_id": "g-1",
+        "note": "repriced up to new cost-basis target"
+       },
+       "csAAAs990100r2d": {
+        "client_id": "csAAAs990100r2d",
+        "sym": "AAA",
+        "exch": "gate",
+        "pair": "AAA_USDT",
+        "side": "sell",
+        "kind": "limit_sell",
+        "status": "canceled",
+        "base": 50.0,
+        "price": 0.52,
+        "rung": 2,
+        "ts": 1789827200.25,
+        "order_id": "g-2",
+        "note": "repriced up to new cost-basis target",
+        "filled_base": 20.0,
+        "filled_quote": 11.0,
+        "avg_price": 0.55,
+        "filled_ts": 1790000000.25,
+        "partial": true
+       },
+       "csAAAs990200r3u12345": {
+        "client_id": "csAAAs990200r3u12345",
+        "sym": "AAA",
+        "exch": "gate",
+        "pair": "AAA_USDT",
+        "side": "sell",
+        "kind": "limit_sell",
+        "status": "canceled",
+        "base": 40.0,
+        "price": 0.53,
+        "rung": 3,
+        "ts": 1789827200.25,
+        "order_id": "g-3",
+        "note": "repriced up to new cost-basis target",
+        "filled_base": 40.0,
+        "filled_quote": 22.0,
+        "avg_price": 0.55,
+        "filled_ts": 1790000000.25,
+        "partial": true
+       },
+       "csAAAs990300r4": {
+        "client_id": "csAAAs990300r4",
+        "sym": "AAA",
+        "exch": "gate",
+        "pair": "AAA_USDT",
+        "side": "sell",
+        "kind": "limit_sell",
+        "status": "canceled",
+        "base": 30.0,
+        "price": 0.54,
+        "rung": 4,
+        "ts": 1789827200.25,
+        "order_id": "g-4",
+        "last_error": "no scripted status for g-4",
+        "note": "repriced up to new cost-basis target",
+        "settle_error": "no scripted status for g-4"
+       },
+       "csBBBs990000r1": {
+        "client_id": "csBBBs990000r1",
+        "sym": "BBB",
+        "exch": "revx",
+        "pair": "BBB/USD",
+        "side": "sell",
+        "kind": "limit_sell",
+        "status": "canceled",
+        "base": 5.0,
+        "price": 2.2,
+        "rung": 1,
+        "ts": 1789827200.25,
+        "order_id": "r-1",
+        "last_error": "no scripted status for r-1",
+        "note": "repriced up to new cost-basis target",
+        "settle_error": "no scripted status for r-1"
+       },
+       "csBBBs990100r2": {
+        "client_id": "csBBBs990100r2",
+        "sym": "BBB",
+        "exch": "revx",
+        "pair": "BBB/USD",
+        "side": "sell",
+        "kind": "limit_sell",
+        "status": "canceled",
+        "base": 6.0,
+        "price": 2.21,
+        "rung": 2,
+        "ts": 1789827200.25,
+        "order_id": "r-2",
+        "note": "repriced up to new cost-basis target"
+       },
+       "csBBBs990200r3": {
+        "client_id": "csBBBs990200r3",
+        "sym": "BBB",
+        "exch": "revx",
+        "pair": "BBB/USD",
+        "side": "sell",
+        "kind": "limit_sell",
+        "status": "canceled",
+        "base": 7.0,
+        "price": 2.22,
+        "rung": 3,
+        "ts": 1789827200.25,
+        "order_id": "r-3",
+        "note": "repriced up to new cost-basis target"
+       },
+       "csCCCs990000r1": {
+        "client_id": "csCCCs990000r1",
+        "sym": "CCC",
+        "exch": "binance",
+        "pair": "CCCUSDC",
+        "side": "sell",
+        "kind": "limit_sell",
+        "status": "open",
+        "base": 2.0,
+        "price": 2.0,
+        "rung": 1,
+        "ts": 1788272000.25,
+        "order_id": "b-1",
+        "last_error": "no scripted status for b-1"
+       },
+       "csCCCs990100r1": {
+        "client_id": "csCCCs990100r1",
+        "sym": "CCC",
+        "exch": "binance",
+        "pair": "CCCUSDC",
+        "side": "sell",
+        "kind": "limit_sell",
+        "status": "open",
+        "base": 2.0,
+        "price": 2.5,
+        "rung": 1,
+        "ts": 1786544000.25,
+        "order_id": "b-2",
+        "last_error": "no scripted status for b-2"
+       },
+       "csDDDs990000r1": {
+        "client_id": "csDDDs990000r1",
+        "sym": "DDD",
+        "exch": "gate",
+        "pair": "DDD_USDT",
+        "side": "sell",
+        "kind": "limit_sell",
+        "status": "canceled",
+        "base": 9.0,
+        "price": 1.0,
+        "rung": 1,
+        "ts": 1789827200.25,
+        "order_id": "g-5",
+        "last_error": "GET /api/v4/spot/orders/g-5 -> 500 {'message': 'x'}",
+        "note": "repriced up to new cost-basis target",
+        "settle_error": "GET /api/v4/spot/orders/g-5 -> 500 {'message': 'x'}"
+       },
+       "csEEEs990000r1": {
+        "client_id": "csEEEs990000r1",
+        "sym": "EEE",
+        "exch": "revx",
+        "pair": "EEE/USD",
+        "side": "sell",
+        "kind": "limit_sell",
+        "status": "open",
+        "base": 4.0,
+        "price": 3.0,
+        "rung": 1,
+        "ts": 1785680000.25,
+        "order_id": "r-4",
+        "last_error": "no scripted status for r-4"
+       },
+       "csEEEs990100r1": {
+        "client_id": "csEEEs990100r1",
+        "sym": "EEE",
+        "exch": "revx",
+        "pair": "EEE/USD",
+        "side": "sell",
+        "kind": "limit_sell",
+        "status": "open",
+        "base": 4.0,
+        "price": 3.0,
+        "rung": 1,
+        "ts": 1785680000.25,
+        "order_id": null
+       },
+       "csEEEs990200r1": {
+        "client_id": "csEEEs990200r1",
+        "sym": "EEE",
+        "exch": "revx",
+        "pair": "EEE/USD",
+        "side": "sell",
+        "kind": "limit_sell",
+        "status": "open",
+        "base": 4.0,
+        "price": 3.0,
+        "rung": 1,
+        "ts": null,
+        "order_id": "r-6",
+        "last_error": "no scripted status for r-6"
+       },
+       "csAAAs990300r4u94444": {
+        "client_id": "csAAAs990300r4u94444",
+        "sym": "AAA",
+        "exch": "gate",
+        "pair": "AAA_USDT",
+        "side": "sell",
+        "kind": "limit_sell",
+        "status": "open",
+        "base": 30.0,
+        "price": 0.6,
+        "rung": 4,
+        "ts": 1790000000.25,
+        "last_error": "no scripted status for L-csAAAs990300r4u94444x1",
+        "order_id": "L-csAAAs990300r4u94444x1",
+        "retries": 1
+       },
+       "csBBBs990300r4": {
+        "client_id": "csBBBs990300r4",
+        "sym": "BBB",
+        "exch": "revx",
+        "pair": "BBB/USD",
+        "side": "sell",
+        "kind": "limit_sell",
+        "status": "canceled",
+        "base": 8.0,
+        "price": 2.23,
+        "rung": 4,
+        "ts": 1789827200.25,
+        "order_id": "r-7",
+        "note": "repriced up to new cost-basis target"
+       },
+       "csBBBs990300r4v94444": {
+        "client_id": "csBBBs990300r4v94444",
+        "sym": "BBB",
+        "exch": "revx",
+        "pair": "BBB/USD",
+        "side": "sell",
+        "kind": "limit_sell",
+        "status": "canceled",
+        "base": 8.0,
+        "price": 2.23,
+        "rung": 4,
+        "ts": 1790000000.25,
+        "note": "earlier restore"
+       },
+       "csAAAs990000r1u94444": {
+        "client_id": "csAAAs990000r1u94444",
+        "sym": "AAA",
+        "exch": "gate",
+        "pair": "AAA_USDT",
+        "side": "sell",
+        "kind": "limit_sell",
+        "status": "open",
+        "base": 100.0,
+        "price": 0.5511022044088176,
+        "rung": 1,
+        "ts": 1790000000.25,
+        "order_id": "g-11",
+        "last_error": "no scripted status for g-11"
+       },
+       "csAAAs990100r2u94444": {
+        "client_id": "csAAAs990100r2u94444",
+        "sym": "AAA",
+        "exch": "gate",
+        "pair": "AAA_USDT",
+        "side": "sell",
+        "kind": "limit_sell",
+        "status": "open",
+        "base": 30.0,
+        "price": 0.5511022044088176,
+        "rung": 2,
+        "ts": 1790000000.25,
+        "order_id": "L-csAAAs990100r2u94444",
+        "last_error": "no scripted status for L-csAAAs990100r2u94444"
+       },
+       "csBBBs990100r2u94444": {
+        "client_id": "csBBBs990100r2u94444",
+        "sym": "BBB",
+        "exch": "revx",
+        "pair": "BBB/USD",
+        "side": "sell",
+        "kind": "limit_sell",
+        "status": "canceled",
+        "base": 6.0,
+        "price": 2.312312312312313,
+        "rung": 2,
+        "ts": 1790000000.25,
+        "last_error": "POST /api/1.0/orders -> 400 {'message': 'price out of band'}",
+        "note": "cover restored as csBBBs990100r2v94444"
+       },
+       "csBBBs990100r2v94444": {
+        "client_id": "csBBBs990100r2v94444",
+        "sym": "BBB",
+        "exch": "revx",
+        "pair": "BBB/USD",
+        "side": "sell",
+        "kind": "limit_sell",
+        "status": "canceled",
+        "order_id": "L-csBBBs990100r2v94444",
+        "base": 6.0,
+        "price": 2.21,
+        "rung": 2,
+        "ts": 1790000000.25,
+        "note": "repriced up to new cost-basis target",
+        "last_error": "no scripted status for L-csBBBs990100r2v94444",
+        "settle_error": "no scripted status for L-csBBBs990100r2v94444"
+       },
+       "csBBBs990200r3u94444": {
+        "client_id": "csBBBs990200r3u94444",
+        "sym": "BBB",
+        "exch": "revx",
+        "pair": "BBB/USD",
+        "side": "sell",
+        "kind": "limit_sell",
+        "status": "open",
+        "base": 7.0,
+        "price": 2.312312312312313,
+        "rung": 3,
+        "ts": 1790000000.25,
+        "last_error": "no scripted status for L-csBBBs990200r3u94444x1",
+        "order_id": "L-csBBBs990200r3u94444x1",
+        "retries": 1
+       },
+       "csDDDs990000r1u94444": {
+        "client_id": "csDDDs990000r1u94444",
+        "sym": "DDD",
+        "exch": "gate",
+        "pair": "DDD_USDT",
+        "side": "sell",
+        "kind": "limit_sell",
+        "status": "open",
+        "base": 9.0,
+        "price": 1.1022044088176353,
+        "rung": 1,
+        "ts": 1790000000.25,
+        "order_id": "L-csDDDs990000r1u94444",
+        "last_error": "no scripted status for L-csDDDs990000r1u94444"
+       },
+       "csBBBs990300r4u94444": {
+        "client_id": "csBBBs990300r4u94444",
+        "sym": "BBB",
+        "exch": "revx",
+        "pair": "BBB/USD",
+        "side": "sell",
+        "kind": "limit_sell",
+        "status": "open",
+        "base": 8.0,
+        "price": 2.312312312312313,
+        "rung": 4,
+        "ts": 1790000000.25,
+        "last_error": "no scripted status for L-csBBBs990300r4u94444x1",
+        "order_id": "L-csBBBs990300r4u94444x1",
+        "retries": 1
+       },
+       "csAAAs990300r4u94445": {
+        "client_id": "csAAAs990300r4u94445",
+        "sym": "AAA",
+        "exch": "gate",
+        "pair": "AAA_USDT",
+        "side": "sell",
+        "kind": "limit_sell",
+        "status": "open",
+        "base": 30.0,
+        "price": 0.5511022044088176,
+        "rung": 4,
+        "ts": 1790001800.25,
+        "order_id": "L-csAAAs990300r4u94445",
+        "last_error": "no scripted status for L-csAAAs990300r4u94445"
+       },
+       "csBBBs990000r1u94445": {
+        "client_id": "csBBBs990000r1u94445",
+        "sym": "BBB",
+        "exch": "revx",
+        "pair": "BBB/USD",
+        "side": "sell",
+        "kind": "limit_sell",
+        "status": "open",
+        "base": 5.0,
+        "price": 2.312312312312313,
+        "rung": 1,
+        "ts": 1790001800.25,
+        "order_id": "L-csBBBs990000r1u94445",
+        "last_error": "no scripted status for L-csBBBs990000r1u94445"
+       },
+       "csBBBs990100r2u94445": {
+        "client_id": "csBBBs990100r2u94445",
+        "sym": "BBB",
+        "exch": "revx",
+        "pair": "BBB/USD",
+        "side": "sell",
+        "kind": "limit_sell",
+        "status": "open",
+        "base": 6.0,
+        "price": 2.312312312312313,
+        "rung": 2,
+        "ts": 1790001800.25,
+        "order_id": "L-csBBBs990100r2u94445",
+        "last_error": "no scripted status for L-csBBBs990100r2u94445"
+       }
+      },
+      "state": {
+       "AAA": {
+        "cost_basis": 0.5,
+        "win_until": 1790088200.25,
+        "win_dir": "sell"
+       },
+       "BBB": {
+        "cost_basis": 2.1
+       },
+       "CCC": {
+        "cost_basis": 1.5
+       },
+       "DDD": {
+        "cost_basis": 0.8
+       },
+       "EEE": {},
+       "_bal": {
+        "ts": 1791036800.25,
+        "hold": {
+         "AAA": 0.0,
+         "BBB": 0.0,
+         "CCC": 0.0,
+         "DDD": 0.0,
+         "EEE": 0.0
+        },
+        "booked": {
+         "csAAAs990100r2d": -20.0,
+         "csAAAs990200r3u12345": -40.0
+        }
+       }
+      },
+      "ttl": {
+       "csCCCs990100r1": 1790000000.25,
+       "csEEEs990000r1": 1790000000.25,
+       "csCCCs990000r1": 1791036800.25
+      },
+      "pnl": [
+       {
+        "ts": 1790001800.25,
+        "iso": "2026-09-21T14:43:20.250000+00:00",
+        "sym": "AAA",
+        "kind": "limit_sell",
+        "qty": 20.0,
+        "quote": 11.0,
+        "avg_price": 0.55,
+        "cost_basis": 0.5,
+        "realized_usd": 1.0,
+        "realized_pct": 10.000000000000009
+       },
+       {
+        "ts": 1790001800.25,
+        "iso": "2026-09-21T14:43:20.250000+00:00",
+        "sym": "AAA",
+        "kind": "limit_sell",
+        "qty": 40.0,
+        "quote": 22.0,
+        "avg_price": 0.55,
+        "cost_basis": 0.5,
+        "realized_usd": 2.0,
+        "realized_pct": 10.000000000000009
+       }
+      ]
+     }
+    },
+    {
+     "now": 1793888000.25,
+     "market": null,
+     "venues": {
+      "gate": {
+       "balances": {}
+      },
+      "revx": {
+       "balances": {}
+      },
+      "binance": {
+       "balances": {}
+      }
+     },
+     "out": {
+      "results": [
+       {
+        "sym": "CCC",
+        "mode": "live",
+        "hk": true,
+        "warn": "resting limit sell (2 CCC @ $2) is older than 14d -- price never reached the target even for this regime; review whether to keep it"
+       },
+       {
+        "sym": "CCC",
+        "mode": "live",
+        "hk": true,
+        "warn": "resting limit sell (2 CCC @ $2.5) is older than 14d -- price never reached the target even for this regime; review whether to keep it"
+       },
+       {
+        "sym": "EEE",
+        "mode": "live",
+        "hk": true,
+        "warn": "resting limit sell (4 EEE @ $3) is older than 14d -- price never reached the target even for this regime; review whether to keep it"
+       },
+       {
+        "sym": "AAA",
+        "mode": "live",
+        "hk": true,
+        "warn": "resting limit sell (30 AAA @ $0.6) is older than 14d -- price never reached the target even for this regime; review whether to keep it"
+       },
+       {
+        "sym": "AAA",
+        "mode": "live",
+        "hk": true,
+        "warn": "resting limit sell (100 AAA @ $0.551102) is older than 14d -- price never reached the target even for this regime; review whether to keep it"
+       },
+       {
+        "sym": "AAA",
+        "mode": "live",
+        "hk": true,
+        "warn": "resting limit sell (30 AAA @ $0.551102) is older than 14d -- price never reached the target even for this regime; review whether to keep it"
+       },
+       {
+        "sym": "BBB",
+        "mode": "live",
+        "hk": true,
+        "warn": "resting limit sell (7 BBB @ $2.31231) is older than 14d -- price never reached the target even for this regime; review whether to keep it"
+       },
+       {
+        "sym": "DDD",
+        "mode": "live",
+        "hk": true,
+        "warn": "resting limit sell (9 DDD @ $1.1022) is older than 14d -- price never reached the target even for this regime; review whether to keep it"
+       },
+       {
+        "sym": "BBB",
+        "mode": "live",
+        "hk": true,
+        "warn": "resting limit sell (8 BBB @ $2.31231) is older than 14d -- price never reached the target even for this regime; review whether to keep it"
+       },
+       {
+        "sym": "AAA",
+        "mode": "live",
+        "hk": true,
+        "warn": "resting limit sell (30 AAA @ $0.551102) is older than 14d -- price never reached the target even for this regime; review whether to keep it"
+       },
+       {
+        "sym": "BBB",
+        "mode": "live",
+        "hk": true,
+        "warn": "resting limit sell (5 BBB @ $2.31231) is older than 14d -- price never reached the target even for this regime; review whether to keep it"
+       },
+       {
+        "sym": "BBB",
+        "mode": "live",
+        "hk": true,
+        "warn": "resting limit sell (6 BBB @ $2.31231) is older than 14d -- price never reached the target even for this regime; review whether to keep it"
+       }
+      ],
+      "calls": [],
+      "journal": {
+       "csAAAs990000r1": {
+        "client_id": "csAAAs990000r1",
+        "sym": "AAA",
+        "exch": "gate",
+        "pair": "AAA_USDT",
+        "side": "sell",
+        "kind": "limit_sell",
+        "status": "canceled",
+        "base": 100.0,
+        "price": 0.5,
+        "rung": 1,
+        "ts": 1789827200.25,
+        "order_id": "g-1",
+        "note": "repriced up to new cost-basis target"
+       },
+       "csAAAs990100r2d": {
+        "client_id": "csAAAs990100r2d",
+        "sym": "AAA",
+        "exch": "gate",
+        "pair": "AAA_USDT",
+        "side": "sell",
+        "kind": "limit_sell",
+        "status": "canceled",
+        "base": 50.0,
+        "price": 0.52,
+        "rung": 2,
+        "ts": 1789827200.25,
+        "order_id": "g-2",
+        "note": "repriced up to new cost-basis target",
+        "filled_base": 20.0,
+        "filled_quote": 11.0,
+        "avg_price": 0.55,
+        "filled_ts": 1790000000.25,
+        "partial": true
+       },
+       "csAAAs990200r3u12345": {
+        "client_id": "csAAAs990200r3u12345",
+        "sym": "AAA",
+        "exch": "gate",
+        "pair": "AAA_USDT",
+        "side": "sell",
+        "kind": "limit_sell",
+        "status": "canceled",
+        "base": 40.0,
+        "price": 0.53,
+        "rung": 3,
+        "ts": 1789827200.25,
+        "order_id": "g-3",
+        "note": "repriced up to new cost-basis target",
+        "filled_base": 40.0,
+        "filled_quote": 22.0,
+        "avg_price": 0.55,
+        "filled_ts": 1790000000.25,
+        "partial": true
+       },
+       "csAAAs990300r4": {
+        "client_id": "csAAAs990300r4",
+        "sym": "AAA",
+        "exch": "gate",
+        "pair": "AAA_USDT",
+        "side": "sell",
+        "kind": "limit_sell",
+        "status": "canceled",
+        "base": 30.0,
+        "price": 0.54,
+        "rung": 4,
+        "ts": 1789827200.25,
+        "order_id": "g-4",
+        "last_error": "no scripted status for g-4",
+        "note": "repriced up to new cost-basis target",
+        "settle_error": "no scripted status for g-4"
+       },
+       "csBBBs990000r1": {
+        "client_id": "csBBBs990000r1",
+        "sym": "BBB",
+        "exch": "revx",
+        "pair": "BBB/USD",
+        "side": "sell",
+        "kind": "limit_sell",
+        "status": "canceled",
+        "base": 5.0,
+        "price": 2.2,
+        "rung": 1,
+        "ts": 1789827200.25,
+        "order_id": "r-1",
+        "last_error": "no scripted status for r-1",
+        "note": "repriced up to new cost-basis target",
+        "settle_error": "no scripted status for r-1"
+       },
+       "csBBBs990100r2": {
+        "client_id": "csBBBs990100r2",
+        "sym": "BBB",
+        "exch": "revx",
+        "pair": "BBB/USD",
+        "side": "sell",
+        "kind": "limit_sell",
+        "status": "canceled",
+        "base": 6.0,
+        "price": 2.21,
+        "rung": 2,
+        "ts": 1789827200.25,
+        "order_id": "r-2",
+        "note": "repriced up to new cost-basis target"
+       },
+       "csBBBs990200r3": {
+        "client_id": "csBBBs990200r3",
+        "sym": "BBB",
+        "exch": "revx",
+        "pair": "BBB/USD",
+        "side": "sell",
+        "kind": "limit_sell",
+        "status": "canceled",
+        "base": 7.0,
+        "price": 2.22,
+        "rung": 3,
+        "ts": 1789827200.25,
+        "order_id": "r-3",
+        "note": "repriced up to new cost-basis target"
+       },
+       "csCCCs990000r1": {
+        "client_id": "csCCCs990000r1",
+        "sym": "CCC",
+        "exch": "binance",
+        "pair": "CCCUSDC",
+        "side": "sell",
+        "kind": "limit_sell",
+        "status": "open",
+        "base": 2.0,
+        "price": 2.0,
+        "rung": 1,
+        "ts": 1788272000.25,
+        "order_id": "b-1",
+        "last_error": "no scripted status for b-1"
+       },
+       "csCCCs990100r1": {
+        "client_id": "csCCCs990100r1",
+        "sym": "CCC",
+        "exch": "binance",
+        "pair": "CCCUSDC",
+        "side": "sell",
+        "kind": "limit_sell",
+        "status": "open",
+        "base": 2.0,
+        "price": 2.5,
+        "rung": 1,
+        "ts": 1786544000.25,
+        "order_id": "b-2",
+        "last_error": "no scripted status for b-2"
+       },
+       "csDDDs990000r1": {
+        "client_id": "csDDDs990000r1",
+        "sym": "DDD",
+        "exch": "gate",
+        "pair": "DDD_USDT",
+        "side": "sell",
+        "kind": "limit_sell",
+        "status": "canceled",
+        "base": 9.0,
+        "price": 1.0,
+        "rung": 1,
+        "ts": 1789827200.25,
+        "order_id": "g-5",
+        "last_error": "GET /api/v4/spot/orders/g-5 -> 500 {'message': 'x'}",
+        "note": "repriced up to new cost-basis target",
+        "settle_error": "GET /api/v4/spot/orders/g-5 -> 500 {'message': 'x'}"
+       },
+       "csEEEs990000r1": {
+        "client_id": "csEEEs990000r1",
+        "sym": "EEE",
+        "exch": "revx",
+        "pair": "EEE/USD",
+        "side": "sell",
+        "kind": "limit_sell",
+        "status": "open",
+        "base": 4.0,
+        "price": 3.0,
+        "rung": 1,
+        "ts": 1785680000.25,
+        "order_id": "r-4",
+        "last_error": "no scripted status for r-4"
+       },
+       "csEEEs990100r1": {
+        "client_id": "csEEEs990100r1",
+        "sym": "EEE",
+        "exch": "revx",
+        "pair": "EEE/USD",
+        "side": "sell",
+        "kind": "limit_sell",
+        "status": "open",
+        "base": 4.0,
+        "price": 3.0,
+        "rung": 1,
+        "ts": 1785680000.25,
+        "order_id": null
+       },
+       "csEEEs990200r1": {
+        "client_id": "csEEEs990200r1",
+        "sym": "EEE",
+        "exch": "revx",
+        "pair": "EEE/USD",
+        "side": "sell",
+        "kind": "limit_sell",
+        "status": "open",
+        "base": 4.0,
+        "price": 3.0,
+        "rung": 1,
+        "ts": null,
+        "order_id": "r-6",
+        "last_error": "no scripted status for r-6"
+       },
+       "csAAAs990300r4u94444": {
+        "client_id": "csAAAs990300r4u94444",
+        "sym": "AAA",
+        "exch": "gate",
+        "pair": "AAA_USDT",
+        "side": "sell",
+        "kind": "limit_sell",
+        "status": "open",
+        "base": 30.0,
+        "price": 0.6,
+        "rung": 4,
+        "ts": 1790000000.25,
+        "last_error": "no scripted status for L-csAAAs990300r4u94444x1",
+        "order_id": "L-csAAAs990300r4u94444x1",
+        "retries": 1
+       },
+       "csBBBs990300r4": {
+        "client_id": "csBBBs990300r4",
+        "sym": "BBB",
+        "exch": "revx",
+        "pair": "BBB/USD",
+        "side": "sell",
+        "kind": "limit_sell",
+        "status": "canceled",
+        "base": 8.0,
+        "price": 2.23,
+        "rung": 4,
+        "ts": 1789827200.25,
+        "order_id": "r-7",
+        "note": "repriced up to new cost-basis target"
+       },
+       "csBBBs990300r4v94444": {
+        "client_id": "csBBBs990300r4v94444",
+        "sym": "BBB",
+        "exch": "revx",
+        "pair": "BBB/USD",
+        "side": "sell",
+        "kind": "limit_sell",
+        "status": "canceled",
+        "base": 8.0,
+        "price": 2.23,
+        "rung": 4,
+        "ts": 1790000000.25,
+        "note": "earlier restore"
+       },
+       "csAAAs990000r1u94444": {
+        "client_id": "csAAAs990000r1u94444",
+        "sym": "AAA",
+        "exch": "gate",
+        "pair": "AAA_USDT",
+        "side": "sell",
+        "kind": "limit_sell",
+        "status": "open",
+        "base": 100.0,
+        "price": 0.5511022044088176,
+        "rung": 1,
+        "ts": 1790000000.25,
+        "order_id": "g-11",
+        "last_error": "no scripted status for g-11"
+       },
+       "csAAAs990100r2u94444": {
+        "client_id": "csAAAs990100r2u94444",
+        "sym": "AAA",
+        "exch": "gate",
+        "pair": "AAA_USDT",
+        "side": "sell",
+        "kind": "limit_sell",
+        "status": "open",
+        "base": 30.0,
+        "price": 0.5511022044088176,
+        "rung": 2,
+        "ts": 1790000000.25,
+        "order_id": "L-csAAAs990100r2u94444",
+        "last_error": "no scripted status for L-csAAAs990100r2u94444"
+       },
+       "csBBBs990100r2u94444": {
+        "client_id": "csBBBs990100r2u94444",
+        "sym": "BBB",
+        "exch": "revx",
+        "pair": "BBB/USD",
+        "side": "sell",
+        "kind": "limit_sell",
+        "status": "canceled",
+        "base": 6.0,
+        "price": 2.312312312312313,
+        "rung": 2,
+        "ts": 1790000000.25,
+        "last_error": "POST /api/1.0/orders -> 400 {'message': 'price out of band'}",
+        "note": "cover restored as csBBBs990100r2v94444"
+       },
+       "csBBBs990100r2v94444": {
+        "client_id": "csBBBs990100r2v94444",
+        "sym": "BBB",
+        "exch": "revx",
+        "pair": "BBB/USD",
+        "side": "sell",
+        "kind": "limit_sell",
+        "status": "canceled",
+        "order_id": "L-csBBBs990100r2v94444",
+        "base": 6.0,
+        "price": 2.21,
+        "rung": 2,
+        "ts": 1790000000.25,
+        "note": "repriced up to new cost-basis target",
+        "last_error": "no scripted status for L-csBBBs990100r2v94444",
+        "settle_error": "no scripted status for L-csBBBs990100r2v94444"
+       },
+       "csBBBs990200r3u94444": {
+        "client_id": "csBBBs990200r3u94444",
+        "sym": "BBB",
+        "exch": "revx",
+        "pair": "BBB/USD",
+        "side": "sell",
+        "kind": "limit_sell",
+        "status": "open",
+        "base": 7.0,
+        "price": 2.312312312312313,
+        "rung": 3,
+        "ts": 1790000000.25,
+        "last_error": "no scripted status for L-csBBBs990200r3u94444x1",
+        "order_id": "L-csBBBs990200r3u94444x1",
+        "retries": 1
+       },
+       "csDDDs990000r1u94444": {
+        "client_id": "csDDDs990000r1u94444",
+        "sym": "DDD",
+        "exch": "gate",
+        "pair": "DDD_USDT",
+        "side": "sell",
+        "kind": "limit_sell",
+        "status": "open",
+        "base": 9.0,
+        "price": 1.1022044088176353,
+        "rung": 1,
+        "ts": 1790000000.25,
+        "order_id": "L-csDDDs990000r1u94444",
+        "last_error": "no scripted status for L-csDDDs990000r1u94444"
+       },
+       "csBBBs990300r4u94444": {
+        "client_id": "csBBBs990300r4u94444",
+        "sym": "BBB",
+        "exch": "revx",
+        "pair": "BBB/USD",
+        "side": "sell",
+        "kind": "limit_sell",
+        "status": "open",
+        "base": 8.0,
+        "price": 2.312312312312313,
+        "rung": 4,
+        "ts": 1790000000.25,
+        "last_error": "no scripted status for L-csBBBs990300r4u94444x1",
+        "order_id": "L-csBBBs990300r4u94444x1",
+        "retries": 1
+       },
+       "csAAAs990300r4u94445": {
+        "client_id": "csAAAs990300r4u94445",
+        "sym": "AAA",
+        "exch": "gate",
+        "pair": "AAA_USDT",
+        "side": "sell",
+        "kind": "limit_sell",
+        "status": "open",
+        "base": 30.0,
+        "price": 0.5511022044088176,
+        "rung": 4,
+        "ts": 1790001800.25,
+        "order_id": "L-csAAAs990300r4u94445",
+        "last_error": "no scripted status for L-csAAAs990300r4u94445"
+       },
+       "csBBBs990000r1u94445": {
+        "client_id": "csBBBs990000r1u94445",
+        "sym": "BBB",
+        "exch": "revx",
+        "pair": "BBB/USD",
+        "side": "sell",
+        "kind": "limit_sell",
+        "status": "open",
+        "base": 5.0,
+        "price": 2.312312312312313,
+        "rung": 1,
+        "ts": 1790001800.25,
+        "order_id": "L-csBBBs990000r1u94445",
+        "last_error": "no scripted status for L-csBBBs990000r1u94445"
+       },
+       "csBBBs990100r2u94445": {
+        "client_id": "csBBBs990100r2u94445",
+        "sym": "BBB",
+        "exch": "revx",
+        "pair": "BBB/USD",
+        "side": "sell",
+        "kind": "limit_sell",
+        "status": "open",
+        "base": 6.0,
+        "price": 2.312312312312313,
+        "rung": 2,
+        "ts": 1790001800.25,
+        "order_id": "L-csBBBs990100r2u94445",
+        "last_error": "no scripted status for L-csBBBs990100r2u94445"
+       }
+      },
+      "state": {
+       "AAA": {
+        "cost_basis": 0.5,
+        "win_until": 1790088200.25,
+        "win_dir": "sell"
+       },
+       "BBB": {
+        "cost_basis": 2.1
+       },
+       "CCC": {
+        "cost_basis": 1.5
+       },
+       "DDD": {
+        "cost_basis": 0.8
+       },
+       "EEE": {},
+       "_bal": {
+        "ts": 1793888000.25,
+        "hold": {
+         "AAA": 0.0,
+         "BBB": 0.0,
+         "CCC": 0.0,
+         "DDD": 0.0,
+         "EEE": 0.0
+        },
+        "booked": {
+         "csAAAs990100r2d": -20.0,
+         "csAAAs990200r3u12345": -40.0
+        }
+       }
+      },
+      "ttl": {
+       "csCCCs990100r1": 1793888000.25,
+       "csEEEs990000r1": 1793888000.25,
+       "csCCCs990000r1": 1793888000.25,
+       "csAAAs990300r4u94444": 1793888000.25,
+       "csAAAs990000r1u94444": 1793888000.25,
+       "csAAAs990100r2u94444": 1793888000.25,
+       "csBBBs990200r3u94444": 1793888000.25,
+       "csDDDs990000r1u94444": 1793888000.25,
+       "csBBBs990300r4u94444": 1793888000.25,
+       "csAAAs990300r4u94445": 1793888000.25,
+       "csBBBs990000r1u94445": 1793888000.25,
+       "csBBBs990100r2u94445": 1793888000.25
+      },
+      "pnl": [
+       {
+        "ts": 1790001800.25,
+        "iso": "2026-09-21T14:43:20.250000+00:00",
+        "sym": "AAA",
+        "kind": "limit_sell",
+        "qty": 20.0,
+        "quote": 11.0,
+        "avg_price": 0.55,
+        "cost_basis": 0.5,
+        "realized_usd": 1.0,
+        "realized_pct": 10.000000000000009
+       },
+       {
+        "ts": 1790001800.25,
+        "iso": "2026-09-21T14:43:20.250000+00:00",
+        "sym": "AAA",
+        "kind": "limit_sell",
+        "qty": 40.0,
+        "quote": 22.0,
+        "avg_price": 0.55,
+        "cost_basis": 0.5,
+        "realized_usd": 2.0,
+        "realized_pct": 10.000000000000009
+       }
+      ]
+     }
+    }
+   ]
+  },
+  {
+   "name": "ttl_forever",
+   "settings": {
+    "target_pct": 8.0,
+    "fee_pct_gate": 0.2,
+    "fee_pct_revx": 0.1,
+    "fee_pct_binance": 0.1,
+    "window_hours": 24.0,
+    "limit_ttl_days": 7.0,
+    "limit_ttl_days_bear": 45.0,
+    "limit_ttl_days_chop": 30.0,
+    "ttl_renag_days": 0.0,
+    "routing": [
+     [
+      "AAA",
+      "gate",
+      "AAA_USDT",
+      "USDT"
+     ],
+     [
+      "BBB",
+      "revx",
+      "BBB/USD",
+      "USD"
+     ],
+     [
+      "CCC",
+      "binance",
+      "CCCUSDC",
+      "USDC"
+     ],
+     [
+      "DDD",
+      "gate",
+      "DDD_USDT",
+      "USDT"
+     ],
+     [
+      "EEE",
+      "revx",
+      "EEE/USD",
+      "USD"
+     ]
+    ],
+    "entries": {
+     "AAA": 0.4,
+     "BBB": 2.0,
+     "CCC": 1.5
+    }
+   },
+   "initial": {
+    "journal": {
+     "csAAAs990000r1": {
+      "client_id": "csAAAs990000r1",
+      "sym": "AAA",
+      "exch": "gate",
+      "pair": "AAA_USDT",
+      "side": "sell",
+      "kind": "limit_sell",
+      "status": "open",
+      "base": 1.5e-05,
+      "price": 123456789.0,
+      "rung": 1,
+      "ts": 1789136000.25,
+      "order_id": "g-1"
+     }
+    },
+    "state": {},
+    "ttl": {},
+    "pnl": [],
+    "journal_order": [
+     "csAAAs990000r1"
+    ]
+   },
+   "runs": [
+    {
+     "now": 1790000000.25,
+     "market": "bull",
+     "venues": {
+      "gate": {
+       "balances": {}
+      },
+      "revx": {
+       "balances": {}
+      },
+      "binance": {
+       "balances": {}
+      }
+     },
+     "out": {
+      "results": [
+       {
+        "sym": "AAA",
+        "mode": "live",
+        "hk": true,
+        "warn": "resting limit sell (1.5e-05 AAA @ $1.23457e+08) is older than 7d -- price never reached the target even for this regime; review whether to keep it"
+       }
+      ],
+      "calls": [],
+      "journal": {
+       "csAAAs990000r1": {
+        "client_id": "csAAAs990000r1",
+        "sym": "AAA",
+        "exch": "gate",
+        "pair": "AAA_USDT",
+        "side": "sell",
+        "kind": "limit_sell",
+        "status": "open",
+        "base": 1.5e-05,
+        "price": 123456789.0,
+        "rung": 1,
+        "ts": 1789136000.25,
+        "order_id": "g-1",
+        "last_error": "no scripted status for g-1"
+       }
+      },
+      "state": {
+       "_bal": {
+        "ts": 1790000000.25,
+        "hold": {
+         "AAA": 0.0,
+         "BBB": 0.0,
+         "CCC": 0.0,
+         "DDD": 0.0,
+         "EEE": 0.0
+        },
+        "booked": {}
+       }
+      },
+      "ttl": {
+       "csAAAs990000r1": 1790000000.25
+      },
+      "pnl": []
+     }
+    },
+    {
+     "now": 1793456000.25,
+     "market": "bull",
+     "venues": {
+      "gate": {
+       "balances": {}
+      },
+      "revx": {
+       "balances": {}
+      },
+      "binance": {
+       "balances": {}
+      }
+     },
+     "out": {
+      "results": [],
+      "calls": [],
+      "journal": {
+       "csAAAs990000r1": {
+        "client_id": "csAAAs990000r1",
+        "sym": "AAA",
+        "exch": "gate",
+        "pair": "AAA_USDT",
+        "side": "sell",
+        "kind": "limit_sell",
+        "status": "open",
+        "base": 1.5e-05,
+        "price": 123456789.0,
+        "rung": 1,
+        "ts": 1789136000.25,
+        "order_id": "g-1",
+        "last_error": "no scripted status for g-1"
+       }
+      },
+      "state": {
+       "_bal": {
+        "ts": 1793456000.25,
+        "hold": {
+         "AAA": 0.0,
+         "BBB": 0.0,
+         "CCC": 0.0,
+         "DDD": 0.0,
+         "EEE": 0.0
+        },
+        "booked": {}
+       }
+      },
+      "ttl": {
+       "csAAAs990000r1": 1790000000.25
+      },
+      "pnl": []
+     }
+    }
+   ]
+  },
+  {
+   "name": "ttl_off",
+   "settings": {
+    "target_pct": 10.0,
+    "fee_pct_gate": 0.2,
+    "fee_pct_revx": 0.1,
+    "fee_pct_binance": 0.1,
+    "window_hours": 24.0,
+    "limit_ttl_days": 0.0,
+    "limit_ttl_days_bear": 45.0,
+    "limit_ttl_days_chop": 30.0,
+    "ttl_renag_days": 30.0,
+    "routing": [
+     [
+      "AAA",
+      "gate",
+      "AAA_USDT",
+      "USDT"
+     ],
+     [
+      "BBB",
+      "revx",
+      "BBB/USD",
+      "USD"
+     ],
+     [
+      "CCC",
+      "binance",
+      "CCCUSDC",
+      "USDC"
+     ],
+     [
+      "DDD",
+      "gate",
+      "DDD_USDT",
+      "USDT"
+     ],
+     [
+      "EEE",
+      "revx",
+      "EEE/USD",
+      "USD"
+     ]
+    ],
+    "entries": {
+     "AAA": 0.4,
+     "BBB": 2.0,
+     "CCC": 1.5
+    }
+   },
+   "initial": {
+    "journal": {
+     "csAAAs990000r1": {
+      "client_id": "csAAAs990000r1",
+      "sym": "AAA",
+      "exch": "gate",
+      "pair": "AAA_USDT",
+      "side": "sell",
+      "kind": "limit_sell",
+      "status": "open",
+      "base": 1.5e-05,
+      "price": 123456789.0,
+      "rung": 1,
+      "ts": 1789136000.25,
+      "order_id": "g-1"
+     }
+    },
+    "state": {},
+    "ttl": {},
+    "pnl": [],
+    "journal_order": [
+     "csAAAs990000r1"
+    ]
+   },
+   "runs": [
+    {
+     "now": 1790000000.25,
+     "market": "bull",
+     "venues": {
+      "gate": {
+       "balances": {}
+      },
+      "revx": {
+       "balances": {}
+      },
+      "binance": {
+       "balances": {}
+      }
+     },
+     "out": {
+      "results": [],
+      "calls": [],
+      "journal": {
+       "csAAAs990000r1": {
+        "client_id": "csAAAs990000r1",
+        "sym": "AAA",
+        "exch": "gate",
+        "pair": "AAA_USDT",
+        "side": "sell",
+        "kind": "limit_sell",
+        "status": "open",
+        "base": 1.5e-05,
+        "price": 123456789.0,
+        "rung": 1,
+        "ts": 1789136000.25,
+        "order_id": "g-1",
+        "last_error": "no scripted status for g-1"
+       }
+      },
+      "state": {
+       "_bal": {
+        "ts": 1790000000.25,
+        "hold": {
+         "AAA": 0.0,
+         "BBB": 0.0,
+         "CCC": 0.0,
+         "DDD": 0.0,
+         "EEE": 0.0
+        },
+        "booked": {}
+       }
+      },
+      "ttl": {},
+      "pnl": []
+     }
+    }
+   ]
+  },
+  {
+   "name": "abort_reconcile_and_housekeeping",
+   "settings": {
+    "target_pct": 10.0,
+    "fee_pct_gate": 0.2,
+    "fee_pct_revx": 0.1,
+    "fee_pct_binance": 0.1,
+    "window_hours": 24.0,
+    "limit_ttl_days": 14.0,
+    "limit_ttl_days_bear": 45.0,
+    "limit_ttl_days_chop": 30.0,
+    "ttl_renag_days": 30.0,
+    "routing": [
+     [
+      "AAA",
+      "gate",
+      "AAA_USDT",
+      "USDT"
+     ],
+     [
+      "BBB",
+      "revx",
+      "BBB/USD",
+      "USD"
+     ],
+     [
+      "CCC",
+      "binance",
+      "CCCUSDC",
+      "USDC"
+     ],
+     [
+      "DDD",
+      "gate",
+      "DDD_USDT",
+      "USDT"
+     ],
+     [
+      "EEE",
+      "revx",
+      "EEE/USD",
+      "USD"
+     ]
+    ],
+    "entries": {
+     "AAA": 0.4,
+     "BBB": 2.0,
+     "CCC": 1.5
+    }
+   },
+   "initial": {
+    "journal": {
+     "pendK": {
+      "client_id": "pendK",
+      "sym": "KKK",
+      "exch": "kraken",
+      "pair": "KKK-USD",
+      "side": "buy",
+      "kind": "market_buy",
+      "status": "filled",
+      "filled_base": 1.0,
+      "filled_quote": 2.0,
+      "avg_price": 2.0,
+      "filled_ts": 1789999995.25,
+      "book_pending": true,
+      "rung": 1,
+      "order_id": "k-1"
+     },
+     "csBBBb994444r1": {
+      "client_id": "csBBBb994444r1",
+      "sym": "BBB",
+      "exch": "revx",
+      "pair": "BBB/USD",
+      "side": "buy",
+      "kind": "market_buy",
+      "status": "new",
+      "quote": 21.0,
+      "rung": 1,
+      "ts": 1789999100.25,
+      "order_id": "r-1"
+     },
+     "csKKKs990000r1": {
+      "client_id": "csKKKs990000r1",
+      "sym": "KKK",
+      "exch": "kraken",
+      "pair": "KKK-USD",
+      "side": "sell",
+      "kind": "limit_sell",
+      "status": "error",
+      "base": 1.0,
+      "price": 2.2,
+      "rung": 1,
+      "ts": 1789913600.25
+     }
+    },
+    "state": {
+     "BBB": {
+      "cost_basis": 2.0
+     },
+     "_bal": {
+      "ts": 1789998200.25,
+      "hold": {
+       "BBB": 1.0
+      },
+      "booked": {}
+     }
+    },
+    "ttl": {},
+    "pnl": [],
+    "journal_order": [
+     "pendK",
+     "csBBBb994444r1",
+     "csKKKs990000r1"
+    ]
+   },
+   "runs": [
+    {
+     "now": 1790000000.25,
+     "market": "bull",
+     "venues": {
+      "revx": {
+       "balances": {
+        "BBB": {
+         "free": 1.0,
+         "locked": 0.0
+        }
+       },
+       "status": {
+        "r-1": {
+         "order_id": "",
+         "status": "filled",
+         "filled": true,
+         "base_qty": 10.0,
+         "quote": 21.0,
+         "avg_price": 2.1,
+         "price": null
+        }
+       }
+      },
+      "gate": {
+       "balances": {}
+      },
+      "binance": {
+       "balances": {}
+      }
+     },
+     "out": {
+      "results": [
+       {
+        "err": "reconcile: 'kraken'",
+        "mode": "live",
+        "hk": true
+       },
+       {
+        "err": "housekeeping: 'kraken'",
+        "mode": "live",
+        "hk": true
+       }
+      ],
+      "calls": [],
+      "journal": {
+       "pendK": {
+        "client_id": "pendK",
+        "sym": "KKK",
+        "exch": "kraken",
+        "pair": "KKK-USD",
+        "side": "buy",
+        "kind": "market_buy",
+        "status": "filled",
+        "filled_base": 1.0,
+        "filled_quote": 2.0,
+        "avg_price": 2.0,
+        "filled_ts": 1789999995.25,
+        "rung": 1,
+        "order_id": "k-1"
+       },
+       "csBBBb994444r1": {
+        "client_id": "csBBBb994444r1",
+        "sym": "BBB",
+        "exch": "revx",
+        "pair": "BBB/USD",
+        "side": "buy",
+        "kind": "market_buy",
+        "status": "filled",
+        "quote": 21.0,
+        "rung": 1,
+        "ts": 1789999100.25,
+        "order_id": "r-1",
+        "status_ts": 1790000000.25,
+        "filled_base": 10.0,
+        "filled_quote": 21.0,
+        "avg_price": 2.1,
+        "filled_ts": 1790000000.25
+       },
+       "csKKKs990000r1": {
+        "client_id": "csKKKs990000r1",
+        "sym": "KKK",
+        "exch": "kraken",
+        "pair": "KKK-USD",
+        "side": "sell",
+        "kind": "limit_sell",
+        "status": "error",
+        "base": 1.0,
+        "price": 2.2,
+        "rung": 1,
+        "ts": 1789913600.25
+       }
+      },
+      "state": {
+       "BBB": {
+        "cost_basis": 2.0
+       },
+       "_bal": {
+        "ts": 1789998200.25,
+        "hold": {
+         "BBB": 1.0
+        },
+        "booked": {}
+       },
+       "KKK": {
+        "cost_basis": 2.0
+       }
+      },
+      "ttl": {},
+      "pnl": []
+     }
+    }
+   ]
+  },
+  {
+   "name": "abort_adopt_without_price",
+   "settings": {
+    "target_pct": 10.0,
+    "fee_pct_gate": 0.2,
+    "fee_pct_revx": 0.1,
+    "fee_pct_binance": 0.1,
+    "window_hours": 24.0,
+    "limit_ttl_days": 14.0,
+    "limit_ttl_days_bear": 45.0,
+    "limit_ttl_days_chop": 30.0,
+    "ttl_renag_days": 30.0,
+    "routing": [
+     [
+      "AAA",
+      "gate",
+      "AAA_USDT",
+      "USDT"
+     ],
+     [
+      "BBB",
+      "revx",
+      "BBB/USD",
+      "USD"
+     ],
+     [
+      "CCC",
+      "binance",
+      "CCCUSDC",
+      "USDC"
+     ],
+     [
+      "DDD",
+      "gate",
+      "DDD_USDT",
+      "USDT"
+     ],
+     [
+      "EEE",
+      "revx",
+      "EEE/USD",
+      "USD"
+     ]
+    ],
+    "entries": {
+     "AAA": 0.4,
+     "BBB": 2.0,
+     "CCC": 1.5
+    }
+   },
+   "initial": {
+    "journal": {
+     "csBBBs990000r1": {
+      "client_id": "csBBBs990000r1",
+      "sym": "BBB",
+      "exch": "revx",
+      "pair": "BBB/USD",
+      "side": "sell",
+      "kind": "limit_sell",
+      "status": "error",
+      "base": 1.0,
+      "price": 2.2,
+      "rung": 1,
+      "ts": 1789913600.25
+     }
+    },
+    "state": {
+     "BBB": {
+      "cost_basis": 2.0
+     },
+     "_bal": {
+      "ts": 1789998200.25,
+      "hold": {
+       "BBB": 1.0
+      },
+      "booked": {}
+     }
+    },
+    "ttl": {},
+    "pnl": [],
+    "journal_order": [
+     "csBBBs990000r1"
+    ]
+   },
+   "runs": [
+    {
+     "now": 1790000000.25,
+     "market": "bull",
+     "venues": {
+      "revx": {
+       "balances": {
+        "BBB": {
+         "free": 1.0,
+         "locked": 0.0
+        }
+       },
+       "open": {
+        "BBB/USD": [
+         {
+          "order_id": "rb-1",
+          "status": "open",
+          "filled": false,
+          "base_qty": 0.0,
+          "quote": 0.0,
+          "avg_price": null,
+          "price": null,
+          "side": "sell",
+          "qty": 1.0,
+          "client_id": "9b825527-82cd-5cb8-8d66-80691ab43ef4"
+         }
+        ]
+       }
+      },
+      "gate": {
+       "balances": {}
+      },
+      "binance": {
+       "balances": {}
+      }
+     },
+     "out": {
+      "results": [
+       {
+        "err": "housekeeping: unsupported format string passed to NoneType.__format__",
+        "mode": "live",
+        "hk": true
+       }
+      ],
+      "calls": [],
+      "journal": {
+       "csBBBs990000r1": {
+        "client_id": "csBBBs990000r1",
+        "sym": "BBB",
+        "exch": "revx",
+        "pair": "BBB/USD",
+        "side": "sell",
+        "kind": "limit_sell",
+        "status": "open",
+        "base": 1.0,
+        "price": 2.2,
+        "rung": 1,
+        "ts": 1789913600.25,
+        "order_id": "rb-1",
+        "last_error": null
+       }
+      },
+      "state": {
+       "BBB": {
+        "cost_basis": 2.0
+       },
+       "_bal": {
+        "ts": 1789998200.25,
+        "hold": {
+         "BBB": 1.0
+        },
+        "booked": {}
+       }
+      },
+      "ttl": {},
+      "pnl": []
+     }
+    }
+   ]
+  }
+ ]
+}

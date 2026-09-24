@@ -182,7 +182,8 @@ and a journal that exists but does not parse stops the run instead of reading as
 The journal is a plain JSON object keyed by client id; finished cancels older than 30
 days move to `orders-archive.jsonl` with `rungbot-exec archive`. `rungbot-exec
 import-cex DIR` reads an existing `orders-journal.json` in the same format, prints what
-it found and checks every row reads back as written; `--write` imports it.
+it found and checks every row reads back as written; `--write` imports it, together
+with the ladder state, P&L ledger and stale-order flags it finds beside it.
 
 | Rail | Default | |
 |---|---|---|

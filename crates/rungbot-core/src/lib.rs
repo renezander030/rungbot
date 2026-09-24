@@ -37,6 +37,7 @@ pub mod analyze;
 pub mod config;
 pub mod decisions;
 pub mod fmt;
+pub mod housekeeping;
 pub mod indicators;
 pub mod ladder;
 pub mod notices;
@@ -57,7 +58,7 @@ pub use notices::{Notices, Verdict as NoticeVerdict};
 pub use regime::{assess, market_label, running_from_series, Market, Regime, RegimeConfig};
 pub use research::{brief, gate, screen, Candidate, ScreenConfig, ValueFacts, Verdict};
 pub use sellpolicy::{BullState, PolicySell, SellPolicyConfig};
-pub use time::{iso8601, utc_day};
+pub use time::{iso8601, iso8601_micros, utc_day};
 
 /// The crate version, so a Worker and a binary can report the same number.
 pub const VERSION: &str = env!("CARGO_PKG_VERSION");
