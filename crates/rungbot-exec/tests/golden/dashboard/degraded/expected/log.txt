@@ -1,0 +1,6 @@
+[Tue Dec 24 00:26:40 UTC 2024] snapshot
+CHURN 7d: 2 rolls (2 rungs) / 1 fills, 2.0 cancels per fill, rung life median 41.7h; 0 rolls in 24h
+SELL-CHECK 0/6 sellable; AAA nothing held; BBB nothing held; BTC nothing held; CCC nothing held; DDD no binance client; VVV nothing held
+wrote <public>/data.json | 6 coins | value $0.00 | stable $0.00 (locked $0.00) | errors 4
+scenarios failed (snapshot still deployed)
+wrote <public>/wallets.json | 5 wallets | $27,687.50 | staked 19% | of all 19% | alerts 0 | errors 3 (coingecko: <urlopen error no fixture: https://api.coingecko.com/api/v3/simple/price?vs_currencies=usd&ids=aaa-coin,www-coin,ccc-coin,xxx-coin,vvv-coin,bitcoin>; WWW: <urlopen error no fixture: https://rest.cosmos.directory/wwwchain/cosmos/staking/v1beta1/params>; BTC: HTTP Error 500: Internal Server Error)

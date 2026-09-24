@@ -748,6 +748,19 @@ fn the_example_config_loads() {
     assert_eq!(c.btc_alert_usd, 50000.0);
     assert!(!c.halt_file.to_string_lossy().contains('~'));
     assert_eq!(c.trail_tp, "off");
+    let d = rungbot_exec::dashboard::DashConfig::from_run_env(&c, &|_| None).unwrap();
+    assert!(!d.deploy);
+    assert_eq!(d.coingecko_id("BBB"), Some("bbb-coin"));
+    assert_eq!(
+        d.scenarios.ath[0],
+        ("AAA".into(), 12.5, "2021-04-01".into())
+    );
+    assert_eq!(d.wallets.list.len(), 3);
+    assert_eq!(d.wallets.trail_only, vec!["BBB"]);
+    assert!(matches!(
+        &d.wallets.list[1].1,
+        rungbot_exec::dashboard::WalletSpec::Vault { legs, unbond_days: 21, .. } if legs.len() == 1
+    ));
     assert_eq!(c.deploy, "off");
     let n: rungbot_notify::Notifier = serde_json::from_value(c.notify.clone()).unwrap();
     assert!(n.email.is_some() && n.telegram.is_some());

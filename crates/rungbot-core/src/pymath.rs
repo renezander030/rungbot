@@ -57,9 +57,86 @@ pub fn fsum_py<I: IntoIterator<Item = f64>>(xs: I) -> f64 {
     s
 }
 
+/// `math.fsum`: the exactly rounded sum (Shewchuk's partials, with CPython's final
+/// half-way correction). `statistics.fmean` is `fsum(xs) / len(xs)`.
+pub fn fsum_exact<I: IntoIterator<Item = f64>>(xs: I) -> f64 {
+    let mut partials: Vec<f64> = Vec::new();
+    for mut x in xs {
+        let mut i = 0;
+        for j in 0..partials.len() {
+            let mut y = partials[j];
+            if x.abs() < y.abs() {
+                core::mem::swap(&mut x, &mut y);
+            }
+            let hi = x + y;
+            let lo = y - (hi - x);
+            if lo != 0.0 {
+                partials[i] = lo;
+                i += 1;
+            }
+            x = hi;
+        }
+        partials.truncate(i);
+        partials.push(x);
+    }
+    let mut n = partials.len();
+    if n == 0 {
+        return 0.0;
+    }
+    n -= 1;
+    let mut hi = partials[n];
+    let mut lo = 0.0;
+    while n > 0 {
+        let x = hi;
+        n -= 1;
+        let y = partials[n];
+        hi = x + y;
+        let yr = hi - x;
+        lo = y - yr;
+        if lo != 0.0 {
+            break;
+        }
+    }
+    if n > 0 && ((lo < 0.0 && partials[n - 1] < 0.0) || (lo > 0.0 && partials[n - 1] > 0.0)) {
+        let y = lo * 2.0;
+        let x = hi + y;
+        let yr = x - hi;
+        if y == yr {
+            hi = x;
+        }
+    }
+    hi
+}
+
+/// `statistics.median` over floats: the middle value, or the mean of the two middle
+/// values (`(a + b) / 2`). `None` for no data.
+pub fn median(xs: &[f64]) -> Option<f64> {
+    if xs.is_empty() {
+        return None;
+    }
+    let mut v = xs.to_vec();
+    v.sort_by(f64::total_cmp);
+    let n = v.len();
+    Some(if n % 2 == 1 {
+        v[n / 2]
+    } else {
+        (v[n / 2 - 1] + v[n / 2]) / 2.0
+    })
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn fsum_is_exact_and_median_averages_the_middle() {
+        assert_eq!(fsum_exact([0.1; 10]), 1.0);
+        assert_eq!(fsum_exact([1.0, 1e-16, 1e-16]), 1.0000000000000002);
+        assert_eq!(fsum_exact([1e100, 1.0, -1e100, 1e-100]), 1.0);
+        assert_eq!(median(&[3.0, 1.0, 2.0]), Some(2.0));
+        assert_eq!(median(&[4.0, 1.0, 2.0, 3.0]), Some(2.5));
+        assert_eq!(median(&[]), None);
+    }
 
     #[test]
     fn floor_division_follows_fmod_not_the_quotient() {

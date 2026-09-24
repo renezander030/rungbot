@@ -149,6 +149,70 @@ state_dir: ~/.local/state/rungbot
 # audit_state: ~/.local/state/rungbot/audit-state.json   (the daily marker: + .last)
 # fillodds_cache: ~/.local/state/rungbot/replay/cache   (binance_{SYM}USDT.json, ...)
 
+# --- Dashboard (`rungbot-exec snapshot`; read-only on every venue) -----------------
+# One cycle writes data.json, scenarios.json and wallets.json for a static site, then
+# runs deploy_command when DASHBOARD_DEPLOY=1 (or deploy: yes). The 3rd deploy failure
+# in a row exits 1, then every 12th, so the unit's failure hook fires about hourly.
+dashboard:
+  public_dir: ~/.local/state/rungbot/dashboard/public   # the three JSON files
+  work_dir: ~/.local/state/rungbot/dashboard            # caches and the deploy streak
+  # run_log: ~/.local/state/rungbot/run.log   # its mtime is the banner's "last run"
+  # manual_fills: <work_dir>/manual-fills.json    # fills made outside the bot
+  # wallet_targets: <work_dir>/wallet-targets.json   # {"SYM": price}: manual rungs
+  deploy: no                    # DASHBOARD_DEPLOY=1 switches it on          (no)
+  # deploy_command: "your static host's deploy command for public_dir"
+  # legacy_venues:              # venue of journal rows older than legacy_before_ts
+  #   AAA: gate
+  # legacy_before_ts: 0
+  coingecko:                    # CoinGecko id per coin: wallet prices and the ATH refresh
+    AAA: aaa-coin
+    BBB: bbb-coin
+  # replay_cache: <fillodds_cache>   # daily candles for the scenario replays
+  # sources:                    # per coin, first file wins per date     (binance, gate)
+  #   AAA: "binance_AAAUSDT.json ohlc, gate_AAA_USDT.json ohlc"
+  ath:                          # all-time high and its date; refreshed when CoinGecko answers
+    AAA: "12.5 2021-04-01"
+    BBB: "0.9 2021-11-10"
+  # alts: "AAA,BBB"             # the median basket                   (all but BTC)
+  # forecast_alloc:             # weights of the next deposit        (deploy_alloc)
+  # scenarios:                  # the replay windows (defaults: eight past cycles)
+  #   run_2020:
+  #     label: "2020-21 mania"
+  #     t0: "2020-10-17"
+  #     days: 540
+  #     desc: "BTC confirmed bull Oct 2020."
+  scenario_slip_pct: 0.1        # SCENARIO_SLIP_PCT: market-sell slippage    (0.1)
+  # scenario_fee_pct: 0.1       # SCENARIO_FEE_PCT: one fee for every venue  (per venue)
+  scenario_dex_usd: 0           # SCENARIO_DEX_USD: wallets outside the bot    (0)
+  scenario_days: 540            # SCENARIO_DAYS: a window's default horizon  (540)
+  scenario_new_cash_usd: 10000  # SCENARIO_NEW_CASH_USD: the next deposit  (10000)
+  forecast_paths: 20000         # Monte Carlo paths                        (20000)
+  forecast_seed: 7              # the same seed, the same percentiles           (7)
+  wallet_tranche_x: 4           # WALLET_TRANCHE_X: the unbond rung, x bot cost  (4)
+  wallet_lead_pct: 30           # WALLET_LEAD_PCT: lead band per 21 days unbonding (30)
+  wallet_rearm_pct: 10          # the alert re-arms this far under the trigger  (10)
+  wallet_trail_only: BBB        # also need a confirmed bull before unbonding (none)
+  wallet_timeout_s: 180         # the wallet reads give up after this        (180)
+  wallets:                      # public addresses only; no keys
+    AAA:
+      kind: cosmos              # a Cosmos SDK chain
+      chain: aaachain           # its cosmos.directory name
+      address: aaa1exampleaddress
+      decimals: 6
+      # rest: https://rest.cosmos.directory
+    BBB:
+      kind: vault               # an ERC-4626 staking vault on one or more EVM chains
+      address: "0x00000000000000000000000000000000000000aa"
+      chain: "l1 + l2"
+      unbond_days: 21
+      legs:                     # label: "<rpc> <token> <vault>"; the rate is read on the first
+        L1: "https://rpc.example.invalid 0x1111111111111111111111111111111111111111 0x2222222222222222222222222222222222222222"
+    BTC:
+      kind: btc
+      address: bc1exampleaddress
+      chain: bitcoin
+      # api: https://mempool.space/api
+
 # --- Where the mails go --------------------------------------------------------------
 notify:
   email:

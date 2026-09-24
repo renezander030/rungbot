@@ -17,6 +17,7 @@ systemctl --user enable --now rungbot-watch-regime.timer rungbot-watch-btc.timer
 | `divergence` | daily, 05:00 UTC |
 | `daily` (froth, then zone) | daily, 05:20 UTC |
 | `rungbot-run` (`rungbot-exec run`) | every 30 minutes |
+| `rungbot-snapshot` (`rungbot-exec snapshot`) | every 5 minutes, at :02, :07, ... |
 
 The trading run reads `~/.config/rungbot/run.yaml`; start from
 `../rungbot-run.example.yaml`, which lists every knob with its default. Try it with
@@ -25,6 +26,14 @@ The trading run reads `~/.config/rungbot/run.yaml`; start from
 ```bash
 cp rungbot-run.service rungbot-run.timer ~/.config/systemd/user/
 systemctl --user daemon-reload && systemctl --user enable --now rungbot-run.timer
+```
+
+The dashboard collector reads the same `run.yaml` (its `dashboard:` block). It never
+trades; with `DASHBOARD_DEPLOY=1` it runs `dashboard.deploy_command` after each refresh:
+
+```bash
+cp rungbot-snapshot.service rungbot-snapshot.timer ~/.config/systemd/user/
+systemctl --user daemon-reload && systemctl --user enable --now rungbot-snapshot.timer
 ```
 
 `Persistent=true` catches up a run missed while the machine was off. Try a unit once
