@@ -10,26 +10,41 @@
 //! 1. The ladder decides, in `rungbot-core`, with no credential in the process.
 //! 2. [`guard::check`] refuses anything outside the rails.
 //! 3. [`journal`] writes a deterministic id **before** the venue is called.
-//! 4. Only then does [`gate`] sign a request.
+//! 4. Only then does a venue client ([`gate`], [`revx`], [`binance`]) sign a request.
+//! 5. [`reconcile`] later reads back what the venue did and books it.
 //!
-//! Only GTC limit orders are implemented. A resting order fills while your machine is
-//! asleep, which is what lets a ladder run on a laptop; a market order needs you present
-//! and is not something a schedule should ever send.
+//! Every network call goes through [`http::Transport`], which refuses all of them while
+//! `RUNGBOT_OFFLINE` is set.
 
 #![forbid(unsafe_code)]
 #![deny(clippy::all)]
 
+pub mod binance;
+pub mod clients;
 pub mod gate;
 pub mod guard;
+pub mod http;
+pub mod ids;
+pub mod import;
 pub mod journal;
 pub mod keys;
+pub mod pyfmt;
+pub mod reconcile;
+pub mod revx;
 pub mod store;
 #[cfg(test)]
 mod testenv;
+pub mod venue;
 
-pub use gate::{Gate, GateError, PairInfo, VenueOrder};
+pub use binance::Binance;
+pub use clients::Clients;
+pub use gate::{Gate, PairInfo};
 pub use guard::{Caps, Context, Intent, Mode, Refusal};
-pub use journal::{client_id, root_id, Journal, Order, Side, Status};
+pub use http::VenueError;
+pub use journal::{client_id, root_id, Journal, Order, Side};
 pub use keys::{Credentials, KeyError};
+pub use reconcile::{reconcile, settle_cancel, Adopted, Reconciled, Settled, VenueSource};
+pub use revx::{Revx, RevxCredentials};
+pub use venue::{Balance, Limits, ParsedOrder, Venue};
 
 pub const VERSION: &str = env!("CARGO_PKG_VERSION");

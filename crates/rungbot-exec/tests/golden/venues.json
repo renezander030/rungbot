@@ -1,0 +1,4386 @@
+{
+ "scenarios": [
+  {
+   "venue": "gate",
+   "key": "gk-test-key",
+   "secret": "gs-test-secret",
+   "steps": [
+    {
+     "call": "balances",
+     "args": [],
+     "now": 1700000000.25,
+     "responses": [
+      {
+       "status": 200,
+       "body": "[{\"currency\": \"USDT\", \"available\": \"12.5\", \"locked\": \"1\"}, {\"currency\": \"AAA\", \"available\": \"0\", \"locked\": \"3.25\"}]"
+      }
+     ],
+     "requests": [
+      {
+       "method": "GET",
+       "url": "https://api.gateio.ws/api/v4/spot/accounts",
+       "headers": {
+        "key": "gk-test-key",
+        "timestamp": "1700000000",
+        "sign": "5f50c79089b8073c05417722c2dece188c7588e5a9a04bb07f8c160b876e965803f85e45b6d616d822d5ce7bea88a2ce2806bc46789bad4c19e4b805e674d829",
+        "accept": "application/json",
+        "content-type": "application/json"
+       },
+       "body": null,
+       "timeout": 15
+      }
+     ],
+     "ok": {
+      "USDT": 12.5,
+      "AAA": 0.0
+     }
+    },
+    {
+     "call": "balances_full",
+     "args": [],
+     "now": 1700000000.25,
+     "responses": [
+      {
+       "status": 200,
+       "body": "[{\"currency\": \"USDT\", \"available\": \"12.5\", \"locked\": \"1\"}]"
+      }
+     ],
+     "requests": [
+      {
+       "method": "GET",
+       "url": "https://api.gateio.ws/api/v4/spot/accounts",
+       "headers": {
+        "key": "gk-test-key",
+        "timestamp": "1700000000",
+        "sign": "5f50c79089b8073c05417722c2dece188c7588e5a9a04bb07f8c160b876e965803f85e45b6d616d822d5ce7bea88a2ce2806bc46789bad4c19e4b805e674d829",
+        "accept": "application/json",
+        "content-type": "application/json"
+       },
+       "body": null,
+       "timeout": 15
+      }
+     ],
+     "ok": {
+      "USDT": {
+       "free": 12.5,
+       "locked": 1.0
+      }
+     }
+    },
+    {
+     "call": "balances_full",
+     "args": [],
+     "now": 1700000000.25,
+     "responses": [
+      {
+       "status": 401,
+       "body": "{\"label\": \"INVALID_KEY\", \"message\": \"bad sig\"}"
+      }
+     ],
+     "requests": [
+      {
+       "method": "GET",
+       "url": "https://api.gateio.ws/api/v4/spot/accounts",
+       "headers": {
+        "key": "gk-test-key",
+        "timestamp": "1700000000",
+        "sign": "5f50c79089b8073c05417722c2dece188c7588e5a9a04bb07f8c160b876e965803f85e45b6d616d822d5ce7bea88a2ce2806bc46789bad4c19e4b805e674d829",
+        "accept": "application/json",
+        "content-type": "application/json"
+       },
+       "body": null,
+       "timeout": 15
+      }
+     ],
+     "error": "GET /api/v4/spot/accounts -> 401 {'label': 'INVALID_KEY', 'message': 'bad sig'}"
+    },
+    {
+     "call": "balances_full",
+     "args": [],
+     "now": 1700000000.25,
+     "responses": [
+      {
+       "status": 403,
+       "body": "{\"label\": \"FORBIDDEN\", \"message\": \"IP_FORBIDDEN not in whitelist\"}"
+      }
+     ],
+     "requests": [
+      {
+       "method": "GET",
+       "url": "https://api.gateio.ws/api/v4/spot/accounts",
+       "headers": {
+        "key": "gk-test-key",
+        "timestamp": "1700000000",
+        "sign": "5f50c79089b8073c05417722c2dece188c7588e5a9a04bb07f8c160b876e965803f85e45b6d616d822d5ce7bea88a2ce2806bc46789bad4c19e4b805e674d829",
+        "accept": "application/json",
+        "content-type": "application/json"
+       },
+       "body": null,
+       "timeout": 15
+      }
+     ],
+     "error": "GET /api/v4/spot/accounts -> 403 {'label': 'FORBIDDEN', 'message': 'IP_FORBIDDEN not in whitelist'}"
+    },
+    {
+     "call": "balances",
+     "args": [],
+     "now": 1700000000.25,
+     "responses": [
+      {
+       "status": 502,
+       "body": "<html>bad gateway</html>"
+      }
+     ],
+     "requests": [
+      {
+       "method": "GET",
+       "url": "https://api.gateio.ws/api/v4/spot/accounts",
+       "headers": {
+        "key": "gk-test-key",
+        "timestamp": "1700000000",
+        "sign": "5f50c79089b8073c05417722c2dece188c7588e5a9a04bb07f8c160b876e965803f85e45b6d616d822d5ce7bea88a2ce2806bc46789bad4c19e4b805e674d829",
+        "accept": "application/json",
+        "content-type": "application/json"
+       },
+       "body": null,
+       "timeout": 15
+      }
+     ],
+     "error": "GET /api/v4/spot/accounts -> 502 <html>bad gateway</html>"
+    },
+    {
+     "call": "balances",
+     "args": [],
+     "now": 1700000000.25,
+     "responses": [
+      {
+       "network": "timed out"
+      }
+     ],
+     "requests": [
+      {
+       "method": "GET",
+       "url": "https://api.gateio.ws/api/v4/spot/accounts",
+       "headers": {
+        "key": "gk-test-key",
+        "timestamp": "1700000000",
+        "sign": "5f50c79089b8073c05417722c2dece188c7588e5a9a04bb07f8c160b876e965803f85e45b6d616d822d5ce7bea88a2ce2806bc46789bad4c19e4b805e674d829",
+        "accept": "application/json",
+        "content-type": "application/json"
+       },
+       "body": null,
+       "timeout": 15
+      }
+     ],
+     "error": "GET /api/v4/spot/accounts -> None <urlopen error timed out>"
+    },
+    {
+     "call": "deposits",
+     "args": [
+      "USDT",
+      1699990000.9
+     ],
+     "now": 1700000000.25,
+     "responses": [
+      {
+       "status": 200,
+       "body": "[{\"currency\": \"USDT\", \"amount\": \"25.5\", \"status\": \"DONE\", \"timestamp\": \"1699995000\"}, {\"currency\": \"USDT\", \"amount\": null, \"status\": \"PEND\"}]"
+      }
+     ],
+     "requests": [
+      {
+       "method": "GET",
+       "url": "https://api.gateio.ws/api/v4/wallet/deposits?currency=USDT&from=1699990000",
+       "headers": {
+        "key": "gk-test-key",
+        "timestamp": "1700000000",
+        "sign": "bcdd110cd8d69045884dba7589f5fa5a6932d7baee8c2bf624faa97b0ae7c4ae8d6f073d97d57600133715506e2244d95e29d8b1683e47f91351180f0cfbe5c8",
+        "accept": "application/json",
+        "content-type": "application/json"
+       },
+       "body": null,
+       "timeout": 15
+      }
+     ],
+     "ok": [
+      {
+       "currency": "USDT",
+       "amount": 25.5,
+       "status": "DONE",
+       "ts": 1699995000.0
+      },
+      {
+       "currency": "USDT",
+       "amount": 0.0,
+       "status": "PEND",
+       "ts": 0.0
+      }
+     ]
+    },
+    {
+     "call": "deposits",
+     "args": [],
+     "now": 1700000000.25,
+     "responses": [
+      {
+       "status": 200,
+       "body": "[]"
+      }
+     ],
+     "requests": [
+      {
+       "method": "GET",
+       "url": "https://api.gateio.ws/api/v4/wallet/deposits",
+       "headers": {
+        "key": "gk-test-key",
+        "timestamp": "1700000000",
+        "sign": "a2031f0ae0392a8967252d6313f4484331d1133248fa429459230ec8e9eee91757c3d234547cfa9ff9fdfb86f929654bcaceb79dc9de883a1568e4b96fc73904",
+        "accept": "application/json",
+        "content-type": "application/json"
+       },
+       "body": null,
+       "timeout": 15
+      }
+     ],
+     "ok": []
+    },
+    {
+     "call": "deposits",
+     "args": [
+      null,
+      0
+     ],
+     "now": 1700000000.25,
+     "responses": [
+      {
+       "status": 200,
+       "body": "null"
+      }
+     ],
+     "requests": [
+      {
+       "method": "GET",
+       "url": "https://api.gateio.ws/api/v4/wallet/deposits",
+       "headers": {
+        "key": "gk-test-key",
+        "timestamp": "1700000000",
+        "sign": "a2031f0ae0392a8967252d6313f4484331d1133248fa429459230ec8e9eee91757c3d234547cfa9ff9fdfb86f929654bcaceb79dc9de883a1568e4b96fc73904",
+        "accept": "application/json",
+        "content-type": "application/json"
+       },
+       "body": null,
+       "timeout": 15
+      }
+     ],
+     "ok": []
+    },
+    {
+     "call": "price",
+     "args": [
+      "AAA_USDT"
+     ],
+     "now": 1700000000.25,
+     "responses": [
+      {
+       "status": 200,
+       "body": "[{\"currency_pair\": \"AAA_USDT\", \"last\": \"1.2345\", \"change_percentage\": \"-2.5\"}]"
+      }
+     ],
+     "requests": [
+      {
+       "method": "GET",
+       "url": "https://api.gateio.ws/api/v4/spot/tickers?currency_pair=AAA_USDT",
+       "headers": {},
+       "body": null,
+       "timeout": 15
+      }
+     ],
+     "ok": 1.2345
+    },
+    {
+     "call": "price",
+     "args": [
+      "AAA_USDT"
+     ],
+     "now": 1700000000.25,
+     "responses": [
+      {
+       "status": 200,
+       "body": "[]"
+      }
+     ],
+     "requests": [
+      {
+       "method": "GET",
+       "url": "https://api.gateio.ws/api/v4/spot/tickers?currency_pair=AAA_USDT",
+       "headers": {},
+       "body": null,
+       "timeout": 15
+      }
+     ],
+     "error": "price AAA_USDT -> 200 []"
+    },
+    {
+     "call": "price",
+     "args": [
+      "NOPE_USDT"
+     ],
+     "now": 1700000000.25,
+     "responses": [
+      {
+       "status": 400,
+       "body": "{\"label\": \"INVALID_CURRENCY_PAIR\", \"message\": \"x\"}"
+      }
+     ],
+     "requests": [
+      {
+       "method": "GET",
+       "url": "https://api.gateio.ws/api/v4/spot/tickers?currency_pair=NOPE_USDT",
+       "headers": {},
+       "body": null,
+       "timeout": 15
+      }
+     ],
+     "error": "price NOPE_USDT -> 400 {'label': 'INVALID_CURRENCY_PAIR', 'message': 'x'}"
+    },
+    {
+     "call": "pair_info",
+     "args": [
+      "AAA_USDT"
+     ],
+     "now": 1700000000.25,
+     "responses": [
+      {
+       "status": 200,
+       "body": "{\"id\": \"AAA_USDT\", \"amount_precision\": 2, \"precision\": 5, \"min_base_amount\": \"0.01\", \"min_quote_amount\": \"3\"}"
+      }
+     ],
+     "requests": [
+      {
+       "method": "GET",
+       "url": "https://api.gateio.ws/api/v4/spot/currency_pairs/AAA_USDT",
+       "headers": {},
+       "body": null,
+       "timeout": 15
+      }
+     ],
+     "ok": {
+      "amount_precision": 2,
+      "price_precision": 5,
+      "min_base": 0.01,
+      "min_quote": 3.0
+     }
+    },
+    {
+     "call": "pair_info",
+     "args": [
+      "AAA_USDT"
+     ],
+     "now": 1700000000.25,
+     "responses": [],
+     "requests": [],
+     "ok": {
+      "amount_precision": 2,
+      "price_precision": 5,
+      "min_base": 0.01,
+      "min_quote": 3.0
+     }
+    },
+    {
+     "call": "pair_info",
+     "args": [
+      "BBB_USDT"
+     ],
+     "now": 1700000000.25,
+     "responses": [
+      {
+       "status": 200,
+       "body": "{\"id\": \"BBB_USDT\"}"
+      }
+     ],
+     "requests": [
+      {
+       "method": "GET",
+       "url": "https://api.gateio.ws/api/v4/spot/currency_pairs/BBB_USDT",
+       "headers": {},
+       "body": null,
+       "timeout": 15
+      }
+     ],
+     "ok": {
+      "amount_precision": 0,
+      "price_precision": 8,
+      "min_base": 0.0,
+      "min_quote": 0.0
+     }
+    },
+    {
+     "call": "pair_info",
+     "args": [
+      "CCC_USDT"
+     ],
+     "now": 1700000000.25,
+     "responses": [
+      {
+       "status": 404,
+       "body": "{\"message\": \"not found\"}"
+      }
+     ],
+     "requests": [
+      {
+       "method": "GET",
+       "url": "https://api.gateio.ws/api/v4/spot/currency_pairs/CCC_USDT",
+       "headers": {},
+       "body": null,
+       "timeout": 15
+      }
+     ],
+     "error": "currency_pairs CCC_USDT -> 404 {'message': 'not found'}"
+    },
+    {
+     "call": "round_amount",
+     "args": [
+      "AAA_USDT",
+      1.239
+     ],
+     "now": 1700000000.25,
+     "responses": [],
+     "requests": [],
+     "ok": 1.23
+    },
+    {
+     "call": "round_price",
+     "args": [
+      "AAA_USDT",
+      1.239
+     ],
+     "now": 1700000000.25,
+     "responses": [],
+     "requests": [],
+     "ok": 1.239
+    },
+    {
+     "call": "round_amount",
+     "args": [
+      "BBB_USDT",
+      1.239
+     ],
+     "now": 1700000000.25,
+     "responses": [],
+     "requests": [],
+     "ok": 1.0
+    },
+    {
+     "call": "round_price",
+     "args": [
+      "BBB_USDT",
+      1.239
+     ],
+     "now": 1700000000.25,
+     "responses": [],
+     "requests": [],
+     "ok": 1.239
+    },
+    {
+     "call": "round_amount",
+     "args": [
+      "AAA_USDT",
+      0.001
+     ],
+     "now": 1700000000.25,
+     "responses": [],
+     "requests": [],
+     "ok": 0.0
+    },
+    {
+     "call": "round_price",
+     "args": [
+      "AAA_USDT",
+      0.001
+     ],
+     "now": 1700000000.25,
+     "responses": [],
+     "requests": [],
+     "ok": 0.001
+    },
+    {
+     "call": "round_amount",
+     "args": [
+      "BBB_USDT",
+      0.001
+     ],
+     "now": 1700000000.25,
+     "responses": [],
+     "requests": [],
+     "ok": 0.0
+    },
+    {
+     "call": "round_price",
+     "args": [
+      "BBB_USDT",
+      0.001
+     ],
+     "now": 1700000000.25,
+     "responses": [],
+     "requests": [],
+     "ok": 0.001
+    },
+    {
+     "call": "round_amount",
+     "args": [
+      "AAA_USDT",
+      123.456789
+     ],
+     "now": 1700000000.25,
+     "responses": [],
+     "requests": [],
+     "ok": 123.45
+    },
+    {
+     "call": "round_price",
+     "args": [
+      "AAA_USDT",
+      123.456789
+     ],
+     "now": 1700000000.25,
+     "responses": [],
+     "requests": [],
+     "ok": 123.45678
+    },
+    {
+     "call": "round_amount",
+     "args": [
+      "BBB_USDT",
+      123.456789
+     ],
+     "now": 1700000000.25,
+     "responses": [],
+     "requests": [],
+     "ok": 123.0
+    },
+    {
+     "call": "round_price",
+     "args": [
+      "BBB_USDT",
+      123.456789
+     ],
+     "now": 1700000000.25,
+     "responses": [],
+     "requests": [],
+     "ok": 123.456789
+    },
+    {
+     "call": "round_amount",
+     "args": [
+      "AAA_USDT",
+      1e-09
+     ],
+     "now": 1700000000.25,
+     "responses": [],
+     "requests": [],
+     "ok": 0.0
+    },
+    {
+     "call": "round_price",
+     "args": [
+      "AAA_USDT",
+      1e-09
+     ],
+     "now": 1700000000.25,
+     "responses": [],
+     "requests": [],
+     "ok": 0.0
+    },
+    {
+     "call": "round_amount",
+     "args": [
+      "BBB_USDT",
+      1e-09
+     ],
+     "now": 1700000000.25,
+     "responses": [],
+     "requests": [],
+     "ok": 0.0
+    },
+    {
+     "call": "round_price",
+     "args": [
+      "BBB_USDT",
+      1e-09
+     ],
+     "now": 1700000000.25,
+     "responses": [],
+     "requests": [],
+     "ok": 0.0
+    },
+    {
+     "call": "round_amount",
+     "args": [
+      "AAA_USDT",
+      0.29
+     ],
+     "now": 1700000000.25,
+     "responses": [],
+     "requests": [],
+     "ok": 0.28
+    },
+    {
+     "call": "round_price",
+     "args": [
+      "AAA_USDT",
+      0.29
+     ],
+     "now": 1700000000.25,
+     "responses": [],
+     "requests": [],
+     "ok": 0.28999
+    },
+    {
+     "call": "round_amount",
+     "args": [
+      "BBB_USDT",
+      0.29
+     ],
+     "now": 1700000000.25,
+     "responses": [],
+     "requests": [],
+     "ok": 0.0
+    },
+    {
+     "call": "round_price",
+     "args": [
+      "BBB_USDT",
+      0.29
+     ],
+     "now": 1700000000.25,
+     "responses": [],
+     "requests": [],
+     "ok": 0.28999999
+    },
+    {
+     "call": "round_amount",
+     "args": [
+      "AAA_USDT",
+      1.005
+     ],
+     "now": 1700000000.25,
+     "responses": [],
+     "requests": [],
+     "ok": 1.0
+    },
+    {
+     "call": "round_price",
+     "args": [
+      "AAA_USDT",
+      1.005
+     ],
+     "now": 1700000000.25,
+     "responses": [],
+     "requests": [],
+     "ok": 1.00499
+    },
+    {
+     "call": "round_amount",
+     "args": [
+      "BBB_USDT",
+      1.005
+     ],
+     "now": 1700000000.25,
+     "responses": [],
+     "requests": [],
+     "ok": 1.0
+    },
+    {
+     "call": "round_price",
+     "args": [
+      "BBB_USDT",
+      1.005
+     ],
+     "now": 1700000000.25,
+     "responses": [],
+     "requests": [],
+     "ok": 1.00499999
+    },
+    {
+     "call": "round_amount",
+     "args": [
+      "AAA_USDT",
+      4.35
+     ],
+     "now": 1700000000.25,
+     "responses": [],
+     "requests": [],
+     "ok": 4.34
+    },
+    {
+     "call": "round_price",
+     "args": [
+      "AAA_USDT",
+      4.35
+     ],
+     "now": 1700000000.25,
+     "responses": [],
+     "requests": [],
+     "ok": 4.34999
+    },
+    {
+     "call": "round_amount",
+     "args": [
+      "BBB_USDT",
+      4.35
+     ],
+     "now": 1700000000.25,
+     "responses": [],
+     "requests": [],
+     "ok": 4.0
+    },
+    {
+     "call": "round_price",
+     "args": [
+      "BBB_USDT",
+      4.35
+     ],
+     "now": 1700000000.25,
+     "responses": [],
+     "requests": [],
+     "ok": 4.34999999
+    },
+    {
+     "call": "round_amount",
+     "args": [
+      "AAA_USDT",
+      1234567.891
+     ],
+     "now": 1700000000.25,
+     "responses": [],
+     "requests": [],
+     "ok": 1234567.89
+    },
+    {
+     "call": "round_price",
+     "args": [
+      "AAA_USDT",
+      1234567.891
+     ],
+     "now": 1700000000.25,
+     "responses": [],
+     "requests": [],
+     "ok": 1234567.891
+    },
+    {
+     "call": "round_amount",
+     "args": [
+      "BBB_USDT",
+      1234567.891
+     ],
+     "now": 1700000000.25,
+     "responses": [],
+     "requests": [],
+     "ok": 1234567.0
+    },
+    {
+     "call": "round_price",
+     "args": [
+      "BBB_USDT",
+      1234567.891
+     ],
+     "now": 1700000000.25,
+     "responses": [],
+     "requests": [],
+     "ok": 1234567.891
+    },
+    {
+     "call": "open_orders",
+     "args": [
+      "AAA_USDT"
+     ],
+     "now": 1700000000.25,
+     "responses": [
+      {
+       "status": 200,
+       "body": "[{\"id\": \"123456\", \"text\": \"t-csAAAb944444r1\", \"status\": \"open\", \"type\": \"limit\", \"side\": \"buy\", \"amount\": \"10\", \"left\": \"4\", \"price\": \"1.5\", \"filled_total\": \"9\", \"avg_deal_price\": \"1.5\", \"fee\": \"0.006\", \"fee_currency\": \"AAA\"}, {\"id\": 99, \"text\": \"web\", \"status\": \"open\", \"type\": \"limit\", \"side\": \"buy\", \"amount\": \"10\", \"left\": \"4\", \"price\": \"1.5\", \"filled_total\": \"9\", \"avg_deal_price\": \"1.5\", \"fee\": \"0.006\", \"fee_currency\": \"AAA\"}]"
+      }
+     ],
+     "requests": [
+      {
+       "method": "GET",
+       "url": "https://api.gateio.ws/api/v4/spot/orders?currency_pair=AAA_USDT&status=open",
+       "headers": {
+        "key": "gk-test-key",
+        "timestamp": "1700000000",
+        "sign": "292a013d4c504f5addc2c935bdab247a20ef06005d947cc66112237d9c73e392ecebfa4cee91cefc394ca9c4234c22b530497a7736964b79b0572141bb178736",
+        "accept": "application/json",
+        "content-type": "application/json"
+       },
+       "body": null,
+       "timeout": 15
+      }
+     ],
+     "ok": [
+      {
+       "order_id": "123456",
+       "status": "open",
+       "filled": false,
+       "base_qty": 6.0,
+       "quote": 9.0,
+       "avg_price": 1.5,
+       "price": 1.5,
+       "fee": 0.006,
+       "fee_asset": "AAA",
+       "side": "buy",
+       "qty": 10.0,
+       "client_id": "csAAAb944444r1"
+      },
+      {
+       "order_id": "99",
+       "status": "open",
+       "filled": false,
+       "base_qty": 6.0,
+       "quote": 9.0,
+       "avg_price": 1.5,
+       "price": 1.5,
+       "fee": 0.006,
+       "fee_asset": "AAA",
+       "side": "buy",
+       "qty": 10.0,
+       "client_id": "web"
+      }
+     ]
+    },
+    {
+     "call": "cancel",
+     "args": [
+      "AAA_USDT",
+      "123456"
+     ],
+     "now": 1700000000.25,
+     "responses": [
+      {
+       "status": 200,
+       "body": "{\"id\": \"123456\", \"text\": \"t-csAAAb944444r1\", \"status\": \"cancelled\", \"type\": \"limit\", \"side\": \"buy\", \"amount\": \"10\", \"left\": \"4\", \"price\": \"1.5\", \"filled_total\": \"9\", \"avg_deal_price\": \"1.5\", \"fee\": \"0.006\", \"fee_currency\": \"AAA\"}"
+      }
+     ],
+     "requests": [
+      {
+       "method": "DELETE",
+       "url": "https://api.gateio.ws/api/v4/spot/orders/123456?currency_pair=AAA_USDT",
+       "headers": {
+        "key": "gk-test-key",
+        "timestamp": "1700000000",
+        "sign": "70bba9f164149f6a7e2f764179c25e1abda88f631d977a24e7554a255aa4a5bd0d8d463f1f98ae3bb9222606f245e9552099566cd723317b5501ce0a71da3e15",
+        "accept": "application/json",
+        "content-type": "application/json"
+       },
+       "body": null,
+       "timeout": 15
+      }
+     ],
+     "ok": {
+      "order_id": "123456",
+      "status": "cancelled",
+      "filled": false,
+      "base_qty": 6.0,
+      "quote": 9.0,
+      "avg_price": 1.5,
+      "price": 1.5,
+      "fee": 0.006,
+      "fee_asset": "AAA",
+      "side": "buy",
+      "qty": 10.0,
+      "client_id": "csAAAb944444r1"
+     }
+    },
+    {
+     "call": "order_status",
+     "args": [
+      "AAA_USDT",
+      "123456"
+     ],
+     "now": 1700000000.25,
+     "responses": [
+      {
+       "status": 200,
+       "body": "{\"id\": \"123456\", \"text\": \"t-csAAAb944444r1\", \"status\": \"closed\", \"type\": \"limit\", \"side\": \"buy\", \"amount\": \"10\", \"left\": \"0\", \"price\": \"1.5\", \"filled_total\": \"9\", \"avg_deal_price\": \"1.5\", \"fee\": \"0.006\", \"fee_currency\": \"AAA\"}"
+      }
+     ],
+     "requests": [
+      {
+       "method": "GET",
+       "url": "https://api.gateio.ws/api/v4/spot/orders/123456?currency_pair=AAA_USDT",
+       "headers": {
+        "key": "gk-test-key",
+        "timestamp": "1700000000",
+        "sign": "94d987f5b51a39ad7d4ad5d713fa75cf0af8de5a1b8533c4e45c210b29cb583cf7c03dd56cb596ea75f96fce01d17413f337ee316daa6ac95b1e714ae4dbd574",
+        "accept": "application/json",
+        "content-type": "application/json"
+       },
+       "body": null,
+       "timeout": 15
+      }
+     ],
+     "ok": {
+      "order_id": "123456",
+      "status": "closed",
+      "filled": true,
+      "base_qty": 10.0,
+      "quote": 9.0,
+      "avg_price": 1.5,
+      "price": 1.5,
+      "fee": 0.006,
+      "fee_asset": "AAA",
+      "side": "buy",
+      "qty": 10.0,
+      "client_id": "csAAAb944444r1"
+     }
+    },
+    {
+     "call": "market_sell",
+     "args": [
+      "AAA_USDT",
+      12.3456,
+      "mcsAAAs944444r1"
+     ],
+     "now": 1700000000.25,
+     "responses": [
+      {
+       "status": 201,
+       "body": "{\"id\": \"7\", \"status\": \"closed\", \"type\": \"market\", \"side\": \"sell\", \"amount\": \"12.34\", \"left\": \"0\", \"filled_total\": \"18.51\", \"avg_deal_price\": \"1.5\"}"
+      }
+     ],
+     "requests": [
+      {
+       "method": "POST",
+       "url": "https://api.gateio.ws/api/v4/spot/orders",
+       "headers": {
+        "key": "gk-test-key",
+        "timestamp": "1700000000",
+        "sign": "a6939216ccc8935e7b6e9b90600004b1f36145a7abc100ecf30e31568f3ad80cdc943926ed080aef1a62eb864cab4f014bc98255904a9e40917b70fb297bc09f",
+        "accept": "application/json",
+        "content-type": "application/json"
+       },
+       "body": "{\"currency_pair\": \"AAA_USDT\", \"type\": \"market\", \"side\": \"sell\", \"amount\": \"12.34\", \"time_in_force\": \"ioc\", \"account\": \"spot\", \"text\": \"t-mcsAAAs944444r1\"}",
+       "timeout": 15
+      }
+     ],
+     "ok": {
+      "order_id": "7",
+      "status": "closed",
+      "filled": true,
+      "base_qty": 12.34,
+      "quote": 18.51,
+      "avg_price": 1.5,
+      "price": null,
+      "fee": 0.0,
+      "fee_asset": null,
+      "side": "sell",
+      "qty": 12.34,
+      "client_id": ""
+     }
+    },
+    {
+     "call": "market_buy",
+     "args": [
+      "AAA_USDT",
+      25.123456,
+      "csAAAb944444r1"
+     ],
+     "now": 1700000000.25,
+     "responses": [
+      {
+       "status": 201,
+       "body": "{\"id\": \"8\", \"status\": \"closed\", \"type\": \"market\", \"side\": \"buy\", \"amount\": \"25.1235\", \"left\": \"0\", \"filled_total\": \"25.1235\", \"avg_deal_price\": \"1.25\", \"fee\": \"0.02\", \"fee_currency\": \"AAA\"}"
+      }
+     ],
+     "requests": [
+      {
+       "method": "POST",
+       "url": "https://api.gateio.ws/api/v4/spot/orders",
+       "headers": {
+        "key": "gk-test-key",
+        "timestamp": "1700000000",
+        "sign": "947410c1ca7daa87f82f6d8b60cdd5a81f8320eb088331b46f4dd46cfa2afd757d62573cef87b44cafdcb907235164c2cb2363c726c7443f236999c643c57a4e",
+        "accept": "application/json",
+        "content-type": "application/json"
+       },
+       "body": "{\"currency_pair\": \"AAA_USDT\", \"type\": \"market\", \"side\": \"buy\", \"amount\": \"25.1235\", \"time_in_force\": \"ioc\", \"account\": \"spot\", \"text\": \"t-csAAAb944444r1\"}",
+       "timeout": 15
+      }
+     ],
+     "ok": {
+      "order_id": "8",
+      "status": "closed",
+      "filled": true,
+      "base_qty": 20.0988,
+      "quote": 25.1235,
+      "avg_price": 1.25,
+      "price": null,
+      "fee": 0.02,
+      "fee_asset": "AAA",
+      "side": "buy",
+      "qty": 0.0,
+      "client_id": ""
+     }
+    },
+    {
+     "call": "market_buy",
+     "args": [
+      "AAA_USDT",
+      5.0,
+      null
+     ],
+     "now": 1700000000.25,
+     "responses": [
+      {
+       "status": 201,
+       "body": "{\"id\": \"9\", \"status\": \"open\", \"type\": \"market\", \"side\": \"buy\", \"amount\": \"5\", \"left\": \"5\", \"filled_total\": \"0\"}"
+      }
+     ],
+     "requests": [
+      {
+       "method": "POST",
+       "url": "https://api.gateio.ws/api/v4/spot/orders",
+       "headers": {
+        "key": "gk-test-key",
+        "timestamp": "1700000000",
+        "sign": "fbe07dcefb63483bf8d3d103a3f8e0b8b3c7a034ad90ef3c212b34353e98a61a777f19ddce3e0fb2fa6824a9705e415ad0aca57f7ff5e0722399d088067a395b",
+        "accept": "application/json",
+        "content-type": "application/json"
+       },
+       "body": "{\"currency_pair\": \"AAA_USDT\", \"type\": \"market\", \"side\": \"buy\", \"amount\": \"5.0000\", \"time_in_force\": \"ioc\", \"account\": \"spot\"}",
+       "timeout": 15
+      }
+     ],
+     "ok": {
+      "order_id": "9",
+      "status": "open",
+      "filled": false,
+      "base_qty": null,
+      "quote": 0.0,
+      "avg_price": null,
+      "price": null,
+      "fee": 0.0,
+      "fee_asset": null,
+      "side": "buy",
+      "qty": 0.0,
+      "client_id": ""
+     }
+    },
+    {
+     "call": "limit_buy",
+     "args": [
+      "AAA_USDT",
+      8.126,
+      1.234567,
+      "depAAA1700000000r1"
+     ],
+     "now": 1700000000.25,
+     "responses": [
+      {
+       "status": 201,
+       "body": "{\"id\": \"10\", \"text\": \"t-csAAAb944444r1\", \"status\": \"open\", \"type\": \"limit\", \"side\": \"buy\", \"amount\": \"10\", \"left\": \"4\", \"price\": \"1.5\", \"filled_total\": \"9\", \"avg_deal_price\": \"1.5\", \"fee\": \"0.006\", \"fee_currency\": \"AAA\"}"
+      }
+     ],
+     "requests": [
+      {
+       "method": "POST",
+       "url": "https://api.gateio.ws/api/v4/spot/orders",
+       "headers": {
+        "key": "gk-test-key",
+        "timestamp": "1700000000",
+        "sign": "673e3c301190a0b0eb735ead9266c37063b3c8ae39bd913171047248379ce2f87b62637cef186e2c7404796d5a2743d219cb6e9c235b038845c065dd36f36ee8",
+        "accept": "application/json",
+        "content-type": "application/json"
+       },
+       "body": "{\"currency_pair\": \"AAA_USDT\", \"type\": \"limit\", \"side\": \"buy\", \"amount\": \"8.12\", \"price\": \"1.23456\", \"time_in_force\": \"gtc\", \"account\": \"spot\", \"text\": \"t-depAAA1700000000r1\"}",
+       "timeout": 15
+      }
+     ],
+     "ok": {
+      "order_id": "10",
+      "status": "open",
+      "filled": false,
+      "base_qty": 6.0,
+      "quote": 9.0,
+      "avg_price": 1.5,
+      "price": 1.5,
+      "fee": 0.006,
+      "fee_asset": "AAA",
+      "side": "buy",
+      "qty": 10.0,
+      "client_id": "csAAAb944444r1"
+     }
+    },
+    {
+     "call": "limit_sell",
+     "args": [
+      "AAA_USDT",
+      1e-05,
+      123456.123456,
+      "csVERYLONGSYMBOLNAMEb944444r1u93041"
+     ],
+     "now": 1700000000.25,
+     "responses": [
+      {
+       "status": 201,
+       "body": "{\"id\": \"11\", \"text\": \"t-csAAAb944444r1\", \"status\": \"open\", \"type\": \"limit\", \"side\": \"sell\", \"amount\": \"10\", \"left\": \"4\", \"price\": \"1.5\", \"filled_total\": \"9\", \"avg_deal_price\": \"1.5\", \"fee\": \"0.006\", \"fee_currency\": \"AAA\"}"
+      }
+     ],
+     "requests": [
+      {
+       "method": "POST",
+       "url": "https://api.gateio.ws/api/v4/spot/orders",
+       "headers": {
+        "key": "gk-test-key",
+        "timestamp": "1700000000",
+        "sign": "81b40b9e1817054a7d58d734c882eb92f6ccbeebaed1a6e6ae5df5581ca11c6c3697c88d0057df5b28a95c5e10486d6f10afc8f5c5aeccde5d8647305e885ce6",
+        "accept": "application/json",
+        "content-type": "application/json"
+       },
+       "body": "{\"currency_pair\": \"AAA_USDT\", \"type\": \"limit\", \"side\": \"sell\", \"amount\": \"0.0\", \"price\": \"123456.12345\", \"time_in_force\": \"gtc\", \"account\": \"spot\", \"text\": \"t-csVERYLONGSYMBOLNAMEb-87e233\"}",
+       "timeout": 15
+      }
+     ],
+     "ok": {
+      "order_id": "11",
+      "status": "open",
+      "filled": false,
+      "base_qty": 6.0,
+      "quote": 9.0,
+      "avg_price": 1.5,
+      "price": 1.5,
+      "fee": 0.006,
+      "fee_asset": "AAA",
+      "side": "sell",
+      "qty": 10.0,
+      "client_id": "csAAAb944444r1"
+     }
+    },
+    {
+     "call": "limit_sell",
+     "args": [
+      "AAA_USDT",
+      1e-09,
+      2.0,
+      "x"
+     ],
+     "now": 1700000000.25,
+     "responses": [
+      {
+       "status": 400,
+       "body": "{\"label\": \"INVALID_PARAM_VALUE\", \"message\": \"amount too small\"}"
+      }
+     ],
+     "requests": [
+      {
+       "method": "POST",
+       "url": "https://api.gateio.ws/api/v4/spot/orders",
+       "headers": {
+        "key": "gk-test-key",
+        "timestamp": "1700000000",
+        "sign": "70e31fc9138c646f0e0a36529fa37e4180dbcee7b4094493fac43139451b22f0c22f8948c4b2894fe79a93b91a2adf6c27f6d73d3c7c529388c3827a8cf49751",
+        "accept": "application/json",
+        "content-type": "application/json"
+       },
+       "body": "{\"currency_pair\": \"AAA_USDT\", \"type\": \"limit\", \"side\": \"sell\", \"amount\": \"0.0\", \"price\": \"2.0\", \"time_in_force\": \"gtc\", \"account\": \"spot\", \"text\": \"t-x\"}",
+       "timeout": 15
+      }
+     ],
+     "error": "POST /api/v4/spot/orders -> 400 {'label': 'INVALID_PARAM_VALUE', 'message': 'amount too small'}"
+    },
+    {
+     "call": "limit_buy",
+     "args": [
+      "BBB_USDT",
+      1234.5,
+      0.5,
+      "csBBBb944444r2"
+     ],
+     "now": 1700000000.25,
+     "responses": [
+      {
+       "status": 201,
+       "body": "{\"id\": \"12\", \"text\": \"t-csAAAb944444r1\", \"status\": \"open\", \"type\": \"limit\", \"side\": \"buy\", \"amount\": \"10\", \"left\": \"4\", \"price\": \"1.5\", \"filled_total\": \"9\", \"avg_deal_price\": \"1.5\", \"fee\": \"0.006\", \"fee_currency\": \"AAA\"}"
+      }
+     ],
+     "requests": [
+      {
+       "method": "POST",
+       "url": "https://api.gateio.ws/api/v4/spot/orders",
+       "headers": {
+        "key": "gk-test-key",
+        "timestamp": "1700000000",
+        "sign": "65c7a30b6af2fba2dc53c3f60b9548a35059a9631fc2c1d857bd800e7b40f4718d22062f41c44083e6fc7ac8bbd84aaf14f07546565c25a3ddbdd6e33441796f",
+        "accept": "application/json",
+        "content-type": "application/json"
+       },
+       "body": "{\"currency_pair\": \"BBB_USDT\", \"type\": \"limit\", \"side\": \"buy\", \"amount\": \"1234.0\", \"price\": \"0.5\", \"time_in_force\": \"gtc\", \"account\": \"spot\", \"text\": \"t-csBBBb944444r2\"}",
+       "timeout": 15
+      }
+     ],
+     "ok": {
+      "order_id": "12",
+      "status": "open",
+      "filled": false,
+      "base_qty": 6.0,
+      "quote": 9.0,
+      "avg_price": 1.5,
+      "price": 1.5,
+      "fee": 0.006,
+      "fee_asset": "AAA",
+      "side": "buy",
+      "qty": 10.0,
+      "client_id": "csAAAb944444r1"
+     }
+    }
+   ]
+  },
+  {
+   "venue": "binance",
+   "key": "bk-test-key",
+   "secret": "bs-test-secret",
+   "steps": [
+    {
+     "call": "balances",
+     "args": [],
+     "now": 1700000000.25,
+     "responses": [
+      {
+       "status": 200,
+       "body": "{\"balances\": [{\"asset\": \"USDC\", \"free\": \"100.5\", \"locked\": \"0.5\"}, {\"asset\": \"AAA\", \"free\": \"0\", \"locked\": \"0\"}]}"
+      }
+     ],
+     "requests": [
+      {
+       "method": "GET",
+       "url": "https://api.binance.com/api/v3/account?timestamp=1700000000250&recvWindow=5000&signature=3e81575233b555c2e68271928daf7568cab15364020cf0772a9e23146caa2584",
+       "headers": {
+        "x-mbx-apikey": "bk-test-key"
+       },
+       "body": null,
+       "timeout": 15
+      }
+     ],
+     "ok": {
+      "USDC": 100.5,
+      "AAA": 0.0
+     }
+    },
+    {
+     "call": "balances_full",
+     "args": [],
+     "now": 1700000000.25,
+     "responses": [
+      {
+       "status": 200,
+       "body": "{\"balances\": [{\"asset\": \"USDC\", \"free\": \"100.5\", \"locked\": \"0.5\"}, {\"asset\": \"AAA\", \"free\": \"0\", \"locked\": \"0\"}]}"
+      }
+     ],
+     "requests": [
+      {
+       "method": "GET",
+       "url": "https://api.binance.com/api/v3/account?timestamp=1700000000250&recvWindow=5000&signature=3e81575233b555c2e68271928daf7568cab15364020cf0772a9e23146caa2584",
+       "headers": {
+        "x-mbx-apikey": "bk-test-key"
+       },
+       "body": null,
+       "timeout": 15
+      }
+     ],
+     "ok": {
+      "USDC": {
+       "free": 100.5,
+       "locked": 0.5
+      },
+      "AAA": {
+       "free": 0.0,
+       "locked": 0.0
+      }
+     }
+    },
+    {
+     "call": "balances",
+     "args": [],
+     "now": 1700000000.25,
+     "responses": [
+      {
+       "status": 401,
+       "body": "{\"code\": -2015, \"msg\": \"Invalid API-key, IP, or permissions for action.\"}"
+      }
+     ],
+     "requests": [
+      {
+       "method": "GET",
+       "url": "https://api.binance.com/api/v3/account?timestamp=1700000000250&recvWindow=5000&signature=3e81575233b555c2e68271928daf7568cab15364020cf0772a9e23146caa2584",
+       "headers": {
+        "x-mbx-apikey": "bk-test-key"
+       },
+       "body": null,
+       "timeout": 15
+      }
+     ],
+     "error": "GET /api/v3/account -> 401 {'code': -2015, 'msg': 'Invalid API-key, IP, or permissions for action.'}"
+    },
+    {
+     "call": "price",
+     "args": [
+      "AAAUSDC"
+     ],
+     "now": 1700000000.25,
+     "responses": [
+      {
+       "status": 200,
+       "body": "{\"symbol\": \"AAAUSDC\", \"price\": \"1.23450000\"}"
+      }
+     ],
+     "requests": [
+      {
+       "method": "GET",
+       "url": "https://api.binance.com/api/v3/ticker/price?symbol=AAAUSDC",
+       "headers": {},
+       "body": null,
+       "timeout": 15
+      }
+     ],
+     "ok": 1.2345
+    },
+    {
+     "call": "price",
+     "args": [
+      "NOPE"
+     ],
+     "now": 1700000000.25,
+     "responses": [
+      {
+       "status": 400,
+       "body": "{\"code\": -1121, \"msg\": \"Invalid symbol.\"}"
+      }
+     ],
+     "requests": [
+      {
+       "method": "GET",
+       "url": "https://api.binance.com/api/v3/ticker/price?symbol=NOPE",
+       "headers": {},
+       "body": null,
+       "timeout": 15
+      }
+     ],
+     "error": "price NOPE -> 400 {'code': -1121, 'msg': 'Invalid symbol.'}"
+    },
+    {
+     "call": "filters",
+     "args": [
+      "AAAUSDC"
+     ],
+     "now": 1700000000.25,
+     "responses": [
+      {
+       "status": 200,
+       "body": "{\"symbols\": [{\"symbol\": \"AAAUSDC\", \"filters\": [{\"filterType\": \"PRICE_FILTER\", \"tickSize\": \"0.00010000\"}, {\"filterType\": \"LOT_SIZE\", \"stepSize\": \"0.01000000\", \"minQty\": \"0.01000000\"}, {\"filterType\": \"NOTIONAL\", \"minNotional\": \"5.00000000\"}]}]}"
+      }
+     ],
+     "requests": [
+      {
+       "method": "GET",
+       "url": "https://api.binance.com/api/v3/exchangeInfo?symbol=AAAUSDC",
+       "headers": {},
+       "body": null,
+       "timeout": 15
+      }
+     ],
+     "ok": {
+      "step": 0.01,
+      "minQty": 0.01,
+      "minNotional": 5.0,
+      "tick": 0.0001
+     }
+    },
+    {
+     "call": "filters",
+     "args": [
+      "AAAUSDC"
+     ],
+     "now": 1700000000.25,
+     "responses": [],
+     "requests": [],
+     "ok": {
+      "step": 0.01,
+      "minQty": 0.01,
+      "minNotional": 5.0,
+      "tick": 0.0001
+     }
+    },
+    {
+     "call": "filters",
+     "args": [
+      "BBBUSDC"
+     ],
+     "now": 1700000000.25,
+     "responses": [
+      {
+       "status": 200,
+       "body": "{\"symbols\": [{\"symbol\": \"BBBUSDC\", \"filters\": [{\"filterType\": \"MIN_NOTIONAL\", \"notional\": \"1\"}]}]}"
+      }
+     ],
+     "requests": [
+      {
+       "method": "GET",
+       "url": "https://api.binance.com/api/v3/exchangeInfo?symbol=BBBUSDC",
+       "headers": {},
+       "body": null,
+       "timeout": 15
+      }
+     ],
+     "ok": {
+      "step": 0.0,
+      "minQty": 0.0,
+      "minNotional": 1.0,
+      "tick": 0.0
+     }
+    },
+    {
+     "call": "round_qty",
+     "args": [
+      "AAAUSDC",
+      1.239
+     ],
+     "now": 1700000000.25,
+     "responses": [],
+     "requests": [],
+     "ok": 1.23
+    },
+    {
+     "call": "round_price",
+     "args": [
+      "AAAUSDC",
+      1.239
+     ],
+     "now": 1700000000.25,
+     "responses": [],
+     "requests": [],
+     "ok": 1.239
+    },
+    {
+     "call": "round_qty",
+     "args": [
+      "BBBUSDC",
+      1.239
+     ],
+     "now": 1700000000.25,
+     "responses": [],
+     "requests": [],
+     "ok": 1.239
+    },
+    {
+     "call": "round_qty",
+     "args": [
+      "AAAUSDC",
+      0.001
+     ],
+     "now": 1700000000.25,
+     "responses": [],
+     "requests": [],
+     "ok": 0.0
+    },
+    {
+     "call": "round_price",
+     "args": [
+      "AAAUSDC",
+      0.001
+     ],
+     "now": 1700000000.25,
+     "responses": [],
+     "requests": [],
+     "ok": 0.001
+    },
+    {
+     "call": "round_qty",
+     "args": [
+      "BBBUSDC",
+      0.001
+     ],
+     "now": 1700000000.25,
+     "responses": [],
+     "requests": [],
+     "ok": 0.001
+    },
+    {
+     "call": "round_qty",
+     "args": [
+      "AAAUSDC",
+      123.456789
+     ],
+     "now": 1700000000.25,
+     "responses": [],
+     "requests": [],
+     "ok": 123.45
+    },
+    {
+     "call": "round_price",
+     "args": [
+      "AAAUSDC",
+      123.456789
+     ],
+     "now": 1700000000.25,
+     "responses": [],
+     "requests": [],
+     "ok": 123.45670000000001
+    },
+    {
+     "call": "round_qty",
+     "args": [
+      "BBBUSDC",
+      123.456789
+     ],
+     "now": 1700000000.25,
+     "responses": [],
+     "requests": [],
+     "ok": 123.456789
+    },
+    {
+     "call": "round_qty",
+     "args": [
+      "AAAUSDC",
+      0.29
+     ],
+     "now": 1700000000.25,
+     "responses": [],
+     "requests": [],
+     "ok": 0.28
+    },
+    {
+     "call": "round_price",
+     "args": [
+      "AAAUSDC",
+      0.29
+     ],
+     "now": 1700000000.25,
+     "responses": [],
+     "requests": [],
+     "ok": 0.2899
+    },
+    {
+     "call": "round_qty",
+     "args": [
+      "BBBUSDC",
+      0.29
+     ],
+     "now": 1700000000.25,
+     "responses": [],
+     "requests": [],
+     "ok": 0.29
+    },
+    {
+     "call": "round_qty",
+     "args": [
+      "AAAUSDC",
+      4.35
+     ],
+     "now": 1700000000.25,
+     "responses": [],
+     "requests": [],
+     "ok": 4.34
+    },
+    {
+     "call": "round_price",
+     "args": [
+      "AAAUSDC",
+      4.35
+     ],
+     "now": 1700000000.25,
+     "responses": [],
+     "requests": [],
+     "ok": 4.3499
+    },
+    {
+     "call": "round_qty",
+     "args": [
+      "BBBUSDC",
+      4.35
+     ],
+     "now": 1700000000.25,
+     "responses": [],
+     "requests": [],
+     "ok": 4.35
+    },
+    {
+     "call": "round_qty",
+     "args": [
+      "AAAUSDC",
+      0.07
+     ],
+     "now": 1700000000.25,
+     "responses": [],
+     "requests": [],
+     "ok": 0.07
+    },
+    {
+     "call": "round_price",
+     "args": [
+      "AAAUSDC",
+      0.07
+     ],
+     "now": 1700000000.25,
+     "responses": [],
+     "requests": [],
+     "ok": 0.07
+    },
+    {
+     "call": "round_qty",
+     "args": [
+      "BBBUSDC",
+      0.07
+     ],
+     "now": 1700000000.25,
+     "responses": [],
+     "requests": [],
+     "ok": 0.07
+    },
+    {
+     "call": "open_orders",
+     "args": [
+      "AAAUSDC"
+     ],
+     "now": 1700000000.25,
+     "responses": [
+      {
+       "status": 200,
+       "body": "[{\"symbol\": \"AAAUSDC\", \"orderId\": 555, \"clientOrderId\": \"csAAAb944444r1\", \"price\": \"1.2000\", \"origQty\": \"10.00\", \"executedQty\": \"4.00\", \"cummulativeQuoteQty\": \"4.80\", \"status\": \"PARTIALLY_FILLED\", \"side\": \"BUY\", \"fills\": [{\"commission\": \"0.004\", \"commissionAsset\": \"AAA\"}, {\"commission\": \"0.001\", \"commissionAsset\": \"BNB\"}]}]"
+      }
+     ],
+     "requests": [
+      {
+       "method": "GET",
+       "url": "https://api.binance.com/api/v3/openOrders?symbol=AAAUSDC&timestamp=1700000000250&recvWindow=5000&signature=cc074e5517e4b03397d5ccaf1972c44d9a0a69e338db03f1b2ea393731cec594",
+       "headers": {
+        "x-mbx-apikey": "bk-test-key"
+       },
+       "body": null,
+       "timeout": 15
+      }
+     ],
+     "ok": [
+      {
+       "order_id": "555",
+       "status": "PARTIALLY_FILLED",
+       "filled": false,
+       "base_qty": 4.0,
+       "quote": 4.8,
+       "avg_price": 1.2,
+       "price": 1.2,
+       "fee": 0.005,
+       "fee_asset": "AAA",
+       "side": "buy",
+       "qty": 10.0,
+       "client_id": "csAAAb944444r1"
+      }
+     ]
+    },
+    {
+     "call": "cancel",
+     "args": [
+      "AAAUSDC",
+      "555"
+     ],
+     "now": 1700000000.25,
+     "responses": [
+      {
+       "status": 200,
+       "body": "{\"symbol\": \"AAAUSDC\", \"orderId\": 555, \"clientOrderId\": \"csAAAb944444r1\", \"price\": \"1.2000\", \"origQty\": \"10.00\", \"executedQty\": \"4.00\", \"cummulativeQuoteQty\": \"4.80\", \"status\": \"CANCELED\", \"side\": \"BUY\", \"fills\": null}"
+      }
+     ],
+     "requests": [
+      {
+       "method": "DELETE",
+       "url": "https://api.binance.com/api/v3/order?symbol=AAAUSDC&orderId=555&timestamp=1700000000250&recvWindow=5000&signature=0cdd89e2af6321579b1609597d5e4df0f412882182b58ee34cd9491000b13ba6",
+       "headers": {
+        "x-mbx-apikey": "bk-test-key"
+       },
+       "body": null,
+       "timeout": 15
+      }
+     ],
+     "ok": {
+      "order_id": "555",
+      "status": "CANCELED",
+      "filled": false,
+      "base_qty": 4.0,
+      "quote": 4.8,
+      "avg_price": 1.2,
+      "price": 1.2,
+      "fee": 0.0,
+      "fee_asset": null,
+      "side": "buy",
+      "qty": 10.0,
+      "client_id": "csAAAb944444r1"
+     }
+    },
+    {
+     "call": "order_status",
+     "args": [
+      "AAAUSDC",
+      "555"
+     ],
+     "now": 1700000000.25,
+     "responses": [
+      {
+       "status": 200,
+       "body": "{\"symbol\": \"AAAUSDC\", \"orderId\": 555, \"clientOrderId\": \"csAAAb944444r1\", \"price\": \"1.2000\", \"origQty\": \"10.00\", \"executedQty\": \"0\", \"cummulativeQuoteQty\": \"4.80\", \"status\": \"FILLED\", \"side\": \"BUY\", \"fills\": [{\"commission\": \"0.004\", \"commissionAsset\": \"AAA\"}, {\"commission\": \"0.001\", \"commissionAsset\": \"BNB\"}]}"
+      }
+     ],
+     "requests": [
+      {
+       "method": "GET",
+       "url": "https://api.binance.com/api/v3/order?symbol=AAAUSDC&orderId=555&timestamp=1700000000250&recvWindow=5000&signature=0cdd89e2af6321579b1609597d5e4df0f412882182b58ee34cd9491000b13ba6",
+       "headers": {
+        "x-mbx-apikey": "bk-test-key"
+       },
+       "body": null,
+       "timeout": 15
+      }
+     ],
+     "ok": {
+      "order_id": "555",
+      "status": "FILLED",
+      "filled": true,
+      "base_qty": 0.0,
+      "quote": 4.8,
+      "avg_price": null,
+      "price": 1.2,
+      "fee": 0.005,
+      "fee_asset": "AAA",
+      "side": "buy",
+      "qty": 10.0,
+      "client_id": "csAAAb944444r1"
+     }
+    },
+    {
+     "call": "market_sell",
+     "args": [
+      "AAAUSDC",
+      3.14159,
+      "mcsAAAs944444r1"
+     ],
+     "now": 1700000000.25,
+     "responses": [
+      {
+       "status": 200,
+       "body": "{\"symbol\": \"AAAUSDC\", \"orderId\": 555, \"clientOrderId\": \"csAAAb944444r1\", \"price\": \"1.2000\", \"origQty\": \"10.00\", \"executedQty\": \"4.00\", \"cummulativeQuoteQty\": \"4.80\", \"status\": \"FILLED\", \"side\": \"BUY\", \"fills\": [{\"commission\": \"0.004\", \"commissionAsset\": \"AAA\"}, {\"commission\": \"0.001\", \"commissionAsset\": \"BNB\"}]}"
+      }
+     ],
+     "requests": [
+      {
+       "method": "POST",
+       "url": "https://api.binance.com/api/v3/order?symbol=AAAUSDC&side=SELL&type=MARKET&quantity=3.14&newClientOrderId=mcsAAAs944444r1&timestamp=1700000000250&recvWindow=5000&signature=fd5e8aa286f2d8905d705c0ce384506e613d464eca6420b629b35e5b1da79ff5",
+       "headers": {
+        "x-mbx-apikey": "bk-test-key"
+       },
+       "body": null,
+       "timeout": 15
+      }
+     ],
+     "ok": {
+      "order_id": "555",
+      "status": "FILLED",
+      "filled": true,
+      "base_qty": 4.0,
+      "quote": 4.8,
+      "avg_price": 1.2,
+      "price": 1.2,
+      "fee": 0.005,
+      "fee_asset": "AAA",
+      "side": "buy",
+      "qty": 10.0,
+      "client_id": "csAAAb944444r1"
+     }
+    },
+    {
+     "call": "market_buy_quote",
+     "args": [
+      "AAAUSDC",
+      25.005,
+      "csAAAb944444r1"
+     ],
+     "now": 1700000000.25,
+     "responses": [
+      {
+       "status": 200,
+       "body": "{\"symbol\": \"AAAUSDC\", \"orderId\": 555, \"clientOrderId\": \"csAAAb944444r1\", \"price\": \"1.2000\", \"origQty\": \"10.00\", \"executedQty\": \"4.00\", \"cummulativeQuoteQty\": \"4.80\", \"status\": \"PARTIALLY_FILLED\", \"side\": \"BUY\", \"fills\": [{\"commission\": \"0.004\", \"commissionAsset\": \"AAA\"}, {\"commission\": \"0.001\", \"commissionAsset\": \"BNB\"}]}"
+      }
+     ],
+     "requests": [
+      {
+       "method": "POST",
+       "url": "https://api.binance.com/api/v3/order?symbol=AAAUSDC&side=BUY&type=MARKET&quoteOrderQty=25.00&newClientOrderId=csAAAb944444r1&timestamp=1700000000250&recvWindow=5000&signature=b90d44ee7483ea99252f9c37275c3e67ff169eecc24fa714d2c7c7481a100eaf",
+       "headers": {
+        "x-mbx-apikey": "bk-test-key"
+       },
+       "body": null,
+       "timeout": 15
+      }
+     ],
+     "ok": {
+      "order_id": "555",
+      "status": "PARTIALLY_FILLED",
+      "filled": false,
+      "base_qty": 4.0,
+      "quote": 4.8,
+      "avg_price": 1.2,
+      "price": 1.2,
+      "fee": 0.005,
+      "fee_asset": "AAA",
+      "side": "buy",
+      "qty": 10.0,
+      "client_id": "csAAAb944444r1"
+     }
+    },
+    {
+     "call": "market_buy_quote",
+     "args": [
+      "AAAUSDC",
+      10.0,
+      null
+     ],
+     "now": 1700000000.25,
+     "responses": [
+      {
+       "status": 200,
+       "body": "{\"symbol\": \"AAAUSDC\", \"orderId\": 555, \"clientOrderId\": \"csAAAb944444r1\", \"price\": \"1.2000\", \"origQty\": \"10.00\", \"executedQty\": \"4.00\", \"cummulativeQuoteQty\": \"4.80\", \"status\": \"PARTIALLY_FILLED\", \"side\": \"BUY\", \"fills\": [{\"commission\": \"0.004\", \"commissionAsset\": \"AAA\"}, {\"commission\": \"0.001\", \"commissionAsset\": \"BNB\"}]}"
+      }
+     ],
+     "requests": [
+      {
+       "method": "POST",
+       "url": "https://api.binance.com/api/v3/order?symbol=AAAUSDC&side=BUY&type=MARKET&quoteOrderQty=10.00&timestamp=1700000000250&recvWindow=5000&signature=8557f3e0f2da6f21cb65865644fbfb28d5580287052b5aae78df3ced64044212",
+       "headers": {
+        "x-mbx-apikey": "bk-test-key"
+       },
+       "body": null,
+       "timeout": 15
+      }
+     ],
+     "ok": {
+      "order_id": "555",
+      "status": "PARTIALLY_FILLED",
+      "filled": false,
+      "base_qty": 4.0,
+      "quote": 4.8,
+      "avg_price": 1.2,
+      "price": 1.2,
+      "fee": 0.005,
+      "fee_asset": "AAA",
+      "side": "buy",
+      "qty": 10.0,
+      "client_id": "csAAAb944444r1"
+     }
+    },
+    {
+     "call": "limit_buy",
+     "args": [
+      "AAAUSDC",
+      7.777,
+      1.23456,
+      "a b/c"
+     ],
+     "now": 1700000000.25,
+     "responses": [
+      {
+       "status": 200,
+       "body": "{\"symbol\": \"AAAUSDC\", \"orderId\": 555, \"clientOrderId\": \"csAAAb944444r1\", \"price\": \"1.2000\", \"origQty\": \"10.00\", \"executedQty\": \"4.00\", \"cummulativeQuoteQty\": \"4.80\", \"status\": \"PARTIALLY_FILLED\", \"side\": \"BUY\", \"fills\": [{\"commission\": \"0.004\", \"commissionAsset\": \"AAA\"}, {\"commission\": \"0.001\", \"commissionAsset\": \"BNB\"}]}"
+      }
+     ],
+     "requests": [
+      {
+       "method": "POST",
+       "url": "https://api.binance.com/api/v3/order?symbol=AAAUSDC&side=BUY&type=LIMIT&timeInForce=GTC&quantity=7.77&price=1.2345&newClientOrderId=a-b-c&timestamp=1700000000250&recvWindow=5000&signature=88af3fec93642c5361520487833d6d9b096521534cb465d0cf59a49bec4e446c",
+       "headers": {
+        "x-mbx-apikey": "bk-test-key"
+       },
+       "body": null,
+       "timeout": 15
+      }
+     ],
+     "ok": {
+      "order_id": "555",
+      "status": "PARTIALLY_FILLED",
+      "filled": false,
+      "base_qty": 4.0,
+      "quote": 4.8,
+      "avg_price": 1.2,
+      "price": 1.2,
+      "fee": 0.005,
+      "fee_asset": "AAA",
+      "side": "buy",
+      "qty": 10.0,
+      "client_id": "csAAAb944444r1"
+     }
+    },
+    {
+     "call": "limit_sell",
+     "args": [
+      "AAAUSDC",
+      100.0,
+      2.0,
+      "csVERYLONGSYMBOLNAMEb944444r1u93041u93042"
+     ],
+     "now": 1700000000.25,
+     "responses": [
+      {
+       "status": 200,
+       "body": "{\"symbol\": \"AAAUSDC\", \"orderId\": 555, \"clientOrderId\": \"csAAAb944444r1\", \"price\": \"1.2000\", \"origQty\": \"10.00\", \"executedQty\": \"4.00\", \"cummulativeQuoteQty\": \"4.80\", \"status\": \"PARTIALLY_FILLED\", \"side\": \"BUY\", \"fills\": [{\"commission\": \"0.004\", \"commissionAsset\": \"AAA\"}, {\"commission\": \"0.001\", \"commissionAsset\": \"BNB\"}]}"
+      }
+     ],
+     "requests": [
+      {
+       "method": "POST",
+       "url": "https://api.binance.com/api/v3/order?symbol=AAAUSDC&side=SELL&type=LIMIT&timeInForce=GTC&quantity=100&price=2&newClientOrderId=csVERYLONGSYMBOLNAMEb944444r1-7c502b&timestamp=1700000000250&recvWindow=5000&signature=0644be7ea0eabef0e4b42c22a0a0d34b4d44a989f0b099e134422ea73ba62c6d",
+       "headers": {
+        "x-mbx-apikey": "bk-test-key"
+       },
+       "body": null,
+       "timeout": 15
+      }
+     ],
+     "ok": {
+      "order_id": "555",
+      "status": "PARTIALLY_FILLED",
+      "filled": false,
+      "base_qty": 4.0,
+      "quote": 4.8,
+      "avg_price": 1.2,
+      "price": 1.2,
+      "fee": 0.005,
+      "fee_asset": "AAA",
+      "side": "buy",
+      "qty": 10.0,
+      "client_id": "csAAAb944444r1"
+     }
+    },
+    {
+     "call": "limit_sell",
+     "args": [
+      "BBBUSDC",
+      0.5,
+      0.1,
+      "csBBBs1r1"
+     ],
+     "now": 1700000000.25,
+     "responses": [
+      {
+       "status": 200,
+       "body": "{\"symbol\": \"AAAUSDC\", \"orderId\": 555, \"clientOrderId\": \"csAAAb944444r1\", \"price\": \"1.2000\", \"origQty\": \"10.00\", \"executedQty\": \"4.00\", \"cummulativeQuoteQty\": \"4.80\", \"status\": \"PARTIALLY_FILLED\", \"side\": \"BUY\", \"fills\": [{\"commission\": \"0.004\", \"commissionAsset\": \"AAA\"}, {\"commission\": \"0.001\", \"commissionAsset\": \"BNB\"}]}"
+      }
+     ],
+     "requests": [
+      {
+       "method": "POST",
+       "url": "https://api.binance.com/api/v3/order?symbol=BBBUSDC&side=SELL&type=LIMIT&timeInForce=GTC&quantity=0.5&price=0.1&newClientOrderId=csBBBs1r1&timestamp=1700000000250&recvWindow=5000&signature=925584700c7ff9c48c3c8883876a49bd075e1a34bafe8c5e094c11fbb613b387",
+       "headers": {
+        "x-mbx-apikey": "bk-test-key"
+       },
+       "body": null,
+       "timeout": 15
+      }
+     ],
+     "ok": {
+      "order_id": "555",
+      "status": "PARTIALLY_FILLED",
+      "filled": false,
+      "base_qty": 4.0,
+      "quote": 4.8,
+      "avg_price": 1.2,
+      "price": 1.2,
+      "fee": 0.005,
+      "fee_asset": "AAA",
+      "side": "buy",
+      "qty": 10.0,
+      "client_id": "csAAAb944444r1"
+     }
+    }
+   ]
+  },
+  {
+   "venue": "revx",
+   "key": "rk-test-key",
+   "pem": "-----BEGIN PRIVATE KEY-----\nMC4CAQAwBQYDK2VwBCIEIMrskphxkbNE/63lZ9xhePynD5nv+GZxB1bEUz9kZqvw\n-----END PRIVATE KEY-----\n",
+   "steps": [
+    {
+     "call": "balances",
+     "args": [],
+     "now": 1700000000.25,
+     "responses": [
+      {
+       "status": 200,
+       "body": "[{\"currency\": \"USD\", \"available\": \"250.5\", \"reserved\": \"10\"}, {\"currency\": \"AAA\", \"available\": null, \"total\": \"1\"}]"
+      }
+     ],
+     "requests": [
+      {
+       "method": "GET",
+       "url": "https://revx.revolut.com/api/1.0/balances",
+       "headers": {
+        "x-revx-api-key": "rk-test-key",
+        "x-revx-timestamp": "1700000000250",
+        "x-revx-signature": "Up08t3lPuaQqSfcrpq4RqoXKwsvdrkDHKA4MHgwTBEL8V0FBSmI6PxIakUvBFJMhtBMixN9InUv4Pc9sqIx0Cw=="
+       },
+       "body": null,
+       "timeout": 15
+      }
+     ],
+     "ok": {
+      "USD": 250.5,
+      "AAA": 0.0
+     }
+    },
+    {
+     "call": "balances_full",
+     "args": [],
+     "now": 1700000000.25,
+     "responses": [
+      {
+       "status": 200,
+       "body": "[{\"currency\": \"USD\", \"available\": \"250.5\", \"reserved\": \"10\"}]"
+      }
+     ],
+     "requests": [
+      {
+       "method": "GET",
+       "url": "https://revx.revolut.com/api/1.0/balances",
+       "headers": {
+        "x-revx-api-key": "rk-test-key",
+        "x-revx-timestamp": "1700000000250",
+        "x-revx-signature": "Up08t3lPuaQqSfcrpq4RqoXKwsvdrkDHKA4MHgwTBEL8V0FBSmI6PxIakUvBFJMhtBMixN9InUv4Pc9sqIx0Cw=="
+       },
+       "body": null,
+       "timeout": 15
+      }
+     ],
+     "ok": {
+      "USD": {
+       "free": 250.5,
+       "locked": 10.0
+      }
+     }
+    },
+    {
+     "call": "balances_full",
+     "args": [],
+     "now": 1700000000.25,
+     "responses": [
+      {
+       "status": 401,
+       "body": "{\"message\": \"Unauthorized\", \"code\": 401}"
+      }
+     ],
+     "requests": [
+      {
+       "method": "GET",
+       "url": "https://revx.revolut.com/api/1.0/balances",
+       "headers": {
+        "x-revx-api-key": "rk-test-key",
+        "x-revx-timestamp": "1700000000250",
+        "x-revx-signature": "Up08t3lPuaQqSfcrpq4RqoXKwsvdrkDHKA4MHgwTBEL8V0FBSmI6PxIakUvBFJMhtBMixN9InUv4Pc9sqIx0Cw=="
+       },
+       "body": null,
+       "timeout": 15
+      }
+     ],
+     "error": "GET /api/1.0/balances -> 401 {'message': 'Unauthorized', 'code': 401}"
+    },
+    {
+     "call": "balances",
+     "args": [],
+     "now": 1700000000.25,
+     "responses": [
+      {
+       "network": "connection reset"
+      }
+     ],
+     "requests": [
+      {
+       "method": "GET",
+       "url": "https://revx.revolut.com/api/1.0/balances",
+       "headers": {
+        "x-revx-api-key": "rk-test-key",
+        "x-revx-timestamp": "1700000000250",
+        "x-revx-signature": "Up08t3lPuaQqSfcrpq4RqoXKwsvdrkDHKA4MHgwTBEL8V0FBSmI6PxIakUvBFJMhtBMixN9InUv4Pc9sqIx0Cw=="
+       },
+       "body": null,
+       "timeout": 15
+      }
+     ],
+     "error": "GET /api/1.0/balances -> None <urlopen error connection reset>"
+    },
+    {
+     "call": "price",
+     "args": [
+      "AAA/USD"
+     ],
+     "now": 1700000000.25,
+     "responses": [
+      {
+       "status": 200,
+       "body": "{\"data\": [{\"symbol\": \"AAA/USD\", \"last_price\": \"1.5\", \"bid\": \"1.4\", \"ask\": \"1.6\"}, {\"symbol\": \"BBB/USD\", \"last_price\": null, \"mid\": \"2.25\"}, {\"symbol\": \"CCC/USD\", \"bid\": \"3\", \"ask\": \"4\"}, {\"symbol\": \"DDD/USD\", \"last_price\": \"0\", \"bid\": \"0\", \"ask\": \"1\"}, {\"symbol\": \"EEE/USD\", \"bid\": \"0\", \"ask\": \"1\"}]}"
+      }
+     ],
+     "requests": [
+      {
+       "method": "GET",
+       "url": "https://revx.revolut.com/api/1.0/public/tickers",
+       "headers": {},
+       "body": null,
+       "timeout": 15
+      }
+     ],
+     "ok": 1.5
+    },
+    {
+     "call": "price",
+     "args": [
+      "BBB/USD"
+     ],
+     "now": 1700000001.25,
+     "responses": [],
+     "requests": [],
+     "ok": 2.25
+    },
+    {
+     "call": "price",
+     "args": [
+      "CCC/USD"
+     ],
+     "now": 1700000005.25,
+     "responses": [],
+     "requests": [],
+     "ok": 3.5
+    },
+    {
+     "call": "price",
+     "args": [
+      "DDD/USD"
+     ],
+     "now": 1700000005.75,
+     "responses": [
+      {
+       "status": 200,
+       "body": "{\"data\": [{\"symbol\": \"AAA/USD\", \"last_price\": \"1.5\", \"bid\": \"1.4\", \"ask\": \"1.6\"}, {\"symbol\": \"BBB/USD\", \"last_price\": null, \"mid\": \"2.25\"}, {\"symbol\": \"CCC/USD\", \"bid\": \"3\", \"ask\": \"4\"}, {\"symbol\": \"DDD/USD\", \"last_price\": \"0\", \"bid\": \"0\", \"ask\": \"1\"}, {\"symbol\": \"EEE/USD\", \"bid\": \"0\", \"ask\": \"1\"}]}"
+      }
+     ],
+     "requests": [
+      {
+       "method": "GET",
+       "url": "https://revx.revolut.com/api/1.0/public/tickers",
+       "headers": {},
+       "body": null,
+       "timeout": 15
+      }
+     ],
+     "ok": 0.0
+    },
+    {
+     "call": "price",
+     "args": [
+      "EEE/USD"
+     ],
+     "now": 1700000005.75,
+     "responses": [],
+     "requests": [],
+     "ok": 0.5
+    },
+    {
+     "call": "price",
+     "args": [
+      "ZZZ/USD"
+     ],
+     "now": 1700000005.75,
+     "responses": [],
+     "requests": [],
+     "error": "price ZZZ/USD: not in ticker feed"
+    },
+    {
+     "call": "price",
+     "args": [
+      "AAA/USD"
+     ],
+     "now": 1700000020.25,
+     "responses": [
+      {
+       "status": 200,
+       "body": "[]"
+      }
+     ],
+     "requests": [
+      {
+       "method": "GET",
+       "url": "https://revx.revolut.com/api/1.0/public/tickers",
+       "headers": {},
+       "body": null,
+       "timeout": 15
+      }
+     ],
+     "error": "tickers -> 200 []"
+    },
+    {
+     "call": "pair_info",
+     "args": [
+      "AAA/USD"
+     ],
+     "now": 1700000000.25,
+     "responses": [
+      {
+       "status": 200,
+       "body": "{\"AAA/USD\": {\"base\": \"AAA\", \"quote\": \"USD\", \"base_step\": \"0.01\", \"quote_step\": \"0.0001\", \"min_order_size\": \"0.1\", \"min_order_size_quote\": \"1\", \"status\": \"active\"}, \"BTC/USD\": {\"base_step\": \"0.00000001\", \"quote_step\": \"0.01\", \"min_order_size\": \"0.00001\", \"min_order_size_quote\": \"1\", \"status\": \"active\"}, \"BBB/USD\": {\"base_step\": \"5\", \"quote_step\": \"0.5\", \"status\": \"inactive\"}, \"CCC/USD\": {\"base_step\": \"0.25\", \"quote_step\": \"0\"}}"
+      }
+     ],
+     "requests": [
+      {
+       "method": "GET",
+       "url": "https://revx.revolut.com/api/1.0/public/configuration/pairs",
+       "headers": {},
+       "body": null,
+       "timeout": 15
+      }
+     ],
+     "ok": {
+      "base_step": 0.01,
+      "quote_step": 0.0001,
+      "amount_precision": 2,
+      "price_precision": 4,
+      "min_base": 0.1,
+      "min_quote": 1.0,
+      "status": "active"
+     }
+    },
+    {
+     "call": "pair_info",
+     "args": [
+      "BTC/USD"
+     ],
+     "now": 1700000000.25,
+     "responses": [],
+     "requests": [],
+     "ok": {
+      "base_step": 1e-08,
+      "quote_step": 0.01,
+      "amount_precision": 8,
+      "price_precision": 2,
+      "min_base": 1e-05,
+      "min_quote": 1.0,
+      "status": "active"
+     }
+    },
+    {
+     "call": "pair_info",
+     "args": [
+      "BBB/USD"
+     ],
+     "now": 1700000000.25,
+     "responses": [],
+     "requests": [],
+     "ok": {
+      "base_step": 5.0,
+      "quote_step": 0.5,
+      "amount_precision": 0,
+      "price_precision": 0,
+      "min_base": 0.0,
+      "min_quote": 0.0,
+      "status": "inactive"
+     }
+    },
+    {
+     "call": "pair_info",
+     "args": [
+      "CCC/USD"
+     ],
+     "now": 1700000000.25,
+     "responses": [],
+     "requests": [],
+     "ok": {
+      "base_step": 0.25,
+      "quote_step": 0.0,
+      "amount_precision": 1,
+      "price_precision": 0,
+      "min_base": 0.0,
+      "min_quote": 0.0,
+      "status": null
+     }
+    },
+    {
+     "call": "pair_info",
+     "args": [
+      "NOPE/USD"
+     ],
+     "now": 1700000000.25,
+     "responses": [
+      {
+       "status": 200,
+       "body": "{\"AAA/USD\": {\"base\": \"AAA\", \"quote\": \"USD\", \"base_step\": \"0.01\", \"quote_step\": \"0.0001\", \"min_order_size\": \"0.1\", \"min_order_size_quote\": \"1\", \"status\": \"active\"}, \"BTC/USD\": {\"base_step\": \"0.00000001\", \"quote_step\": \"0.01\", \"min_order_size\": \"0.00001\", \"min_order_size_quote\": \"1\", \"status\": \"active\"}, \"BBB/USD\": {\"base_step\": \"5\", \"quote_step\": \"0.5\", \"status\": \"inactive\"}, \"CCC/USD\": {\"base_step\": \"0.25\", \"quote_step\": \"0\"}}"
+      }
+     ],
+     "requests": [
+      {
+       "method": "GET",
+       "url": "https://revx.revolut.com/api/1.0/public/configuration/pairs",
+       "headers": {},
+       "body": null,
+       "timeout": 15
+      }
+     ],
+     "error": "pair NOPE/USD not in venue configuration"
+    },
+    {
+     "call": "filters",
+     "args": [
+      "AAA/USD"
+     ],
+     "now": 1700000000.25,
+     "responses": [],
+     "requests": [],
+     "ok": {
+      "step": 0.01,
+      "minQty": 0.1,
+      "minNotional": 1.0,
+      "tick": 0.0001
+     }
+    },
+    {
+     "call": "round_amount",
+     "args": [
+      "AAA/USD",
+      1.239
+     ],
+     "now": 1700000000.25,
+     "responses": [],
+     "requests": [],
+     "ok": 1.23
+    },
+    {
+     "call": "round_price",
+     "args": [
+      "AAA/USD",
+      1.239
+     ],
+     "now": 1700000000.25,
+     "responses": [],
+     "requests": [],
+     "ok": 1.239
+    },
+    {
+     "call": "round_amount",
+     "args": [
+      "BTC/USD",
+      1.239
+     ],
+     "now": 1700000000.25,
+     "responses": [],
+     "requests": [],
+     "ok": 1.239
+    },
+    {
+     "call": "round_price",
+     "args": [
+      "BTC/USD",
+      1.239
+     ],
+     "now": 1700000000.25,
+     "responses": [],
+     "requests": [],
+     "ok": 1.23
+    },
+    {
+     "call": "round_amount",
+     "args": [
+      "BBB/USD",
+      1.239
+     ],
+     "now": 1700000000.25,
+     "responses": [],
+     "requests": [],
+     "ok": 0.0
+    },
+    {
+     "call": "round_price",
+     "args": [
+      "BBB/USD",
+      1.239
+     ],
+     "now": 1700000000.25,
+     "responses": [],
+     "requests": [],
+     "ok": 1.0
+    },
+    {
+     "call": "round_amount",
+     "args": [
+      "CCC/USD",
+      1.239
+     ],
+     "now": 1700000000.25,
+     "responses": [],
+     "requests": [],
+     "ok": 1.0
+    },
+    {
+     "call": "round_price",
+     "args": [
+      "CCC/USD",
+      1.239
+     ],
+     "now": 1700000000.25,
+     "responses": [],
+     "requests": [],
+     "ok": 1.239
+    },
+    {
+     "call": "round_amount",
+     "args": [
+      "AAA/USD",
+      0.001
+     ],
+     "now": 1700000000.25,
+     "responses": [],
+     "requests": [],
+     "ok": 0.0
+    },
+    {
+     "call": "round_price",
+     "args": [
+      "AAA/USD",
+      0.001
+     ],
+     "now": 1700000000.25,
+     "responses": [],
+     "requests": [],
+     "ok": 0.001
+    },
+    {
+     "call": "round_amount",
+     "args": [
+      "BTC/USD",
+      0.001
+     ],
+     "now": 1700000000.25,
+     "responses": [],
+     "requests": [],
+     "ok": 0.001
+    },
+    {
+     "call": "round_price",
+     "args": [
+      "BTC/USD",
+      0.001
+     ],
+     "now": 1700000000.25,
+     "responses": [],
+     "requests": [],
+     "ok": 0.0
+    },
+    {
+     "call": "round_amount",
+     "args": [
+      "BBB/USD",
+      0.001
+     ],
+     "now": 1700000000.25,
+     "responses": [],
+     "requests": [],
+     "ok": 0.0
+    },
+    {
+     "call": "round_price",
+     "args": [
+      "BBB/USD",
+      0.001
+     ],
+     "now": 1700000000.25,
+     "responses": [],
+     "requests": [],
+     "ok": 0.0
+    },
+    {
+     "call": "round_amount",
+     "args": [
+      "CCC/USD",
+      0.001
+     ],
+     "now": 1700000000.25,
+     "responses": [],
+     "requests": [],
+     "ok": 0.0
+    },
+    {
+     "call": "round_price",
+     "args": [
+      "CCC/USD",
+      0.001
+     ],
+     "now": 1700000000.25,
+     "responses": [],
+     "requests": [],
+     "ok": 0.001
+    },
+    {
+     "call": "round_amount",
+     "args": [
+      "AAA/USD",
+      123.456789
+     ],
+     "now": 1700000000.25,
+     "responses": [],
+     "requests": [],
+     "ok": 123.45
+    },
+    {
+     "call": "round_price",
+     "args": [
+      "AAA/USD",
+      123.456789
+     ],
+     "now": 1700000000.25,
+     "responses": [],
+     "requests": [],
+     "ok": 123.45670000000001
+    },
+    {
+     "call": "round_amount",
+     "args": [
+      "BTC/USD",
+      123.456789
+     ],
+     "now": 1700000000.25,
+     "responses": [],
+     "requests": [],
+     "ok": 123.456789
+    },
+    {
+     "call": "round_price",
+     "args": [
+      "BTC/USD",
+      123.456789
+     ],
+     "now": 1700000000.25,
+     "responses": [],
+     "requests": [],
+     "ok": 123.45
+    },
+    {
+     "call": "round_amount",
+     "args": [
+      "BBB/USD",
+      123.456789
+     ],
+     "now": 1700000000.25,
+     "responses": [],
+     "requests": [],
+     "ok": 120.0
+    },
+    {
+     "call": "round_price",
+     "args": [
+      "BBB/USD",
+      123.456789
+     ],
+     "now": 1700000000.25,
+     "responses": [],
+     "requests": [],
+     "ok": 123.0
+    },
+    {
+     "call": "round_amount",
+     "args": [
+      "CCC/USD",
+      123.456789
+     ],
+     "now": 1700000000.25,
+     "responses": [],
+     "requests": [],
+     "ok": 123.25
+    },
+    {
+     "call": "round_price",
+     "args": [
+      "CCC/USD",
+      123.456789
+     ],
+     "now": 1700000000.25,
+     "responses": [],
+     "requests": [],
+     "ok": 123.456789
+    },
+    {
+     "call": "round_amount",
+     "args": [
+      "AAA/USD",
+      0.29
+     ],
+     "now": 1700000000.25,
+     "responses": [],
+     "requests": [],
+     "ok": 0.28
+    },
+    {
+     "call": "round_price",
+     "args": [
+      "AAA/USD",
+      0.29
+     ],
+     "now": 1700000000.25,
+     "responses": [],
+     "requests": [],
+     "ok": 0.2899
+    },
+    {
+     "call": "round_amount",
+     "args": [
+      "BTC/USD",
+      0.29
+     ],
+     "now": 1700000000.25,
+     "responses": [],
+     "requests": [],
+     "ok": 0.28999999
+    },
+    {
+     "call": "round_price",
+     "args": [
+      "BTC/USD",
+      0.29
+     ],
+     "now": 1700000000.25,
+     "responses": [],
+     "requests": [],
+     "ok": 0.28
+    },
+    {
+     "call": "round_amount",
+     "args": [
+      "BBB/USD",
+      0.29
+     ],
+     "now": 1700000000.25,
+     "responses": [],
+     "requests": [],
+     "ok": 0.0
+    },
+    {
+     "call": "round_price",
+     "args": [
+      "BBB/USD",
+      0.29
+     ],
+     "now": 1700000000.25,
+     "responses": [],
+     "requests": [],
+     "ok": 0.0
+    },
+    {
+     "call": "round_amount",
+     "args": [
+      "CCC/USD",
+      0.29
+     ],
+     "now": 1700000000.25,
+     "responses": [],
+     "requests": [],
+     "ok": 0.25
+    },
+    {
+     "call": "round_price",
+     "args": [
+      "CCC/USD",
+      0.29
+     ],
+     "now": 1700000000.25,
+     "responses": [],
+     "requests": [],
+     "ok": 0.29
+    },
+    {
+     "call": "round_amount",
+     "args": [
+      "AAA/USD",
+      4.35
+     ],
+     "now": 1700000000.25,
+     "responses": [],
+     "requests": [],
+     "ok": 4.34
+    },
+    {
+     "call": "round_price",
+     "args": [
+      "AAA/USD",
+      4.35
+     ],
+     "now": 1700000000.25,
+     "responses": [],
+     "requests": [],
+     "ok": 4.3499
+    },
+    {
+     "call": "round_amount",
+     "args": [
+      "BTC/USD",
+      4.35
+     ],
+     "now": 1700000000.25,
+     "responses": [],
+     "requests": [],
+     "ok": 4.34999999
+    },
+    {
+     "call": "round_price",
+     "args": [
+      "BTC/USD",
+      4.35
+     ],
+     "now": 1700000000.25,
+     "responses": [],
+     "requests": [],
+     "ok": 4.34
+    },
+    {
+     "call": "round_amount",
+     "args": [
+      "BBB/USD",
+      4.35
+     ],
+     "now": 1700000000.25,
+     "responses": [],
+     "requests": [],
+     "ok": 0.0
+    },
+    {
+     "call": "round_price",
+     "args": [
+      "BBB/USD",
+      4.35
+     ],
+     "now": 1700000000.25,
+     "responses": [],
+     "requests": [],
+     "ok": 4.0
+    },
+    {
+     "call": "round_amount",
+     "args": [
+      "CCC/USD",
+      4.35
+     ],
+     "now": 1700000000.25,
+     "responses": [],
+     "requests": [],
+     "ok": 4.25
+    },
+    {
+     "call": "round_price",
+     "args": [
+      "CCC/USD",
+      4.35
+     ],
+     "now": 1700000000.25,
+     "responses": [],
+     "requests": [],
+     "ok": 4.35
+    },
+    {
+     "call": "round_amount",
+     "args": [
+      "AAA/USD",
+      0.07
+     ],
+     "now": 1700000000.25,
+     "responses": [],
+     "requests": [],
+     "ok": 0.07
+    },
+    {
+     "call": "round_price",
+     "args": [
+      "AAA/USD",
+      0.07
+     ],
+     "now": 1700000000.25,
+     "responses": [],
+     "requests": [],
+     "ok": 0.07
+    },
+    {
+     "call": "round_amount",
+     "args": [
+      "BTC/USD",
+      0.07
+     ],
+     "now": 1700000000.25,
+     "responses": [],
+     "requests": [],
+     "ok": 0.07
+    },
+    {
+     "call": "round_price",
+     "args": [
+      "BTC/USD",
+      0.07
+     ],
+     "now": 1700000000.25,
+     "responses": [],
+     "requests": [],
+     "ok": 0.07
+    },
+    {
+     "call": "round_amount",
+     "args": [
+      "BBB/USD",
+      0.07
+     ],
+     "now": 1700000000.25,
+     "responses": [],
+     "requests": [],
+     "ok": 0.0
+    },
+    {
+     "call": "round_price",
+     "args": [
+      "BBB/USD",
+      0.07
+     ],
+     "now": 1700000000.25,
+     "responses": [],
+     "requests": [],
+     "ok": 0.0
+    },
+    {
+     "call": "round_amount",
+     "args": [
+      "CCC/USD",
+      0.07
+     ],
+     "now": 1700000000.25,
+     "responses": [],
+     "requests": [],
+     "ok": 0.0
+    },
+    {
+     "call": "round_price",
+     "args": [
+      "CCC/USD",
+      0.07
+     ],
+     "now": 1700000000.25,
+     "responses": [],
+     "requests": [],
+     "ok": 0.07
+    },
+    {
+     "call": "round_amount",
+     "args": [
+      "AAA/USD",
+      51234.5678
+     ],
+     "now": 1700000000.25,
+     "responses": [],
+     "requests": [],
+     "ok": 51234.56
+    },
+    {
+     "call": "round_price",
+     "args": [
+      "AAA/USD",
+      51234.5678
+     ],
+     "now": 1700000000.25,
+     "responses": [],
+     "requests": [],
+     "ok": 51234.5677
+    },
+    {
+     "call": "round_amount",
+     "args": [
+      "BTC/USD",
+      51234.5678
+     ],
+     "now": 1700000000.25,
+     "responses": [],
+     "requests": [],
+     "ok": 51234.567800000004
+    },
+    {
+     "call": "round_price",
+     "args": [
+      "BTC/USD",
+      51234.5678
+     ],
+     "now": 1700000000.25,
+     "responses": [],
+     "requests": [],
+     "ok": 51234.56
+    },
+    {
+     "call": "round_amount",
+     "args": [
+      "BBB/USD",
+      51234.5678
+     ],
+     "now": 1700000000.25,
+     "responses": [],
+     "requests": [],
+     "ok": 51230.0
+    },
+    {
+     "call": "round_price",
+     "args": [
+      "BBB/USD",
+      51234.5678
+     ],
+     "now": 1700000000.25,
+     "responses": [],
+     "requests": [],
+     "ok": 51234.5
+    },
+    {
+     "call": "round_amount",
+     "args": [
+      "CCC/USD",
+      51234.5678
+     ],
+     "now": 1700000000.25,
+     "responses": [],
+     "requests": [],
+     "ok": 51234.5
+    },
+    {
+     "call": "round_price",
+     "args": [
+      "CCC/USD",
+      51234.5678
+     ],
+     "now": 1700000000.25,
+     "responses": [],
+     "requests": [],
+     "ok": 51234.5678
+    },
+    {
+     "call": "round_amount",
+     "args": [
+      "AAA/USD",
+      0.000123456789
+     ],
+     "now": 1700000000.25,
+     "responses": [],
+     "requests": [],
+     "ok": 0.0
+    },
+    {
+     "call": "round_price",
+     "args": [
+      "AAA/USD",
+      0.000123456789
+     ],
+     "now": 1700000000.25,
+     "responses": [],
+     "requests": [],
+     "ok": 0.0001
+    },
+    {
+     "call": "round_amount",
+     "args": [
+      "BTC/USD",
+      0.000123456789
+     ],
+     "now": 1700000000.25,
+     "responses": [],
+     "requests": [],
+     "ok": 0.00012345
+    },
+    {
+     "call": "round_price",
+     "args": [
+      "BTC/USD",
+      0.000123456789
+     ],
+     "now": 1700000000.25,
+     "responses": [],
+     "requests": [],
+     "ok": 0.0
+    },
+    {
+     "call": "round_amount",
+     "args": [
+      "BBB/USD",
+      0.000123456789
+     ],
+     "now": 1700000000.25,
+     "responses": [],
+     "requests": [],
+     "ok": 0.0
+    },
+    {
+     "call": "round_price",
+     "args": [
+      "BBB/USD",
+      0.000123456789
+     ],
+     "now": 1700000000.25,
+     "responses": [],
+     "requests": [],
+     "ok": 0.0
+    },
+    {
+     "call": "round_amount",
+     "args": [
+      "CCC/USD",
+      0.000123456789
+     ],
+     "now": 1700000000.25,
+     "responses": [],
+     "requests": [],
+     "ok": 0.0
+    },
+    {
+     "call": "round_price",
+     "args": [
+      "CCC/USD",
+      0.000123456789
+     ],
+     "now": 1700000000.25,
+     "responses": [],
+     "requests": [],
+     "ok": 0.000123456789
+    },
+    {
+     "call": "open_orders",
+     "args": [
+      "AAA/USD"
+     ],
+     "now": 1700000000.25,
+     "responses": [
+      {
+       "status": 200,
+       "body": "{\"data\": [{\"id\": \"a1b2c3d4-0000-4000-8000-000000000001\", \"client_order_id\": \"c0ffee00-0000-5000-8000-000000000000\", \"symbol\": \"AAA/USD\", \"side\": \"buy\", \"type\": \"limit\", \"quantity\": \"10\", \"filled_quantity\": \"4\", \"filled_amount\": \"6\", \"leaves_quantity\": \"6\", \"price\": \"1.5\", \"status\": \"partially_filled\", \"total_fee\": \"0.01\", \"fee_currency\": \"USD\"}, {\"id\": \"other\", \"client_order_id\": \"c0ffee00-0000-5000-8000-000000000000\", \"symbol\": \"BBB/USD\", \"side\": \"buy\", \"type\": \"limit\", \"quantity\": \"10\", \"filled_quantity\": \"4\", \"filled_amount\": \"6\", \"leaves_quantity\": \"6\", \"price\": \"1.5\", \"status\": \"partially_filled\", \"total_fee\": \"0.01\", \"fee_currency\": \"USD\"}], \"metadata\": {\"next_cursor\": \"abc/def==\"}}"
+      },
+      {
+       "status": 200,
+       "body": "{\"data\": [{\"id\": \"a1b2c3d4-0000-4000-8000-000000000002\", \"client_order_id\": \"c0ffee00-0000-5000-8000-000000000000\", \"symbol\": \"AAA/USD\", \"side\": \"buy\", \"type\": \"limit\", \"quantity\": \"10\", \"filled_quantity\": \"4\", \"filled_amount\": \"6\", \"leaves_quantity\": \"6\", \"price\": \"1.5\", \"status\": \"new\", \"total_fee\": \"0.01\", \"fee_currency\": \"USD\"}], \"metadata\": {}}"
+      }
+     ],
+     "requests": [
+      {
+       "method": "GET",
+       "url": "https://revx.revolut.com/api/1.0/orders/active",
+       "headers": {
+        "x-revx-api-key": "rk-test-key",
+        "x-revx-timestamp": "1700000000250",
+        "x-revx-signature": "+EYQRYsfyoiZVF1XwZz98au5DXaqx1Uvv7No8PUZSVs4s6e5dgZG2h/rsdQA22vCcVXEF4/sG6dD5Uua/7vlBQ=="
+       },
+       "body": null,
+       "timeout": 15
+      },
+      {
+       "method": "GET",
+       "url": "https://revx.revolut.com/api/1.0/orders/active?cursor=abc%2Fdef%3D%3D",
+       "headers": {
+        "x-revx-api-key": "rk-test-key",
+        "x-revx-timestamp": "1700000000250",
+        "x-revx-signature": "wsEo/+JgYzJDosoYy3RqBRX66LJHogjZVvDwSJHAv8MMCMnQ3NhYmEr8UaDEUhK7/G4vd2/5fF9ypsCOC4mpCA=="
+       },
+       "body": null,
+       "timeout": 15
+      }
+     ],
+     "ok": [
+      {
+       "order_id": "a1b2c3d4-0000-4000-8000-000000000001",
+       "status": "PARTIALLY_FILLED",
+       "filled": false,
+       "base_qty": 4.0,
+       "quote": 6.0,
+       "avg_price": 1.5,
+       "price": 1.5,
+       "fee": 0.01,
+       "fee_asset": "USD",
+       "side": "buy",
+       "qty": 10.0,
+       "client_id": "c0ffee00-0000-5000-8000-000000000000"
+      },
+      {
+       "order_id": "a1b2c3d4-0000-4000-8000-000000000002",
+       "status": "new",
+       "filled": false,
+       "base_qty": 4.0,
+       "quote": 6.0,
+       "avg_price": 1.5,
+       "price": 1.5,
+       "fee": 0.01,
+       "fee_asset": "USD",
+       "side": "buy",
+       "qty": 10.0,
+       "client_id": "c0ffee00-0000-5000-8000-000000000000"
+      }
+     ]
+    },
+    {
+     "call": "open_orders",
+     "args": [
+      "AAA/USD"
+     ],
+     "now": 1700000000.25,
+     "responses": [
+      {
+       "status": 200,
+       "body": "{\"data\": [], \"metadata\": {\"next_cursor\": \"c\"}}"
+      },
+      {
+       "status": 200,
+       "body": "{\"data\": [], \"metadata\": {\"next_cursor\": \"c\"}}"
+      },
+      {
+       "status": 200,
+       "body": "{\"data\": [], \"metadata\": {\"next_cursor\": \"c\"}}"
+      },
+      {
+       "status": 200,
+       "body": "{\"data\": [], \"metadata\": {\"next_cursor\": \"c\"}}"
+      },
+      {
+       "status": 200,
+       "body": "{\"data\": [], \"metadata\": {\"next_cursor\": \"c\"}}"
+      },
+      {
+       "status": 200,
+       "body": "{\"data\": [], \"metadata\": {\"next_cursor\": \"c\"}}"
+      },
+      {
+       "status": 200,
+       "body": "{\"data\": [], \"metadata\": {\"next_cursor\": \"c\"}}"
+      },
+      {
+       "status": 200,
+       "body": "{\"data\": [], \"metadata\": {\"next_cursor\": \"c\"}}"
+      },
+      {
+       "status": 200,
+       "body": "{\"data\": [], \"metadata\": {\"next_cursor\": \"c\"}}"
+      },
+      {
+       "status": 200,
+       "body": "{\"data\": [], \"metadata\": {\"next_cursor\": \"c\"}}"
+      }
+     ],
+     "requests": [
+      {
+       "method": "GET",
+       "url": "https://revx.revolut.com/api/1.0/orders/active",
+       "headers": {
+        "x-revx-api-key": "rk-test-key",
+        "x-revx-timestamp": "1700000000250",
+        "x-revx-signature": "+EYQRYsfyoiZVF1XwZz98au5DXaqx1Uvv7No8PUZSVs4s6e5dgZG2h/rsdQA22vCcVXEF4/sG6dD5Uua/7vlBQ=="
+       },
+       "body": null,
+       "timeout": 15
+      },
+      {
+       "method": "GET",
+       "url": "https://revx.revolut.com/api/1.0/orders/active?cursor=c",
+       "headers": {
+        "x-revx-api-key": "rk-test-key",
+        "x-revx-timestamp": "1700000000250",
+        "x-revx-signature": "r/712i8Bv/cjF9itj2TgGbgo42/bS4vjhfxrEmDoA1KrOqLvKGgmiyR1b0OzJ4Uz2z293/95dxUve3QgjVk/Ag=="
+       },
+       "body": null,
+       "timeout": 15
+      },
+      {
+       "method": "GET",
+       "url": "https://revx.revolut.com/api/1.0/orders/active?cursor=c",
+       "headers": {
+        "x-revx-api-key": "rk-test-key",
+        "x-revx-timestamp": "1700000000250",
+        "x-revx-signature": "r/712i8Bv/cjF9itj2TgGbgo42/bS4vjhfxrEmDoA1KrOqLvKGgmiyR1b0OzJ4Uz2z293/95dxUve3QgjVk/Ag=="
+       },
+       "body": null,
+       "timeout": 15
+      },
+      {
+       "method": "GET",
+       "url": "https://revx.revolut.com/api/1.0/orders/active?cursor=c",
+       "headers": {
+        "x-revx-api-key": "rk-test-key",
+        "x-revx-timestamp": "1700000000250",
+        "x-revx-signature": "r/712i8Bv/cjF9itj2TgGbgo42/bS4vjhfxrEmDoA1KrOqLvKGgmiyR1b0OzJ4Uz2z293/95dxUve3QgjVk/Ag=="
+       },
+       "body": null,
+       "timeout": 15
+      },
+      {
+       "method": "GET",
+       "url": "https://revx.revolut.com/api/1.0/orders/active?cursor=c",
+       "headers": {
+        "x-revx-api-key": "rk-test-key",
+        "x-revx-timestamp": "1700000000250",
+        "x-revx-signature": "r/712i8Bv/cjF9itj2TgGbgo42/bS4vjhfxrEmDoA1KrOqLvKGgmiyR1b0OzJ4Uz2z293/95dxUve3QgjVk/Ag=="
+       },
+       "body": null,
+       "timeout": 15
+      },
+      {
+       "method": "GET",
+       "url": "https://revx.revolut.com/api/1.0/orders/active?cursor=c",
+       "headers": {
+        "x-revx-api-key": "rk-test-key",
+        "x-revx-timestamp": "1700000000250",
+        "x-revx-signature": "r/712i8Bv/cjF9itj2TgGbgo42/bS4vjhfxrEmDoA1KrOqLvKGgmiyR1b0OzJ4Uz2z293/95dxUve3QgjVk/Ag=="
+       },
+       "body": null,
+       "timeout": 15
+      },
+      {
+       "method": "GET",
+       "url": "https://revx.revolut.com/api/1.0/orders/active?cursor=c",
+       "headers": {
+        "x-revx-api-key": "rk-test-key",
+        "x-revx-timestamp": "1700000000250",
+        "x-revx-signature": "r/712i8Bv/cjF9itj2TgGbgo42/bS4vjhfxrEmDoA1KrOqLvKGgmiyR1b0OzJ4Uz2z293/95dxUve3QgjVk/Ag=="
+       },
+       "body": null,
+       "timeout": 15
+      },
+      {
+       "method": "GET",
+       "url": "https://revx.revolut.com/api/1.0/orders/active?cursor=c",
+       "headers": {
+        "x-revx-api-key": "rk-test-key",
+        "x-revx-timestamp": "1700000000250",
+        "x-revx-signature": "r/712i8Bv/cjF9itj2TgGbgo42/bS4vjhfxrEmDoA1KrOqLvKGgmiyR1b0OzJ4Uz2z293/95dxUve3QgjVk/Ag=="
+       },
+       "body": null,
+       "timeout": 15
+      },
+      {
+       "method": "GET",
+       "url": "https://revx.revolut.com/api/1.0/orders/active?cursor=c",
+       "headers": {
+        "x-revx-api-key": "rk-test-key",
+        "x-revx-timestamp": "1700000000250",
+        "x-revx-signature": "r/712i8Bv/cjF9itj2TgGbgo42/bS4vjhfxrEmDoA1KrOqLvKGgmiyR1b0OzJ4Uz2z293/95dxUve3QgjVk/Ag=="
+       },
+       "body": null,
+       "timeout": 15
+      },
+      {
+       "method": "GET",
+       "url": "https://revx.revolut.com/api/1.0/orders/active?cursor=c",
+       "headers": {
+        "x-revx-api-key": "rk-test-key",
+        "x-revx-timestamp": "1700000000250",
+        "x-revx-signature": "r/712i8Bv/cjF9itj2TgGbgo42/bS4vjhfxrEmDoA1KrOqLvKGgmiyR1b0OzJ4Uz2z293/95dxUve3QgjVk/Ag=="
+       },
+       "body": null,
+       "timeout": 15
+      }
+     ],
+     "ok": []
+    },
+    {
+     "call": "cancel",
+     "args": [
+      "AAA/USD",
+      "a1b2c3d4-0000-4000-8000-000000000001"
+     ],
+     "now": 1700000000.25,
+     "responses": [
+      {
+       "status": 204,
+       "body": ""
+      }
+     ],
+     "requests": [
+      {
+       "method": "DELETE",
+       "url": "https://revx.revolut.com/api/1.0/orders/a1b2c3d4-0000-4000-8000-000000000001",
+       "headers": {
+        "x-revx-api-key": "rk-test-key",
+        "x-revx-timestamp": "1700000000250",
+        "x-revx-signature": "a1AyFQepJIcWZXKu3NIkBP3TXFytq7rBOZnl60d3fnx4yCr5PY0GFZ5uZGSfuFqGlryv5xz2/q90qMel8nPICw=="
+       },
+       "body": null,
+       "timeout": 15
+      }
+     ],
+     "ok": {
+      "order_id": "a1b2c3d4-0000-4000-8000-000000000001",
+      "status": "cancelled",
+      "filled": false,
+      "base_qty": 0.0,
+      "quote": 0.0,
+      "avg_price": null,
+      "price": null,
+      "fee": 0.0,
+      "fee_asset": null,
+      "side": "",
+      "qty": 0.0,
+      "client_id": ""
+     }
+    },
+    {
+     "call": "order_status",
+     "args": [
+      "AAA/USD",
+      "a1b2"
+     ],
+     "now": 1700000000.25,
+     "responses": [
+      {
+       "status": 200,
+       "body": "{\"data\": {\"id\": \"a1b2c3d4-0000-4000-8000-000000000001\", \"client_order_id\": \"c0ffee00-0000-5000-8000-000000000000\", \"symbol\": \"AAA/USD\", \"side\": \"buy\", \"type\": \"limit\", \"quantity\": \"10\", \"filled_quantity\": \"4\", \"filled_amount\": \"6\", \"leaves_quantity\": \"6\", \"price\": \"1.5\", \"status\": \"filled\", \"total_fee\": \"0.01\", \"fee_currency\": \"USD\", \"average_fill_price\": \"1.49\"}}"
+      }
+     ],
+     "requests": [
+      {
+       "method": "GET",
+       "url": "https://revx.revolut.com/api/1.0/orders/a1b2",
+       "headers": {
+        "x-revx-api-key": "rk-test-key",
+        "x-revx-timestamp": "1700000000250",
+        "x-revx-signature": "y9yqsH+dEeqok4ErW18fUQPC+6pHnu43NyKzm8Kr9MaJU+ShInRja7brVM6xfeMSGgjEDJd+wWG1qqpbXF4rDw=="
+       },
+       "body": null,
+       "timeout": 15
+      }
+     ],
+     "ok": {
+      "order_id": "a1b2c3d4-0000-4000-8000-000000000001",
+      "status": "filled",
+      "filled": true,
+      "base_qty": 4.0,
+      "quote": 6.0,
+      "avg_price": 1.49,
+      "price": 1.5,
+      "fee": 0.01,
+      "fee_asset": "USD",
+      "side": "buy",
+      "qty": 10.0,
+      "client_id": "c0ffee00-0000-5000-8000-000000000000"
+     }
+    },
+    {
+     "call": "order_status",
+     "args": [
+      "AAA/USD",
+      "a1b2"
+     ],
+     "now": 1700000000.25,
+     "responses": [
+      {
+       "status": 200,
+       "body": "{\"data\": null}"
+      }
+     ],
+     "requests": [
+      {
+       "method": "GET",
+       "url": "https://revx.revolut.com/api/1.0/orders/a1b2",
+       "headers": {
+        "x-revx-api-key": "rk-test-key",
+        "x-revx-timestamp": "1700000000250",
+        "x-revx-signature": "y9yqsH+dEeqok4ErW18fUQPC+6pHnu43NyKzm8Kr9MaJU+ShInRja7brVM6xfeMSGgjEDJd+wWG1qqpbXF4rDw=="
+       },
+       "body": null,
+       "timeout": 15
+      }
+     ],
+     "ok": {
+      "order_id": "",
+      "status": "",
+      "filled": false,
+      "base_qty": 0.0,
+      "quote": 0.0,
+      "avg_price": null,
+      "price": null,
+      "fee": 0.0,
+      "fee_asset": null,
+      "side": "",
+      "qty": 0.0,
+      "client_id": ""
+     }
+    },
+    {
+     "call": "order_status",
+     "args": [
+      "AAA/USD",
+      "a1b2"
+     ],
+     "now": 1700000000.25,
+     "responses": [
+      {
+       "status": 404,
+       "body": "{\"message\": \"Order not found\"}"
+      }
+     ],
+     "requests": [
+      {
+       "method": "GET",
+       "url": "https://revx.revolut.com/api/1.0/orders/a1b2",
+       "headers": {
+        "x-revx-api-key": "rk-test-key",
+        "x-revx-timestamp": "1700000000250",
+        "x-revx-signature": "y9yqsH+dEeqok4ErW18fUQPC+6pHnu43NyKzm8Kr9MaJU+ShInRja7brVM6xfeMSGgjEDJd+wWG1qqpbXF4rDw=="
+       },
+       "body": null,
+       "timeout": 15
+      }
+     ],
+     "error": "GET /api/1.0/orders/a1b2 -> 404 {'message': 'Order not found'}"
+    },
+    {
+     "call": "market_buy",
+     "args": [
+      "AAA/USD",
+      25.005,
+      "csAAAb944444r1"
+     ],
+     "now": 1700000000.25,
+     "responses": [
+      {
+       "status": 200,
+       "body": "{\"data\": {\"venue_order_id\": \"v-100\", \"client_order_id\": \"x\", \"state\": \"new\"}}"
+      },
+      {
+       "status": 200,
+       "body": "{\"data\": {\"id\": \"v-100\", \"client_order_id\": \"c0ffee00-0000-5000-8000-000000000000\", \"symbol\": \"AAA/USD\", \"side\": \"buy\", \"type\": \"limit\", \"quantity\": \"10\", \"filled_quantity\": \"4\", \"filled_amount\": \"6\", \"leaves_quantity\": \"6\", \"price\": \"1.5\", \"status\": \"filled\", \"total_fee\": \"0.01\", \"fee_currency\": \"USD\"}}"
+      }
+     ],
+     "requests": [
+      {
+       "method": "POST",
+       "url": "https://revx.revolut.com/api/1.0/orders",
+       "headers": {
+        "x-revx-api-key": "rk-test-key",
+        "x-revx-timestamp": "1700000000250",
+        "x-revx-signature": "RB03H8dtHOvAjtSPTm5WozdVDRa+6UbmavFHqupEunBhFsuhG7Tevxe1bUePFdAfiecmxiJmVAgs6EanoklFCQ==",
+        "content-type": "application/json"
+       },
+       "body": "{\"client_order_id\":\"25f4ab4f-7df6-5237-b1ec-b1cdf19d2eac\",\"symbol\":\"AAA-USD\",\"side\":\"buy\",\"order_configuration\":{\"market\":{\"quote_size\":\"25.00\"}}}",
+       "timeout": 15
+      },
+      {
+       "method": "GET",
+       "url": "https://revx.revolut.com/api/1.0/orders/v-100",
+       "headers": {
+        "x-revx-api-key": "rk-test-key",
+        "x-revx-timestamp": "1700000000250",
+        "x-revx-signature": "TRrwRrtmbXZSCIDxSN3uOvYLAG4edGw8ggfUWtQoi1WmrwcYanhS5FVtMzQpVDFAS+WLH+zLUlzPAtZ3vUgjBQ=="
+       },
+       "body": null,
+       "timeout": 15
+      }
+     ],
+     "ok": {
+      "order_id": "v-100",
+      "status": "filled",
+      "filled": true,
+      "base_qty": 4.0,
+      "quote": 6.0,
+      "avg_price": 1.5,
+      "price": 1.5,
+      "fee": 0.01,
+      "fee_asset": "USD",
+      "side": "buy",
+      "qty": 10.0,
+      "client_id": "c0ffee00-0000-5000-8000-000000000000"
+     }
+    },
+    {
+     "call": "market_sell",
+     "args": [
+      "AAA/USD",
+      3.14159,
+      "mcsAAAs944444r1"
+     ],
+     "now": 1700000000.25,
+     "responses": [
+      {
+       "status": 200,
+       "body": "{\"data\": {\"venue_order_id\": \"v-100\", \"client_order_id\": \"x\", \"state\": \"new\"}}"
+      },
+      {
+       "status": 500,
+       "body": "{\"message\": \"later\"}"
+      }
+     ],
+     "requests": [
+      {
+       "method": "POST",
+       "url": "https://revx.revolut.com/api/1.0/orders",
+       "headers": {
+        "x-revx-api-key": "rk-test-key",
+        "x-revx-timestamp": "1700000000250",
+        "x-revx-signature": "QdstdcMR2jJGP5a/0Bhi+igcOh8SN6PB2EtG+9pOZt18/R5+IvE0GQCMXmyYpOFSlvrFMD71BEpBpk0qyD5YBg==",
+        "content-type": "application/json"
+       },
+       "body": "{\"client_order_id\":\"3c1dbd94-aef6-5fb5-afe7-758142b95460\",\"symbol\":\"AAA-USD\",\"side\":\"sell\",\"order_configuration\":{\"market\":{\"base_size\":\"3.14\"}}}",
+       "timeout": 15
+      },
+      {
+       "method": "GET",
+       "url": "https://revx.revolut.com/api/1.0/orders/v-100",
+       "headers": {
+        "x-revx-api-key": "rk-test-key",
+        "x-revx-timestamp": "1700000000250",
+        "x-revx-signature": "TRrwRrtmbXZSCIDxSN3uOvYLAG4edGw8ggfUWtQoi1WmrwcYanhS5FVtMzQpVDFAS+WLH+zLUlzPAtZ3vUgjBQ=="
+       },
+       "body": null,
+       "timeout": 15
+      }
+     ],
+     "ok": {
+      "order_id": "v-100",
+      "status": "new",
+      "filled": false,
+      "base_qty": 0.0,
+      "quote": 0.0,
+      "avg_price": null,
+      "price": null,
+      "fee": 0.0,
+      "fee_asset": null,
+      "side": "",
+      "qty": 0.0,
+      "client_id": "x"
+     }
+    },
+    {
+     "call": "market_buy_quote",
+     "args": [
+      "AAA/USD",
+      10.0,
+      "csAAAb944444r9"
+     ],
+     "now": 1700000000.25,
+     "responses": [
+      {
+       "status": 200,
+       "body": "{\"data\": {\"state\": \"rejected\"}}"
+      }
+     ],
+     "requests": [
+      {
+       "method": "POST",
+       "url": "https://revx.revolut.com/api/1.0/orders",
+       "headers": {
+        "x-revx-api-key": "rk-test-key",
+        "x-revx-timestamp": "1700000000250",
+        "x-revx-signature": "+GuCiN6Rjg8b2Y/7Rq4eJtx+rx6SOlK2Dvo1Tv3Cgfl/tChV/mYEASL3tWXsK8g+ujGCQTJwhsVjF/E3ITFgDA==",
+        "content-type": "application/json"
+       },
+       "body": "{\"client_order_id\":\"0fd24475-5c1a-5285-9a5c-de07a56bdc32\",\"symbol\":\"AAA-USD\",\"side\":\"buy\",\"order_configuration\":{\"market\":{\"quote_size\":\"10.00\"}}}",
+       "timeout": 15
+      }
+     ],
+     "ok": {
+      "order_id": "",
+      "status": "rejected",
+      "filled": false,
+      "base_qty": 0.0,
+      "quote": 0.0,
+      "avg_price": null,
+      "price": null,
+      "fee": 0.0,
+      "fee_asset": null,
+      "side": "",
+      "qty": 0.0,
+      "client_id": ""
+     }
+    },
+    {
+     "call": "limit_buy",
+     "args": [
+      "AAA/USD",
+      8.126,
+      1.234567,
+      "depxAAA1700000000r1"
+     ],
+     "now": 1700000000.25,
+     "responses": [
+      {
+       "status": 200,
+       "body": "{\"data\": {\"venue_order_id\": \"v-100\", \"client_order_id\": \"x\", \"state\": \"new\"}}"
+      },
+      {
+       "status": 200,
+       "body": "{\"data\": {\"id\": \"a1b2c3d4-0000-4000-8000-000000000001\", \"client_order_id\": \"c0ffee00-0000-5000-8000-000000000000\", \"symbol\": \"AAA/USD\", \"side\": \"buy\", \"type\": \"limit\", \"quantity\": \"10\", \"filled_quantity\": \"4\", \"filled_amount\": \"6\", \"leaves_quantity\": \"6\", \"price\": \"1.5\", \"status\": \"partially_filled\", \"total_fee\": \"0.01\", \"fee_currency\": \"USD\"}}"
+      }
+     ],
+     "requests": [
+      {
+       "method": "POST",
+       "url": "https://revx.revolut.com/api/1.0/orders",
+       "headers": {
+        "x-revx-api-key": "rk-test-key",
+        "x-revx-timestamp": "1700000000250",
+        "x-revx-signature": "c/LHJ+AdKs67PLvINq5oSaI3oneM7ZJISt8WxRrNwkv4lwt/mZ88+HKWsfRzS2GTv0JUBhjKm2OuSyTiGxZjCQ==",
+        "content-type": "application/json"
+       },
+       "body": "{\"client_order_id\":\"fc7766d2-6bff-5f76-8157-ec797584a557\",\"symbol\":\"AAA-USD\",\"side\":\"buy\",\"order_configuration\":{\"limit\":{\"base_size\":\"8.12\",\"price\":\"1.2345\"}}}",
+       "timeout": 15
+      },
+      {
+       "method": "GET",
+       "url": "https://revx.revolut.com/api/1.0/orders/v-100",
+       "headers": {
+        "x-revx-api-key": "rk-test-key",
+        "x-revx-timestamp": "1700000000250",
+        "x-revx-signature": "TRrwRrtmbXZSCIDxSN3uOvYLAG4edGw8ggfUWtQoi1WmrwcYanhS5FVtMzQpVDFAS+WLH+zLUlzPAtZ3vUgjBQ=="
+       },
+       "body": null,
+       "timeout": 15
+      }
+     ],
+     "ok": {
+      "order_id": "a1b2c3d4-0000-4000-8000-000000000001",
+      "status": "PARTIALLY_FILLED",
+      "filled": false,
+      "base_qty": 4.0,
+      "quote": 6.0,
+      "avg_price": 1.5,
+      "price": 1.5,
+      "fee": 0.01,
+      "fee_asset": "USD",
+      "side": "buy",
+      "qty": 10.0,
+      "client_id": "c0ffee00-0000-5000-8000-000000000000"
+     }
+    },
+    {
+     "call": "limit_sell",
+     "args": [
+      "BTC/USD",
+      0.0123456789,
+      51234.5678,
+      "12345678-1234-5678-1234-567812345678"
+     ],
+     "now": 1700000000.25,
+     "responses": [
+      {
+       "status": 200,
+       "body": "{\"data\": {\"venue_order_id\": \"v-100\", \"client_order_id\": \"x\", \"state\": \"new\"}}"
+      },
+      {
+       "status": 200,
+       "body": "{\"data\": {\"id\": \"a1b2c3d4-0000-4000-8000-000000000001\", \"client_order_id\": \"c0ffee00-0000-5000-8000-000000000000\", \"symbol\": \"AAA/USD\", \"side\": \"sell\", \"type\": \"limit\", \"quantity\": \"10\", \"filled_quantity\": \"4\", \"filled_amount\": \"6\", \"leaves_quantity\": \"6\", \"price\": \"1.5\", \"status\": \"new\", \"total_fee\": \"0.01\", \"fee_currency\": \"USD\"}}"
+      }
+     ],
+     "requests": [
+      {
+       "method": "POST",
+       "url": "https://revx.revolut.com/api/1.0/orders",
+       "headers": {
+        "x-revx-api-key": "rk-test-key",
+        "x-revx-timestamp": "1700000000250",
+        "x-revx-signature": "q5+CDovK7dDAAg2un4NrZ++UMwwUGF0guMFP4Sa3YfclEHkuRMZl2b0QIvGIaJ57y91WOuJsLf3XjIBPlH9DAg==",
+        "content-type": "application/json"
+       },
+       "body": "{\"client_order_id\":\"12345678-1234-5678-1234-567812345678\",\"symbol\":\"BTC-USD\",\"side\":\"sell\",\"order_configuration\":{\"limit\":{\"base_size\":\"0.01234567\",\"price\":\"51234.56\"}}}",
+       "timeout": 15
+      },
+      {
+       "method": "GET",
+       "url": "https://revx.revolut.com/api/1.0/orders/v-100",
+       "headers": {
+        "x-revx-api-key": "rk-test-key",
+        "x-revx-timestamp": "1700000000250",
+        "x-revx-signature": "TRrwRrtmbXZSCIDxSN3uOvYLAG4edGw8ggfUWtQoi1WmrwcYanhS5FVtMzQpVDFAS+WLH+zLUlzPAtZ3vUgjBQ=="
+       },
+       "body": null,
+       "timeout": 15
+      }
+     ],
+     "ok": {
+      "order_id": "a1b2c3d4-0000-4000-8000-000000000001",
+      "status": "new",
+      "filled": false,
+      "base_qty": 4.0,
+      "quote": 6.0,
+      "avg_price": 1.5,
+      "price": 1.5,
+      "fee": 0.01,
+      "fee_asset": "USD",
+      "side": "sell",
+      "qty": 10.0,
+      "client_id": "c0ffee00-0000-5000-8000-000000000000"
+     }
+    },
+    {
+     "call": "limit_sell",
+     "args": [
+      "AAA/USD",
+      1.0,
+      2.0,
+      "csAAAs1r1"
+     ],
+     "now": 1700000000.25,
+     "responses": [
+      {
+       "status": 400,
+       "body": "{\"message\": \"insufficient balance\"}"
+      }
+     ],
+     "requests": [
+      {
+       "method": "POST",
+       "url": "https://revx.revolut.com/api/1.0/orders",
+       "headers": {
+        "x-revx-api-key": "rk-test-key",
+        "x-revx-timestamp": "1700000000250",
+        "x-revx-signature": "hC356O08VlJiOt2CSUWF5EL6haIllSiDjrhv3BuiiVunW3wansVlSH4WMBbVztK0Eb6UdNLoCTohIW8cygyEBg==",
+        "content-type": "application/json"
+       },
+       "body": "{\"client_order_id\":\"a375aaf1-4648-57ca-8b26-db75dffc3b08\",\"symbol\":\"AAA-USD\",\"side\":\"sell\",\"order_configuration\":{\"limit\":{\"base_size\":\"1\",\"price\":\"2\"}}}",
+       "timeout": 15
+      }
+     ],
+     "error": "POST /api/1.0/orders -> 400 {'message': 'insufficient balance'}"
+    }
+   ]
+  },
+  {
+   "venue": "public",
+   "steps": [
+    {
+     "call": "binance_ticker",
+     "args": [
+      "AAAUSDC"
+     ],
+     "now": 1700000000.25,
+     "responses": [
+      {
+       "status": 200,
+       "body": "{\"lastPrice\": \"1.5\", \"priceChangePercent\": \"-3.2\"}"
+      }
+     ],
+     "requests": [
+      {
+       "method": "GET",
+       "url": "https://api.binance.com/api/v3/ticker/24hr?symbol=AAAUSDC",
+       "headers": {},
+       "body": null,
+       "timeout": 15
+      }
+     ],
+     "ok": [
+      1.5,
+      -3.2
+     ]
+    },
+    {
+     "call": "gate_ticker",
+     "args": [
+      "AAA_USDT"
+     ],
+     "now": 1700000000.25,
+     "responses": [
+      {
+       "status": 200,
+       "body": "[{\"last\": \"2.5\", \"change_percentage\": \"4.1\"}]"
+      }
+     ],
+     "requests": [
+      {
+       "method": "GET",
+       "url": "https://api.gateio.ws/api/v4/spot/tickers?currency_pair=AAA_USDT",
+       "headers": {},
+       "body": null,
+       "timeout": 15
+      }
+     ],
+     "ok": [
+      2.5,
+      4.1
+     ]
+    },
+    {
+     "call": "gate_ticker",
+     "args": [
+      "AAA_USDT"
+     ],
+     "now": 1700000000.25,
+     "responses": [
+      {
+       "status": 200,
+       "body": "[]"
+      }
+     ],
+     "requests": [
+      {
+       "method": "GET",
+       "url": "https://api.gateio.ws/api/v4/spot/tickers?currency_pair=AAA_USDT",
+       "headers": {},
+       "body": null,
+       "timeout": 15
+      }
+     ],
+     "error": "ticker AAA_USDT -> 200 []"
+    },
+    {
+     "call": "revx_ticker",
+     "args": [
+      "AAA/USD"
+     ],
+     "now": 1700000000.25,
+     "responses": [
+      {
+       "status": 200,
+       "body": "{\"data\": [{\"symbol\": \"AAA/USD\", \"last_price\": \"1.5\", \"price_change_24h\": \"-0.5\"}]}"
+      }
+     ],
+     "requests": [
+      {
+       "method": "GET",
+       "url": "https://revx.revolut.com/api/1.0/public/tickers",
+       "headers": {},
+       "body": null,
+       "timeout": 15
+      }
+     ],
+     "ok": [
+      1.5,
+      -25.0
+     ]
+    },
+    {
+     "call": "revx_ticker",
+     "args": [
+      "AAA/USD"
+     ],
+     "now": 1700000000.25,
+     "responses": [
+      {
+       "status": 200,
+       "body": "{\"data\": [{\"symbol\": \"AAA/USD\", \"last_price\": \"0\", \"bid\": \"1\", \"ask\": \"2\", \"price_change_24h\": \"1.5\"}]}"
+      }
+     ],
+     "requests": [
+      {
+       "method": "GET",
+       "url": "https://revx.revolut.com/api/1.0/public/tickers",
+       "headers": {},
+       "body": null,
+       "timeout": 15
+      }
+     ],
+     "ok": [
+      1.5,
+      0.0
+     ]
+    },
+    {
+     "call": "revx_ticker",
+     "args": [
+      "BBB/USD"
+     ],
+     "now": 1700000000.25,
+     "responses": [
+      {
+       "status": 200,
+       "body": "{\"data\": []}"
+      }
+     ],
+     "requests": [
+      {
+       "method": "GET",
+       "url": "https://revx.revolut.com/api/1.0/public/tickers",
+       "headers": {},
+       "body": null,
+       "timeout": 15
+      }
+     ],
+     "error": "ticker BBB/USD: not in feed"
+    }
+   ]
+  }
+ ],
+ "parse_order": {
+  "gate": [
+   {
+    "raw": {
+     "id": "1",
+     "status": "closed",
+     "type": "market",
+     "side": "buy",
+     "amount": "25",
+     "left": "0",
+     "filled_total": "25",
+     "avg_deal_price": "1.25",
+     "fill_price": "25",
+     "fee": "0.02",
+     "fee_currency": "AAA",
+     "text": "t-csAAAb1r1"
+    },
+    "ok": {
+     "order_id": "1",
+     "status": "closed",
+     "filled": true,
+     "base_qty": 20.0,
+     "quote": 25.0,
+     "avg_price": 1.25,
+     "price": null,
+     "fee": 0.02,
+     "fee_asset": "AAA",
+     "side": "buy",
+     "qty": 0.0,
+     "client_id": "csAAAb1r1"
+    }
+   },
+   {
+    "raw": {
+     "id": "2",
+     "status": "open",
+     "type": "market",
+     "side": "buy",
+     "amount": "25",
+     "left": "25",
+     "filled_total": "0"
+    },
+    "ok": {
+     "order_id": "2",
+     "status": "open",
+     "filled": false,
+     "base_qty": null,
+     "quote": 0.0,
+     "avg_price": null,
+     "price": null,
+     "fee": 0.0,
+     "fee_asset": null,
+     "side": "buy",
+     "qty": 0.0,
+     "client_id": ""
+    }
+   },
+   {
+    "raw": {
+     "id": 3,
+     "status": "cancelled",
+     "type": "limit",
+     "side": "sell",
+     "amount": "10",
+     "left": "4",
+     "filled_total": "9",
+     "price": "1.5",
+     "text": "web"
+    },
+    "ok": {
+     "order_id": "3",
+     "status": "cancelled",
+     "filled": false,
+     "base_qty": 6.0,
+     "quote": 9.0,
+     "avg_price": 1.5,
+     "price": 1.5,
+     "fee": 0.0,
+     "fee_asset": null,
+     "side": "sell",
+     "qty": 10.0,
+     "client_id": "web"
+    }
+   },
+   {
+    "raw": {
+     "id": "4",
+     "status": "filled",
+     "type": "limit",
+     "side": "buy",
+     "amount": "10",
+     "left": "12",
+     "filled_total": "3",
+     "price": "0"
+    },
+    "ok": {
+     "order_id": "4",
+     "status": "filled",
+     "filled": true,
+     "base_qty": -2.0,
+     "quote": 3.0,
+     "avg_price": -1.5,
+     "price": null,
+     "fee": 0.0,
+     "fee_asset": null,
+     "side": "buy",
+     "qty": 10.0,
+     "client_id": ""
+    }
+   },
+   {
+    "raw": {
+     "id": null,
+     "status": "open",
+     "type": "limit",
+     "side": "BUY",
+     "amount": "",
+     "left": null,
+     "text": null
+    },
+    "ok": {
+     "order_id": "None",
+     "status": "open",
+     "filled": false,
+     "base_qty": 0.0,
+     "quote": 0.0,
+     "avg_price": null,
+     "price": null,
+     "fee": 0.0,
+     "fee_asset": null,
+     "side": "buy",
+     "qty": 0.0,
+     "client_id": ""
+    }
+   },
+   {
+    "raw": {},
+    "ok": {
+     "order_id": "",
+     "status": "",
+     "filled": false,
+     "base_qty": 0.0,
+     "quote": 0.0,
+     "avg_price": null,
+     "price": null,
+     "fee": 0.0,
+     "fee_asset": null,
+     "side": "",
+     "qty": 0.0,
+     "client_id": ""
+    }
+   },
+   {
+    "raw": {
+     "id": "5",
+     "status": "open",
+     "type": "limit",
+     "side": "buy",
+     "amount": "1e-3",
+     "left": "0",
+     "filled_total": "0.002",
+     "avg_deal_price": "0"
+    },
+    "ok": {
+     "order_id": "5",
+     "status": "open",
+     "filled": false,
+     "base_qty": 0.001,
+     "quote": 0.002,
+     "avg_price": 2.0,
+     "price": null,
+     "fee": 0.0,
+     "fee_asset": null,
+     "side": "buy",
+     "qty": 0.001,
+     "client_id": ""
+    }
+   }
+  ],
+  "binance": [
+   {
+    "raw": {
+     "orderId": 1,
+     "status": "FILLED",
+     "executedQty": "2",
+     "cummulativeQuoteQty": "3",
+     "price": "0",
+     "origQty": "2",
+     "side": "SELL",
+     "clientOrderId": "mcsAAAs1r1",
+     "fills": [
+      {
+       "commission": "0.003",
+       "commissionAsset": "USDC"
+      }
+     ]
+    },
+    "ok": {
+     "order_id": "1",
+     "status": "FILLED",
+     "filled": true,
+     "base_qty": 2.0,
+     "quote": 3.0,
+     "avg_price": 1.5,
+     "price": null,
+     "fee": 0.003,
+     "fee_asset": "USDC",
+     "side": "sell",
+     "qty": 2.0,
+     "client_id": "mcsAAAs1r1"
+    }
+   },
+   {
+    "raw": {
+     "orderId": 2,
+     "status": "NEW",
+     "executedQty": "0",
+     "cummulativeQuoteQty": "0",
+     "price": "1.1",
+     "origQty": "5",
+     "side": "BUY",
+     "clientOrderId": "x"
+    },
+    "ok": {
+     "order_id": "2",
+     "status": "NEW",
+     "filled": false,
+     "base_qty": 0.0,
+     "quote": 0.0,
+     "avg_price": null,
+     "price": 1.1,
+     "fee": 0.0,
+     "fee_asset": null,
+     "side": "buy",
+     "qty": 5.0,
+     "client_id": "x"
+    }
+   },
+   {
+    "raw": {
+     "status": "EXPIRED",
+     "fills": []
+    },
+    "ok": {
+     "order_id": "",
+     "status": "EXPIRED",
+     "filled": false,
+     "base_qty": 0.0,
+     "quote": 0.0,
+     "avg_price": null,
+     "price": null,
+     "fee": 0.0,
+     "fee_asset": null,
+     "side": "",
+     "qty": 0.0,
+     "client_id": ""
+    }
+   },
+   {
+    "raw": {},
+    "ok": {
+     "order_id": "",
+     "status": "",
+     "filled": false,
+     "base_qty": 0.0,
+     "quote": 0.0,
+     "avg_price": null,
+     "price": null,
+     "fee": 0.0,
+     "fee_asset": null,
+     "side": "",
+     "qty": 0.0,
+     "client_id": ""
+    }
+   },
+   {
+    "raw": {
+     "orderId": "7",
+     "status": "PARTIALLY_FILLED",
+     "executedQty": "1",
+     "cummulativeQuoteQty": "2.5",
+     "fills": [
+      {
+       "commission": "0"
+      },
+      {
+       "commission": "0.1",
+       "commissionAsset": "AAA"
+      }
+     ]
+    },
+    "ok": {
+     "order_id": "7",
+     "status": "PARTIALLY_FILLED",
+     "filled": false,
+     "base_qty": 1.0,
+     "quote": 2.5,
+     "avg_price": 2.5,
+     "price": null,
+     "fee": 0.1,
+     "fee_asset": "AAA",
+     "side": "",
+     "qty": 0.0,
+     "client_id": ""
+    }
+   }
+  ],
+  "revx": [
+   {
+    "raw": {
+     "data": {
+      "id": "o1",
+      "status": "PARTIALLY_FILLED",
+      "filled_quantity": "2",
+      "filled_amount": "3",
+      "quantity": "5",
+      "price": "1.5",
+      "side": "BUY",
+      "client_order_id": "u",
+      "total_fee": "0.01",
+      "fee_currency": "USD"
+     }
+    },
+    "ok": {
+     "order_id": "o1",
+     "status": "PARTIALLY_FILLED",
+     "filled": false,
+     "base_qty": 2.0,
+     "quote": 3.0,
+     "avg_price": 1.5,
+     "price": 1.5,
+     "fee": 0.01,
+     "fee_asset": "USD",
+     "side": "buy",
+     "qty": 5.0,
+     "client_id": "u"
+    }
+   },
+   {
+    "raw": {
+     "data": {
+      "venue_order_id": "v1",
+      "client_order_id": "u2",
+      "state": "new"
+     }
+    },
+    "ok": {
+     "order_id": "v1",
+     "status": "new",
+     "filled": false,
+     "base_qty": 0.0,
+     "quote": 0.0,
+     "avg_price": null,
+     "price": null,
+     "fee": 0.0,
+     "fee_asset": null,
+     "side": "",
+     "qty": 0.0,
+     "client_id": "u2"
+    }
+   },
+   {
+    "raw": {
+     "id": "o2",
+     "status": "filled",
+     "filled_quantity": "2",
+     "filled_amount": "3",
+     "average_fill_price": "1.45"
+    },
+    "ok": {
+     "order_id": "o2",
+     "status": "filled",
+     "filled": true,
+     "base_qty": 2.0,
+     "quote": 3.0,
+     "avg_price": 1.45,
+     "price": null,
+     "fee": 0.0,
+     "fee_asset": null,
+     "side": "",
+     "qty": 0.0,
+     "client_id": ""
+    }
+   },
+   {
+    "raw": {
+     "id": "o3",
+     "status": "cancelled",
+     "filled_quantity": "0",
+     "filled_amount": "0"
+    },
+    "ok": {
+     "order_id": "o3",
+     "status": "cancelled",
+     "filled": false,
+     "base_qty": 0.0,
+     "quote": 0.0,
+     "avg_price": null,
+     "price": null,
+     "fee": 0.0,
+     "fee_asset": null,
+     "side": "",
+     "qty": 0.0,
+     "client_id": ""
+    }
+   },
+   {
+    "raw": {
+     "data": null
+    },
+    "ok": {
+     "order_id": "",
+     "status": "",
+     "filled": false,
+     "base_qty": 0.0,
+     "quote": 0.0,
+     "avg_price": null,
+     "price": null,
+     "fee": 0.0,
+     "fee_asset": null,
+     "side": "",
+     "qty": 0.0,
+     "client_id": ""
+    }
+   },
+   {
+    "raw": {},
+    "ok": {
+     "order_id": "",
+     "status": "",
+     "filled": false,
+     "base_qty": 0.0,
+     "quote": 0.0,
+     "avg_price": null,
+     "price": null,
+     "fee": 0.0,
+     "fee_asset": null,
+     "side": "",
+     "qty": 0.0,
+     "client_id": ""
+    }
+   },
+   {
+    "raw": {
+     "id": "",
+     "venue_order_id": "v9",
+     "status": "",
+     "state": "Rejected"
+    },
+    "ok": {
+     "order_id": "v9",
+     "status": "rejected",
+     "filled": false,
+     "base_qty": 0.0,
+     "quote": 0.0,
+     "avg_price": null,
+     "price": null,
+     "fee": 0.0,
+     "fee_asset": null,
+     "side": "",
+     "qty": 0.0,
+     "client_id": ""
+    }
+   },
+   {
+    "raw": [
+     "not",
+     "a",
+     "dict"
+    ],
+    "ok": {
+     "order_id": "",
+     "status": "",
+     "filled": false,
+     "base_qty": 0.0,
+     "quote": 0.0,
+     "avg_price": null,
+     "price": null,
+     "fee": 0.0,
+     "fee_asset": null,
+     "side": "",
+     "qty": 0.0,
+     "client_id": ""
+    }
+   }
+  ]
+ }
+}
