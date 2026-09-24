@@ -13,7 +13,7 @@ categories = ["finance", "api-bindings"]
 documentation = "https://docs.rs/rungbot-exec"
 
 [dependencies]
-rungbot-core = { path = "../rungbot-core", version = "0.5.5" }
+rungbot-core = { path = "../rungbot-core", version = "0.5.6" }
 serde = { workspace = true }
 # float_roundtrip: parse every float to the nearest double, as the reference does.
 # The default parser can land one ulp off, and journal amounts must read back exactly.
