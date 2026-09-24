@@ -30,6 +30,7 @@ rungbot-exec — opt-in live execution for rungbot.
 It places GTC limit orders from a plan, and reads back what the venues did.
 
 USAGE:
+  rungbot-exec run       [--config FILE] [--dry-run] [--verbose]
   rungbot-exec status    [--pair PAIR --venue V]
   rungbot-exec plan      --from PLAN.json --budget N --pair-map SYM=PAIR,...
   rungbot-exec sync      --from PLAN.json --budget N --pair-map SYM=PAIR,...
@@ -37,8 +38,15 @@ USAGE:
   rungbot-exec reconcile
   rungbot-exec cancel    --pair PAIR [--venue V] [--live --i-understand]
   rungbot-exec archive   [--days N]
-  rungbot-exec import-cex DIR [--write [--force]]
+  rungbot-exec import-cex DIR [--write [--force]] | --config
   rungbot-exec keys      check [--venue V]
+
+RUN (the 30-minute cycle; see contrib/rungbot-run.example.yaml):
+  --config FILE      the run's one config file (default ~/.config/rungbot/run.yaml,
+                     or RUNGBOT_RUN_CONFIG)
+  --dry-run          place nothing, save nothing, send nothing; print what it would send
+  --verbose          print every coin, the new rungs and every result (implied by
+                     --dry-run)
 
 REQUIRED for plan and sync:
   --from FILE        a plan from `rungbot plan --json`
@@ -56,6 +64,9 @@ OPTIONS:
   --write            import-cex: write the journal and the run state (ladder state,
                      P&L ledger, stale-order flags) beside it (default: a dry run)
   --force            import-cex: replace a journal that already holds rows
+  --config           import-cex: print the run config the bot in DIR runs with (its
+                     module defaults and its cron wrapper's exports) as YAML, and
+                     write nothing. It holds personal values: keep it out of any repo
   --max-order N      per-order cap in quote currency (default 50)
   --max-daily N      daily notional cap (default 200)
   --max-orders N     daily order count cap (default 10)
@@ -101,7 +112,8 @@ impl Args {
             }
             let takes = matches!(
                 bare,
-                "from"
+                "config"
+                    | "from"
                     | "journal"
                     | "venue"
                     | "days"
@@ -273,6 +285,7 @@ fn main() -> ExitCode {
     };
 
     let r = match args.cmd.as_str() {
+        "run" => return cmd_run(&args),
         "status" => cmd_status(&args),
         "plan" => cmd_plan(&args),
         "sync" => cmd_sync(&args),
@@ -285,6 +298,65 @@ fn main() -> ExitCode {
     };
     match r {
         Ok(()) => ExitCode::SUCCESS,
+        Err(e) => {
+            eprintln!("{e}");
+            ExitCode::from(1)
+        }
+    }
+}
+
+/// One 30-minute cycle. Exit 0 on a clean run or a skipped one (the lock was held),
+/// 1 when prices failed outright or the state could not be read.
+fn cmd_run(args: &Args) -> ExitCode {
+    use rungbot_exec::run::{self, config::RunConfig, hooks, market::PublicMarket};
+    let path = match args.get("config") {
+        Some(p) => PathBuf::from(p),
+        None => match std::env::var("RUNGBOT_RUN_CONFIG") {
+            Ok(v) if !v.trim().is_empty() => PathBuf::from(v),
+            _ => config_dir().join("run.yaml"),
+        },
+    };
+    let cfg = match RunConfig::load(&path) {
+        Ok(c) => c,
+        Err(e) => {
+            eprintln!("{e}");
+            return ExitCode::from(1);
+        }
+    };
+    let notifier = serde_json::from_value::<rungbot_notify::Notifier>(if cfg.notify.is_null() {
+        serde_json::json!({})
+    } else {
+        cfg.notify.clone()
+    });
+    let notifier = match notifier {
+        Ok(n) => n.with_env_overrides(),
+        Err(e) => {
+            eprintln!("{}: notify: {e}", path.display());
+            return ExitCode::from(1);
+        }
+    };
+    let clients = Clients::new();
+    let market = PublicMarket::default();
+    let (mut deploy, mut audit) = (hooks::NoDeploy, hooks::NoAudit);
+    let (mut out, mut err) = (std::io::stdout(), std::io::stderr());
+    let mut deps = run::Deps {
+        venues: &clients,
+        market: &market,
+        outbox: &notifier,
+        deploy: &mut deploy,
+        audit: &mut audit,
+        clock: &now,
+        sleep: &|s| std::thread::sleep(Duration::from_secs_f64(s)),
+        out: &mut out,
+        err: &mut err,
+    };
+    let flags = run::Flags {
+        dry_run: args.has("dry-run"),
+        verbose: args.has("verbose"),
+    };
+    match run::run_locked(&cfg, flags, &mut deps) {
+        Ok(0) => ExitCode::SUCCESS,
+        Ok(code) => ExitCode::from(code as u8),
         Err(e) => {
             eprintln!("{e}");
             ExitCode::from(1)
@@ -800,6 +872,13 @@ fn cmd_import(args: &Args) -> Result<(), String> {
     let dir = args
         .get("sub")
         .ok_or_else(|| "usage: rungbot-exec import-cex DIR [--write [--force]]".to_string())?;
+    if args.has("config") {
+        print!(
+            "{}",
+            rungbot_exec::run::cexconfig::generate(Path::new(dir))?
+        );
+        return Ok(());
+    }
     let imported = import::read_dir(Path::new(dir))?;
     for line in imported.report.lines() {
         println!("{line}");
@@ -830,6 +909,9 @@ fn cmd_import(args: &Args) -> Result<(), String> {
         (store::LADDER_FILE, imported.ladder.is_some()),
         (store::PNL_FILE, imported.pnl.is_some()),
         (store::TTL_FILE, imported.ttl.is_some()),
+        (import::DECISIONS_FILE, imported.decisions.is_some()),
+        (import::NOTICES_FILE, imported.notices.is_some()),
+        (import::BTC_ALERT_FILE, imported.btc_alert.is_some()),
     ] {
         if present {
             println!("wrote {}", store::sibling(&jpath, name).display());

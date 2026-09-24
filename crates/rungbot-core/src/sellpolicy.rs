@@ -25,10 +25,17 @@
 //! Pure: no clock, no I/O. `now` gates the trail to one evaluation per UTC day; pass
 //! `None` to evaluate every call, which is what a replay over daily data wants.
 
+use std::collections::BTreeMap;
+
 use serde::{Deserialize, Serialize};
 
-use crate::fmt::g;
+use crate::fmt::py_g;
 use crate::time::utc_day;
+
+/// `%g`: six significant digits, the way every number in a reason line is printed.
+fn g(v: f64) -> String {
+    py_g(v, 6)
+}
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct SellPolicyConfig {
@@ -56,6 +63,12 @@ pub struct SellPolicyConfig {
     /// Empty by default. A large-cap that whipsaws through its own trail is the case
     /// this exists for; which coins those are is yours to decide, not the tool's.
     pub no_base_trail: Vec<String>,
+    /// Per-coin override of `giveback_pct` (an unarmed first hit).
+    #[serde(default)]
+    pub giveback: BTreeMap<String, f64>,
+    /// Per-coin override of `trail_arm_mult`.
+    #[serde(default)]
+    pub trail_arm: BTreeMap<String, f64>,
 }
 
 impl Default for SellPolicyConfig {
@@ -72,6 +85,8 @@ impl Default for SellPolicyConfig {
             trail_arm_mult: 2.0,
             no_tranche: Vec::new(),
             no_base_trail: Vec::new(),
+            giveback: BTreeMap::new(),
+            trail_arm: BTreeMap::new(),
         }
     }
 }
@@ -85,12 +100,20 @@ impl SellPolicyConfig {
         !self.no_base_trail.iter().any(|s| s == sym)
     }
 
-    fn giveback_for(&self, armed: bool) -> f64 {
+    fn giveback_for(&self, sym: &str, armed: bool) -> f64 {
         if armed {
             self.armed_giveback_pct
         } else {
-            self.giveback_pct
+            self.giveback.get(sym).copied().unwrap_or(self.giveback_pct)
         }
+    }
+
+    /// The multiple of cost at which `sym`'s trail arms by itself.
+    pub fn trail_arm_for(&self, sym: &str) -> f64 {
+        self.trail_arm
+            .get(sym)
+            .copied()
+            .unwrap_or(self.trail_arm_mult)
     }
 }
 
@@ -111,6 +134,9 @@ pub struct BullState {
     pub hits: u32,
     /// The UTC day the trail was last evaluated, so it runs once a day.
     pub trail_day: Option<String>,
+    /// When the policy first took the coin over (epoch seconds), when known.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub since: Option<f64>,
 }
 
 impl BullState {
@@ -125,6 +151,7 @@ impl BullState {
             trail_on: false,
             hits: 0,
             trail_day: None,
+            since: None,
         }
     }
 }
@@ -157,9 +184,10 @@ pub fn decide(
     cfg: &SellPolicyConfig,
 ) -> (BullState, Vec<PolicySell>) {
     let start_price = price.unwrap_or(0.0);
-    let mut b = prev
-        .cloned()
-        .unwrap_or_else(|| BullState::fresh(start_price));
+    let mut b = prev.cloned().unwrap_or_else(|| BullState {
+        since: now,
+        ..BullState::fresh(start_price)
+    });
 
     let (Some(price), Some(cost)) = (price, cost.filter(|c| *c != 0.0)) else {
         return (b, Vec::new());
@@ -202,11 +230,11 @@ pub fn decide(
     if daily {
         b.trail_day = day;
         b.peak = b.peak.max(price);
-        if !b.trail_on && (armed || price >= cost * cfg.trail_arm_mult) {
+        if !b.trail_on && (armed || price >= cost * cfg.trail_arm_for(sym)) {
             b.trail_on = true; // an arm IS the arming
         }
 
-        let mut gb = cfg.giveback_for(armed);
+        let mut gb = cfg.giveback_for(sym, armed);
         if !armed && b.hits > 0 && cfg.has_base_trail(sym) {
             gb = cfg.giveback_next_pct; // the fall is confirmed: sell harder
         }
@@ -239,9 +267,10 @@ pub fn decide(
                     format!(" -> core {}% kept", g(cfg.core_pct))
                 } else {
                     format!(
-                        ", slice {}% (hit {}), re-armed at {price:.6}",
+                        ", slice {}% (hit {}), re-armed at {}",
                         g(pct),
-                        b.hits
+                        b.hits,
+                        g(price)
                     )
                 };
                 sells.push(PolicySell {
@@ -253,10 +282,10 @@ pub fn decide(
                         90 + (b.hits.min(8) as i64)
                     },
                     reason: format!(
-                        "{}trail: {}% below peak {:.6}{tail}",
+                        "{}trail: {}% below peak {}{tail}",
                         if armed { "ARMED " } else { "" },
                         g(gb),
-                        b.peak
+                        g(b.peak)
                     ),
                 });
                 if !b.exited {
@@ -275,41 +304,42 @@ pub fn decide(
 }
 
 /// One line describing where a coin stands under the policy.
+///
+/// The tranches taken print as a list, `['4x', '8x']`, or `none`.
 pub fn describe(sym: &str, b: &BullState, cost: f64, cfg: &SellPolicyConfig) -> String {
     let done = if b.tranches.is_empty() {
         "none".to_string()
     } else {
-        b.tranches
-            .iter()
-            .map(|t| format!("{}x", g(*t)))
-            .collect::<Vec<_>>()
-            .join(", ")
+        let items: Vec<String> = b.tranches.iter().map(|t| format!("'{}x'", g(*t))).collect();
+        format!("[{}]", items.join(", "))
     };
     if !cfg.has_base_trail(sym) {
         return format!(
-            "{sym}: bull policy, no base trail; armed one-shot exit {}% below peak. \
-             peak {:.6}, remaining {}%",
+            "{sym}: bull policy, no base trail; armed one-shot exit {}% below peak when froth \
+             signals or the manual arm file fire; peak {}, remaining {}%",
             g(cfg.armed_giveback_pct),
-            b.peak,
+            g(b.peak),
             g(b.remaining)
         );
     }
     if !b.trail_on {
+        let arm = cfg.trail_arm_for(sym);
         return format!(
-            "{sym}: bull policy, trail not armed (arms at {}x cost = {:.6}), \
+            "{sym}: bull policy, trail not armed (arms at {}x cost = {}), \
              remaining {}%, tranches done {done}",
-            g(cfg.trail_arm_mult),
-            cost * cfg.trail_arm_mult,
+            g(arm),
+            g(cost * arm),
             g(b.remaining)
         );
     }
-    let gb = b.gb.unwrap_or(cfg.giveback_pct);
+    let gb = b.gb.filter(|v| *v != 0.0).unwrap_or(cfg.giveback_pct);
     let lvl = b.peak * (1.0 - gb / 100.0);
     format!(
-        "{sym}: bull policy, peak {:.6}, trail {}% -> exit below {lvl:.6}, \
+        "{sym}: bull policy, peak {}, trail {}% -> exit below {}, \
          remaining {}% of original, tranches done {done}{}{}",
-        b.peak,
-        g(gb),
+        g(b.peak),
+        g(b.gb.unwrap_or(gb)),
+        g(lvl),
         g(b.remaining),
         if b.exited { ", EXITED to core" } else { "" },
         if b.held_below_floor {

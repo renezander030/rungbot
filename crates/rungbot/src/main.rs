@@ -354,6 +354,7 @@ fn build_steer(cfg: &config_file::CliConfig, r: &rg::Regime, args: &Args) -> Ste
         policy_coins,
         armed,
         trail_coins: r.running_syms().into_iter().map(String::from).collect(),
+        flat: Vec::new(),
     }
 }
 

@@ -33,6 +33,7 @@ pub mod keys;
 pub mod pyfmt;
 pub mod reconcile;
 pub mod revx;
+pub mod run;
 pub mod sellcheck;
 pub mod store;
 #[cfg(test)]

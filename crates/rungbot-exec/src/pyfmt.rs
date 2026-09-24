@@ -69,34 +69,7 @@ pub fn fixed_stripped(x: f64, prec: usize) -> String {
 /// for decimal exponents from -4 up to `prec - 1` and scientific outside that (`1.5e-05`,
 /// `1.23457e+08`), trailing zeros and a bare point removed.
 pub fn g(x: f64, prec: usize) -> String {
-    if x.is_nan() {
-        return "nan".into();
-    }
-    if x.is_infinite() {
-        return if x > 0.0 { "inf" } else { "-inf" }.into();
-    }
-    if x == 0.0 {
-        return if x.is_sign_negative() { "-0" } else { "0" }.into();
-    }
-    let p = prec.max(1);
-    // Round to `p` significant digits once; the exponent of that rounding picks the
-    // notation, which is how Python picks it.
-    let sci = format!("{:.*e}", p - 1, x);
-    let (mant, exp) = sci.split_once('e').expect("{:e} always has an exponent");
-    let exp: i32 = exp.parse().expect("integer exponent");
-    let strip = |s: &str| -> String {
-        if s.contains('.') {
-            s.trim_end_matches('0').trim_end_matches('.').to_string()
-        } else {
-            s.to_string()
-        }
-    };
-    if (-4..p as i32).contains(&exp) {
-        strip(&format!("{:.*}", (p as i32 - 1 - exp) as usize, x))
-    } else {
-        let sign = if exp < 0 { '-' } else { '+' };
-        format!("{}e{sign}{:02}", strip(mant), exp.abs())
-    }
+    rungbot_core::fmt::py_g(x, prec)
 }
 
 /// `urllib.parse.urlencode(pairs)`: `quote_plus` on every key and value.
