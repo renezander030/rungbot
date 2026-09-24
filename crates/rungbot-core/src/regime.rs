@@ -101,7 +101,8 @@ pub fn sma(vals: &[f64]) -> Option<f64> {
     if vals.is_empty() {
         return None;
     }
-    Some(vals.iter().sum::<f64>() / vals.len() as f64)
+    // Python's compensated sum, so a mean sits on the same bit as the reference's.
+    Some(crate::watch::pyfmt::sum(vals.iter().copied()) / vals.len() as f64)
 }
 
 /// Is this coin running, and which signals said so?
