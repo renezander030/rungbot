@@ -2001,7 +2001,7 @@
   {
    "venue": "revx",
    "key": "rk-test-key",
-   "pem": "-----BEGIN PRIVATE KEY-----\nMC4CAQAwBQYDK2VwBCIEIECKBdEfjJgT5iztchmF5PrM8Wz2K6wfjlW9Bf6RCALh\n-----END PRIVATE KEY-----\n",
+   "pem": "-----BEGIN PRIVATE KEY-----\nMC4CAQAwBQYDK2VwBCIEIMrskphxkbNE/63lZ9xhePynD5nv+GZxB1bEUz9kZqvw\n-----END PRIVATE KEY-----\n",
    "steps": [
     {
      "call": "balances",
@@ -2020,7 +2020,7 @@
        "headers": {
         "x-revx-api-key": "rk-test-key",
         "x-revx-timestamp": "1700000000250",
-        "x-revx-signature": "vjD5kgqmo7+f0PskJ0MvIOAdNQAJg6a3FL/hKGSXdQfnH9N+jnr7nR6xgAXfWxR1s5aolaoIgJznlxxVO122DA=="
+        "x-revx-signature": "Up08t3lPuaQqSfcrpq4RqoXKwsvdrkDHKA4MHgwTBEL8V0FBSmI6PxIakUvBFJMhtBMixN9InUv4Pc9sqIx0Cw=="
        },
        "body": null,
        "timeout": 15
@@ -2048,7 +2048,7 @@
        "headers": {
         "x-revx-api-key": "rk-test-key",
         "x-revx-timestamp": "1700000000250",
-        "x-revx-signature": "vjD5kgqmo7+f0PskJ0MvIOAdNQAJg6a3FL/hKGSXdQfnH9N+jnr7nR6xgAXfWxR1s5aolaoIgJznlxxVO122DA=="
+        "x-revx-signature": "Up08t3lPuaQqSfcrpq4RqoXKwsvdrkDHKA4MHgwTBEL8V0FBSmI6PxIakUvBFJMhtBMixN9InUv4Pc9sqIx0Cw=="
        },
        "body": null,
        "timeout": 15
@@ -2078,7 +2078,7 @@
        "headers": {
         "x-revx-api-key": "rk-test-key",
         "x-revx-timestamp": "1700000000250",
-        "x-revx-signature": "vjD5kgqmo7+f0PskJ0MvIOAdNQAJg6a3FL/hKGSXdQfnH9N+jnr7nR6xgAXfWxR1s5aolaoIgJznlxxVO122DA=="
+        "x-revx-signature": "Up08t3lPuaQqSfcrpq4RqoXKwsvdrkDHKA4MHgwTBEL8V0FBSmI6PxIakUvBFJMhtBMixN9InUv4Pc9sqIx0Cw=="
        },
        "body": null,
        "timeout": 15
@@ -2102,7 +2102,7 @@
        "headers": {
         "x-revx-api-key": "rk-test-key",
         "x-revx-timestamp": "1700000000250",
-        "x-revx-signature": "vjD5kgqmo7+f0PskJ0MvIOAdNQAJg6a3FL/hKGSXdQfnH9N+jnr7nR6xgAXfWxR1s5aolaoIgJznlxxVO122DA=="
+        "x-revx-signature": "Up08t3lPuaQqSfcrpq4RqoXKwsvdrkDHKA4MHgwTBEL8V0FBSmI6PxIakUvBFJMhtBMixN9InUv4Pc9sqIx0Cw=="
        },
        "body": null,
        "timeout": 15
@@ -3069,7 +3069,7 @@
        "headers": {
         "x-revx-api-key": "rk-test-key",
         "x-revx-timestamp": "1700000000250",
-        "x-revx-signature": "vDBYBRzr8+kQ7kZoP6CZ3qXpveqa7g/wBQP1utsCNQ0yi+jvW2ArdCv2lKuNAIMOCD1NfnLFHlb+zMTurD14AA=="
+        "x-revx-signature": "+EYQRYsfyoiZVF1XwZz98au5DXaqx1Uvv7No8PUZSVs4s6e5dgZG2h/rsdQA22vCcVXEF4/sG6dD5Uua/7vlBQ=="
        },
        "body": null,
        "timeout": 15
@@ -3080,7 +3080,7 @@
        "headers": {
         "x-revx-api-key": "rk-test-key",
         "x-revx-timestamp": "1700000000250",
-        "x-revx-signature": "RflQOj2akX5Jlhm0V1D3YjIc97Hef9mYPE0uB21BD6xWMkNZQiFQ/z42KjNLFqX11nrCMZP3ZswdP8aO9XYqAA=="
+        "x-revx-signature": "wsEo/+JgYzJDosoYy3RqBRX66LJHogjZVvDwSJHAv8MMCMnQ3NhYmEr8UaDEUhK7/G4vd2/5fF9ypsCOC4mpCA=="
        },
        "body": null,
        "timeout": 15
@@ -3172,7 +3172,7 @@
        "headers": {
         "x-revx-api-key": "rk-test-key",
         "x-revx-timestamp": "1700000000250",
-        "x-revx-signature": "vDBYBRzr8+kQ7kZoP6CZ3qXpveqa7g/wBQP1utsCNQ0yi+jvW2ArdCv2lKuNAIMOCD1NfnLFHlb+zMTurD14AA=="
+        "x-revx-signature": "+EYQRYsfyoiZVF1XwZz98au5DXaqx1Uvv7No8PUZSVs4s6e5dgZG2h/rsdQA22vCcVXEF4/sG6dD5Uua/7vlBQ=="
        },
        "body": null,
        "timeout": 15
@@ -3183,7 +3183,7 @@
        "headers": {
         "x-revx-api-key": "rk-test-key",
         "x-revx-timestamp": "1700000000250",
-        "x-revx-signature": "pnbpa1XHtuEphsijGAE7klMO2rFXdeBrYAmnzKaKFjvccw2Vq9WcbsAnHvIn8xZEZlO9axSqCuvIeM5DIgduAA=="
+        "x-revx-signature": "r/712i8Bv/cjF9itj2TgGbgo42/bS4vjhfxrEmDoA1KrOqLvKGgmiyR1b0OzJ4Uz2z293/95dxUve3QgjVk/Ag=="
        },
        "body": null,
        "timeout": 15
@@ -3194,7 +3194,7 @@
        "headers": {
         "x-revx-api-key": "rk-test-key",
         "x-revx-timestamp": "1700000000250",
-        "x-revx-signature": "pnbpa1XHtuEphsijGAE7klMO2rFXdeBrYAmnzKaKFjvccw2Vq9WcbsAnHvIn8xZEZlO9axSqCuvIeM5DIgduAA=="
+        "x-revx-signature": "r/712i8Bv/cjF9itj2TgGbgo42/bS4vjhfxrEmDoA1KrOqLvKGgmiyR1b0OzJ4Uz2z293/95dxUve3QgjVk/Ag=="
        },
        "body": null,
        "timeout": 15
@@ -3205,7 +3205,7 @@
        "headers": {
         "x-revx-api-key": "rk-test-key",
         "x-revx-timestamp": "1700000000250",
-        "x-revx-signature": "pnbpa1XHtuEphsijGAE7klMO2rFXdeBrYAmnzKaKFjvccw2Vq9WcbsAnHvIn8xZEZlO9axSqCuvIeM5DIgduAA=="
+        "x-revx-signature": "r/712i8Bv/cjF9itj2TgGbgo42/bS4vjhfxrEmDoA1KrOqLvKGgmiyR1b0OzJ4Uz2z293/95dxUve3QgjVk/Ag=="
        },
        "body": null,
        "timeout": 15
@@ -3216,7 +3216,7 @@
        "headers": {
         "x-revx-api-key": "rk-test-key",
         "x-revx-timestamp": "1700000000250",
-        "x-revx-signature": "pnbpa1XHtuEphsijGAE7klMO2rFXdeBrYAmnzKaKFjvccw2Vq9WcbsAnHvIn8xZEZlO9axSqCuvIeM5DIgduAA=="
+        "x-revx-signature": "r/712i8Bv/cjF9itj2TgGbgo42/bS4vjhfxrEmDoA1KrOqLvKGgmiyR1b0OzJ4Uz2z293/95dxUve3QgjVk/Ag=="
        },
        "body": null,
        "timeout": 15
@@ -3227,7 +3227,7 @@
        "headers": {
         "x-revx-api-key": "rk-test-key",
         "x-revx-timestamp": "1700000000250",
-        "x-revx-signature": "pnbpa1XHtuEphsijGAE7klMO2rFXdeBrYAmnzKaKFjvccw2Vq9WcbsAnHvIn8xZEZlO9axSqCuvIeM5DIgduAA=="
+        "x-revx-signature": "r/712i8Bv/cjF9itj2TgGbgo42/bS4vjhfxrEmDoA1KrOqLvKGgmiyR1b0OzJ4Uz2z293/95dxUve3QgjVk/Ag=="
        },
        "body": null,
        "timeout": 15
@@ -3238,7 +3238,7 @@
        "headers": {
         "x-revx-api-key": "rk-test-key",
         "x-revx-timestamp": "1700000000250",
-        "x-revx-signature": "pnbpa1XHtuEphsijGAE7klMO2rFXdeBrYAmnzKaKFjvccw2Vq9WcbsAnHvIn8xZEZlO9axSqCuvIeM5DIgduAA=="
+        "x-revx-signature": "r/712i8Bv/cjF9itj2TgGbgo42/bS4vjhfxrEmDoA1KrOqLvKGgmiyR1b0OzJ4Uz2z293/95dxUve3QgjVk/Ag=="
        },
        "body": null,
        "timeout": 15
@@ -3249,7 +3249,7 @@
        "headers": {
         "x-revx-api-key": "rk-test-key",
         "x-revx-timestamp": "1700000000250",
-        "x-revx-signature": "pnbpa1XHtuEphsijGAE7klMO2rFXdeBrYAmnzKaKFjvccw2Vq9WcbsAnHvIn8xZEZlO9axSqCuvIeM5DIgduAA=="
+        "x-revx-signature": "r/712i8Bv/cjF9itj2TgGbgo42/bS4vjhfxrEmDoA1KrOqLvKGgmiyR1b0OzJ4Uz2z293/95dxUve3QgjVk/Ag=="
        },
        "body": null,
        "timeout": 15
@@ -3260,7 +3260,7 @@
        "headers": {
         "x-revx-api-key": "rk-test-key",
         "x-revx-timestamp": "1700000000250",
-        "x-revx-signature": "pnbpa1XHtuEphsijGAE7klMO2rFXdeBrYAmnzKaKFjvccw2Vq9WcbsAnHvIn8xZEZlO9axSqCuvIeM5DIgduAA=="
+        "x-revx-signature": "r/712i8Bv/cjF9itj2TgGbgo42/bS4vjhfxrEmDoA1KrOqLvKGgmiyR1b0OzJ4Uz2z293/95dxUve3QgjVk/Ag=="
        },
        "body": null,
        "timeout": 15
@@ -3271,7 +3271,7 @@
        "headers": {
         "x-revx-api-key": "rk-test-key",
         "x-revx-timestamp": "1700000000250",
-        "x-revx-signature": "pnbpa1XHtuEphsijGAE7klMO2rFXdeBrYAmnzKaKFjvccw2Vq9WcbsAnHvIn8xZEZlO9axSqCuvIeM5DIgduAA=="
+        "x-revx-signature": "r/712i8Bv/cjF9itj2TgGbgo42/bS4vjhfxrEmDoA1KrOqLvKGgmiyR1b0OzJ4Uz2z293/95dxUve3QgjVk/Ag=="
        },
        "body": null,
        "timeout": 15
@@ -3299,7 +3299,7 @@
        "headers": {
         "x-revx-api-key": "rk-test-key",
         "x-revx-timestamp": "1700000000250",
-        "x-revx-signature": "QvieW6gZQ/mW4r4lBvD5scesUJeVkE6Fxfa/FkQ6iKMvTfbzKP/WuUFVOs4z/NboBpc+p33dOQRX0MQVZiOTBw=="
+        "x-revx-signature": "a1AyFQepJIcWZXKu3NIkBP3TXFytq7rBOZnl60d3fnx4yCr5PY0GFZ5uZGSfuFqGlryv5xz2/q90qMel8nPICw=="
        },
        "body": null,
        "timeout": 15
@@ -3340,7 +3340,7 @@
        "headers": {
         "x-revx-api-key": "rk-test-key",
         "x-revx-timestamp": "1700000000250",
-        "x-revx-signature": "MNUVhtMuXu/bQoGMqMZsM7SYh+hQON5itiDbb9nzGhE6Mwckgz+SfMMf7U2BpCygFM48eb7wcqfo3eCDP1KDCw=="
+        "x-revx-signature": "y9yqsH+dEeqok4ErW18fUQPC+6pHnu43NyKzm8Kr9MaJU+ShInRja7brVM6xfeMSGgjEDJd+wWG1qqpbXF4rDw=="
        },
        "body": null,
        "timeout": 15
@@ -3381,7 +3381,7 @@
        "headers": {
         "x-revx-api-key": "rk-test-key",
         "x-revx-timestamp": "1700000000250",
-        "x-revx-signature": "MNUVhtMuXu/bQoGMqMZsM7SYh+hQON5itiDbb9nzGhE6Mwckgz+SfMMf7U2BpCygFM48eb7wcqfo3eCDP1KDCw=="
+        "x-revx-signature": "y9yqsH+dEeqok4ErW18fUQPC+6pHnu43NyKzm8Kr9MaJU+ShInRja7brVM6xfeMSGgjEDJd+wWG1qqpbXF4rDw=="
        },
        "body": null,
        "timeout": 15
@@ -3422,7 +3422,7 @@
        "headers": {
         "x-revx-api-key": "rk-test-key",
         "x-revx-timestamp": "1700000000250",
-        "x-revx-signature": "MNUVhtMuXu/bQoGMqMZsM7SYh+hQON5itiDbb9nzGhE6Mwckgz+SfMMf7U2BpCygFM48eb7wcqfo3eCDP1KDCw=="
+        "x-revx-signature": "y9yqsH+dEeqok4ErW18fUQPC+6pHnu43NyKzm8Kr9MaJU+ShInRja7brVM6xfeMSGgjEDJd+wWG1qqpbXF4rDw=="
        },
        "body": null,
        "timeout": 15
@@ -3455,7 +3455,7 @@
        "headers": {
         "x-revx-api-key": "rk-test-key",
         "x-revx-timestamp": "1700000000250",
-        "x-revx-signature": "n//is/5kq0hMIAE8Mi2fdLsfI0Hj6q8cvgN7MG5Nw9lF19EXHYphLrBDiZ/uPAvV6KUI8MnBhrGzECTC5uk2DA==",
+        "x-revx-signature": "RB03H8dtHOvAjtSPTm5WozdVDRa+6UbmavFHqupEunBhFsuhG7Tevxe1bUePFdAfiecmxiJmVAgs6EanoklFCQ==",
         "content-type": "application/json"
        },
        "body": "{\"client_order_id\":\"25f4ab4f-7df6-5237-b1ec-b1cdf19d2eac\",\"symbol\":\"AAA-USD\",\"side\":\"buy\",\"order_configuration\":{\"market\":{\"quote_size\":\"25.00\"}}}",
@@ -3467,7 +3467,7 @@
        "headers": {
         "x-revx-api-key": "rk-test-key",
         "x-revx-timestamp": "1700000000250",
-        "x-revx-signature": "Fv1RRv4OYlMOuvFEGoIUddBrMYU6eUfQI8gDeAuqGhjbaZ7YZ6ctDLbdFqT6lWyiqPGQYcQ9Pp70BNLWEYOFDA=="
+        "x-revx-signature": "TRrwRrtmbXZSCIDxSN3uOvYLAG4edGw8ggfUWtQoi1WmrwcYanhS5FVtMzQpVDFAS+WLH+zLUlzPAtZ3vUgjBQ=="
        },
        "body": null,
        "timeout": 15
@@ -3513,7 +3513,7 @@
        "headers": {
         "x-revx-api-key": "rk-test-key",
         "x-revx-timestamp": "1700000000250",
-        "x-revx-signature": "Vbogh6iS6eIYkUh2KZHED2ojeHajvz4A0eNtxu3ABdzIUvk0cFR9il5y0x4/UrUjY98yKMrrOC4nn/9ao/f3DA==",
+        "x-revx-signature": "QdstdcMR2jJGP5a/0Bhi+igcOh8SN6PB2EtG+9pOZt18/R5+IvE0GQCMXmyYpOFSlvrFMD71BEpBpk0qyD5YBg==",
         "content-type": "application/json"
        },
        "body": "{\"client_order_id\":\"3c1dbd94-aef6-5fb5-afe7-758142b95460\",\"symbol\":\"AAA-USD\",\"side\":\"sell\",\"order_configuration\":{\"market\":{\"base_size\":\"3.14\"}}}",
@@ -3525,7 +3525,7 @@
        "headers": {
         "x-revx-api-key": "rk-test-key",
         "x-revx-timestamp": "1700000000250",
-        "x-revx-signature": "Fv1RRv4OYlMOuvFEGoIUddBrMYU6eUfQI8gDeAuqGhjbaZ7YZ6ctDLbdFqT6lWyiqPGQYcQ9Pp70BNLWEYOFDA=="
+        "x-revx-signature": "TRrwRrtmbXZSCIDxSN3uOvYLAG4edGw8ggfUWtQoi1WmrwcYanhS5FVtMzQpVDFAS+WLH+zLUlzPAtZ3vUgjBQ=="
        },
        "body": null,
        "timeout": 15
@@ -3567,7 +3567,7 @@
        "headers": {
         "x-revx-api-key": "rk-test-key",
         "x-revx-timestamp": "1700000000250",
-        "x-revx-signature": "n6DEX0eX+wnY4OUwsduDf73nXyXfp6x2C0KHApHjN0Yhr4hL04WmjaGE8o74+5NlTDWD7wxzO/hW9Wln58DAAQ==",
+        "x-revx-signature": "+GuCiN6Rjg8b2Y/7Rq4eJtx+rx6SOlK2Dvo1Tv3Cgfl/tChV/mYEASL3tWXsK8g+ujGCQTJwhsVjF/E3ITFgDA==",
         "content-type": "application/json"
        },
        "body": "{\"client_order_id\":\"0fd24475-5c1a-5285-9a5c-de07a56bdc32\",\"symbol\":\"AAA-USD\",\"side\":\"buy\",\"order_configuration\":{\"market\":{\"quote_size\":\"10.00\"}}}",
@@ -3615,7 +3615,7 @@
        "headers": {
         "x-revx-api-key": "rk-test-key",
         "x-revx-timestamp": "1700000000250",
-        "x-revx-signature": "SWLU/ic+TLbzlXxPXj3OU+QDjxjbNYKyK488P/zxI0ln2ghFXkzTmWtnlt6iLZd50uJETpyxxC4hqOJhpXMBBA==",
+        "x-revx-signature": "c/LHJ+AdKs67PLvINq5oSaI3oneM7ZJISt8WxRrNwkv4lwt/mZ88+HKWsfRzS2GTv0JUBhjKm2OuSyTiGxZjCQ==",
         "content-type": "application/json"
        },
        "body": "{\"client_order_id\":\"fc7766d2-6bff-5f76-8157-ec797584a557\",\"symbol\":\"AAA-USD\",\"side\":\"buy\",\"order_configuration\":{\"limit\":{\"base_size\":\"8.12\",\"price\":\"1.2345\"}}}",
@@ -3627,7 +3627,7 @@
        "headers": {
         "x-revx-api-key": "rk-test-key",
         "x-revx-timestamp": "1700000000250",
-        "x-revx-signature": "Fv1RRv4OYlMOuvFEGoIUddBrMYU6eUfQI8gDeAuqGhjbaZ7YZ6ctDLbdFqT6lWyiqPGQYcQ9Pp70BNLWEYOFDA=="
+        "x-revx-signature": "TRrwRrtmbXZSCIDxSN3uOvYLAG4edGw8ggfUWtQoi1WmrwcYanhS5FVtMzQpVDFAS+WLH+zLUlzPAtZ3vUgjBQ=="
        },
        "body": null,
        "timeout": 15
@@ -3674,7 +3674,7 @@
        "headers": {
         "x-revx-api-key": "rk-test-key",
         "x-revx-timestamp": "1700000000250",
-        "x-revx-signature": "FqeBBYhbWy0W7IIXZCEH7Pah+oNGOcVbxmIREcPiJ8ZIFRj0YmYV5d3i4WvZAXZNoVtz+ulbvmhPb48Rrr76Bg==",
+        "x-revx-signature": "q5+CDovK7dDAAg2un4NrZ++UMwwUGF0guMFP4Sa3YfclEHkuRMZl2b0QIvGIaJ57y91WOuJsLf3XjIBPlH9DAg==",
         "content-type": "application/json"
        },
        "body": "{\"client_order_id\":\"12345678-1234-5678-1234-567812345678\",\"symbol\":\"BTC-USD\",\"side\":\"sell\",\"order_configuration\":{\"limit\":{\"base_size\":\"0.01234567\",\"price\":\"51234.56\"}}}",
@@ -3686,7 +3686,7 @@
        "headers": {
         "x-revx-api-key": "rk-test-key",
         "x-revx-timestamp": "1700000000250",
-        "x-revx-signature": "Fv1RRv4OYlMOuvFEGoIUddBrMYU6eUfQI8gDeAuqGhjbaZ7YZ6ctDLbdFqT6lWyiqPGQYcQ9Pp70BNLWEYOFDA=="
+        "x-revx-signature": "TRrwRrtmbXZSCIDxSN3uOvYLAG4edGw8ggfUWtQoi1WmrwcYanhS5FVtMzQpVDFAS+WLH+zLUlzPAtZ3vUgjBQ=="
        },
        "body": null,
        "timeout": 15
@@ -3729,7 +3729,7 @@
        "headers": {
         "x-revx-api-key": "rk-test-key",
         "x-revx-timestamp": "1700000000250",
-        "x-revx-signature": "/2LvTSJkgDwNvNe1JL8oVXBvx38owyxd28JLWDqVrZIh08bUBUOFICkTsUxL5pKULTI6bSTEgiDsm5V0eldVAw==",
+        "x-revx-signature": "hC356O08VlJiOt2CSUWF5EL6haIllSiDjrhv3BuiiVunW3wansVlSH4WMBbVztK0Eb6UdNLoCTohIW8cygyEBg==",
         "content-type": "application/json"
        },
        "body": "{\"client_order_id\":\"a375aaf1-4648-57ca-8b26-db75dffc3b08\",\"symbol\":\"AAA-USD\",\"side\":\"sell\",\"order_configuration\":{\"limit\":{\"base_size\":\"1\",\"price\":\"2\"}}}",

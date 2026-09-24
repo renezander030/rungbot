@@ -178,8 +178,11 @@ pub fn reconcile(j: &mut Journal, venues: &dyn VenueSource, now: f64) -> Reconci
         } else {
             o.status.clone()
         };
+        // A cancel that carries a fill (part-filled since the last poll) is never a resize
+        // to adopt: its fill is booked below, else it is lost and later reads as drift.
         if new_status != o.status
             && is_venue_cancelled_status(&new_status)
+            && st.base_qty.unwrap_or(0.0) == 0.0
             && !is_our_cancel(o.note.as_deref())
         {
             if let Some(adopted) = adopt_replacement(venue, o, &claimed, &mut cache, now) {
