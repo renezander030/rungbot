@@ -6,6 +6,12 @@
 //! the wrapper's, else the module default. The coin tables are module dicts
 //! (`WATCHLIST`, `NAMES`, `ENTRIES`, `ROUTING`, `REVX_KLINE_SRC`, `REVX_PAIRS`).
 //!
+//! The two rail files are carried over as paths, never left to this runtime's defaults:
+//! the halt file (`HALT_FILE`) and the manual sell-arm file (`SELL_ARM_FILE`). A halt
+//! file the operator touches must stop the new runtime as it stopped the old one. The
+//! source spells their defaults `str(Path.home() / ".config" / "name")`; they print as
+//! `~/.config/name`. A source whose halt file cannot be told is an error.
+//!
 //! [`generate`] reads all of that and prints the YAML. It writes nothing: the output
 //! carries personal values (addresses, cost basis, allocations) and belongs in the
 //! operator's own config file, never in a repository.
@@ -67,8 +73,10 @@ pub fn wrapper_values(sh: &str) -> BTreeMap<String, String> {
             // `${X:-{}}` leaves the closing brace of the default in place.
             let def = def.strip_suffix('}').unwrap_or(def);
             let def = match def.strip_prefix('$') {
-                Some(var) => vars.get(var).cloned().unwrap_or_default(),
-                None => def.to_string(),
+                Some(var) if var.chars().all(|c| c.is_ascii_uppercase() || c == '_') => {
+                    vars.get(var).cloned().unwrap_or_default()
+                }
+                _ => home_to_tilde(def),
             };
             out.insert(name.to_string(), def);
         } else if let Some((name, val)) = line.split_once('=') {
@@ -81,6 +89,44 @@ pub fn wrapper_values(sh: &str) -> BTreeMap<String, String> {
         }
     }
     out
+}
+
+/// `$HOME/x` or `${HOME}/x` as `~/x`; anything else as it is.
+fn home_to_tilde(s: &str) -> String {
+    for pre in ["$HOME/", "${HOME}/"] {
+        if let Some(rest) = s.strip_prefix(pre) {
+            return format!("~/{rest}");
+        }
+    }
+    s.to_string()
+}
+
+/// A path default the source builds from the home directory:
+/// `os.environ.get("NAME", str(Path.home() / ".config" / "x"))` gives `~/.config/x`.
+pub fn home_path_default(src: &str, name: &str) -> Option<String> {
+    for q in ["\"", "'"] {
+        let pat = format!("os.environ.get({q}{name}{q}");
+        let Some(i) = src.find(&pat) else {
+            continue;
+        };
+        let rest = src[i + pat.len()..].trim_start().strip_prefix(',')?;
+        let mut rest = rest
+            .trim_start()
+            .strip_prefix("str(")?
+            .trim_start()
+            .strip_prefix("Path.home()")?;
+        let mut parts = Vec::new();
+        while let Some(r) = rest.trim_start().strip_prefix('/') {
+            let (part, after) = quoted(r.trim_start())?;
+            parts.push(part);
+            rest = after;
+        }
+        if parts.is_empty() || !rest.trim_start().starts_with(')') {
+            return None;
+        }
+        return Some(format!("~/{}", parts.join("/")));
+    }
+    None
 }
 
 /// The `KEY: value` pairs of a module-level dict literal `NAME = { ... }`, in order.
@@ -267,6 +313,28 @@ pub fn generate(dir: &Path) -> Result<String, String> {
             y.push_str(&format!("{key}: {}\n", yq(v)));
         }
     }
+    // The rails: the halt file must be the one the operator already knows to touch.
+    for (key, var, required) in [
+        ("halt_file", "HALT_FILE", true),
+        ("sell_arm_file", "SELL_ARM_FILE", false),
+    ] {
+        let v = values
+            .get(var)
+            .map(|v| home_to_tilde(v))
+            .or_else(|| home_path_default(&py, var))
+            .filter(|v| !v.trim().is_empty());
+        match v {
+            Some(v) => y.push_str(&format!("{key}: {}\n", yq(&v))),
+            None if required => {
+                return Err(format!(
+                    "cannot tell which {var} the bot in {} honours; export {var} in its \
+                     cron wrapper and run this again",
+                    dir.display()
+                ))
+            }
+            None => {}
+        }
+    }
     y.push_str(&format!("mail_name: {}\n", yq(&bot)));
     if let Some(log) = sh
         .lines()
@@ -306,6 +374,8 @@ mod tests {
     use super::*;
 
     const PY: &str = r#"
+HALT_FILE = Path(os.environ.get("HALT_FILE", str(Path.home() / ".config" / "bot-halt")))
+MANUAL_ARM_FILE = Path(os.environ.get('SELL_ARM_FILE', str(Path.home() / '.config' / 'bot-armed')))
 FIRST_PCT = float(os.environ.get("FIRST_PCT", "10"))
 TRADE_MODE = os.environ.get("TRADE_MODE", "off").lower()
 X = os.environ.get('SELL_POLICY', 'auto')
@@ -370,5 +440,38 @@ export EMAIL_FROM="${EMAIL_FROM:-bot@example.com}"
             c.deploy_alloc,
             vec![("AAA".into(), 3.0), ("BBB".into(), 1.0)]
         );
+    }
+
+    fn generated(py: &str, sh: &str, tag: &str) -> Result<String, String> {
+        let d = std::env::temp_dir().join(format!("rungbot-cexcfg-{tag}-{}", std::process::id()));
+        std::fs::create_dir_all(&d).unwrap();
+        std::fs::write(d.join("bot.py"), py).unwrap();
+        std::fs::write(d.join("examplebot-cron.sh"), sh).unwrap();
+        let y = generate(&d);
+        let _ = std::fs::remove_dir_all(&d);
+        y
+    }
+
+    #[test]
+    fn the_rail_files_carry_over_as_the_source_honours_them() {
+        let y = generated(PY, SH, "rails").unwrap();
+        assert!(y.contains("halt_file: ~/.config/bot-halt\n"), "{y}");
+        assert!(y.contains("sell_arm_file: ~/.config/bot-armed\n"), "{y}");
+        let c = super::super::config::RunConfig::from_yaml(&y, &|_| None).unwrap();
+        let home = std::path::PathBuf::from(std::env::var("HOME").unwrap_or_else(|_| ".".into()));
+        assert_eq!(c.halt_file, home.join(".config/bot-halt"));
+        assert_eq!(c.sell_arm_file, home.join(".config/bot-armed"));
+
+        // The wrapper's export wins, `$HOME` included.
+        let sh = format!("{SH}export HALT_FILE=\"${{HALT_FILE:-$HOME/run/halt}}\"\n");
+        let y = generated(PY, &sh, "wrapper").unwrap();
+        assert!(y.contains("halt_file: ~/run/halt\n"), "{y}");
+    }
+
+    #[test]
+    fn a_source_whose_halt_file_cannot_be_told_is_an_error() {
+        let py = PY.replace("HALT_FILE", "OTHER_FILE");
+        let e = generated(&py, SH, "nohalt").unwrap_err();
+        assert!(e.contains("HALT_FILE"), "{e}");
     }
 }

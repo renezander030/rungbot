@@ -751,7 +751,7 @@
      "stable": {
       "binance": 50.0,
       "gate": 238.0,
-      "revx": 633.0
+      "revx": 505.0
      },
      "part": {},
      "offquote": {}
@@ -997,7 +997,7 @@
      "stable": {
       "binance": 50.0,
       "gate": 238.0,
-      "revx": 633.0
+      "revx": 505.0
      },
      "part": {},
      "offquote": {}
@@ -1325,7 +1325,7 @@
      "stable": {
       "binance": 50.0,
       "gate": 238.0,
-      "revx": 633.0
+      "revx": 505.0
      },
      "part": {},
      "offquote": {}
@@ -1603,7 +1603,7 @@
      "stable": {
       "binance": 50.0,
       "gate": 238.0,
-      "revx": 633.0
+      "revx": 505.0
      },
      "part": {},
      "offquote": {}
@@ -1882,7 +1882,7 @@
      "stable": {
       "binance": 50.0,
       "gate": 238.0,
-      "revx": 633.0
+      "revx": 505.0
      },
      "part": {},
      "offquote": {}
@@ -2177,7 +2177,7 @@
      "stable": {
       "binance": 50.0,
       "gate": 238.0,
-      "revx": 633.0
+      "revx": 505.0
      },
      "part": {},
      "offquote": {}
@@ -2496,7 +2496,7 @@
      "stable": {
       "binance": 50.0,
       "gate": 238.0,
-      "revx": 633.0
+      "revx": 505.0
      },
      "part": {},
      "offquote": {}
@@ -2508,7 +2508,7 @@
    "now": 1800000480.0,
    "expect": {
     "results": [],
-    "stdout": "state: <STATE>\nbaseline: {\"binance\": 50.0, \"gate\": 238.0, \"revx\": 633.0}  ts: 1799998200.0\nbinance  USDC: free $50.00  locked $0.00  total $50.00\ngate     USDT: free $238.00  locked $0.00  total $238.00\nrevx     USD: free $389.74  locked $-0.00  total $389.74\nopen deploy zones: 2\n  BBB   $30.00 @ $0 (market 30% of $100.00 tranche) status=new\n  AAA   $93.26 @ $0 (market 30% of $310.87 tranche) status=new\n",
+    "stdout": "state: <STATE>\nbaseline: {\"binance\": 50.0, \"gate\": 238.0, \"revx\": 505.0}  ts: 1799998200.0\nbinance  USDC: free $50.00  locked $0.00  total $50.00\ngate     USDT: free $238.00  locked $0.00  total $238.00\nrevx     USD: free $389.74  locked $-0.00  total $389.74\nopen deploy zones: 2\n  BBB   $30.00 @ $0 (market 30% of $100.00 tranche) status=new\n  AAA   $93.26 @ $0 (market 30% of $310.87 tranche) status=new\n",
     "exit": null,
     "raised": false,
     "raised_text": null,
@@ -2769,7 +2769,7 @@
      "stable": {
       "binance": 50.0,
       "gate": 238.0,
-      "revx": 633.0
+      "revx": 505.0
      },
      "part": {},
      "offquote": {}

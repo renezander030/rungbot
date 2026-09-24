@@ -9,7 +9,9 @@
 //!    whose findings ride the housekeeping mail as warnings.
 //!
 //! Both get the run's journal and ladder state to read and write; the run saves them
-//! afterwards. A hook that fails reports it: the deploy layer as one `deploy layer: …`
+//! afterwards. A hook that places orders records each one and writes the journal through
+//! `persist` before the venue call, as execution does, and places nothing once a write
+//! has failed. Neither hook is called after a journal write failed. A hook that fails reports it: the deploy layer as one `deploy layer: …`
 //! error result, the audit as a line on stderr.
 
 use serde_json::Value;
@@ -17,7 +19,7 @@ use serde_json::Value;
 use super::config::RunConfig;
 use super::market::Market;
 use super::RunResult;
-use crate::housekeeping::LadderState;
+use crate::housekeeping::{LadderState, Persist};
 use crate::journal::Journal;
 use crate::reconcile::VenueSource;
 
@@ -40,6 +42,8 @@ pub struct HookCtx<'a> {
     pub policy_on: bool,
     /// Live placement is blocked this run, and why.
     pub blocked: Option<&'a str>,
+    /// Writes the journal before and after each venue call.
+    pub persist: &'a mut Persist,
 }
 
 /// The deploy layer: fresh capital on a venue becomes resting limit-buy zones.

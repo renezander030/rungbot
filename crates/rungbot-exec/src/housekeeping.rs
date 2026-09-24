@@ -26,7 +26,11 @@
 //!
 //! A step that fails outright (an unknown venue, an order that cannot be printed) ends
 //! that step with one `reconcile: …` or `housekeeping: …` error, and what it changed
-//! before stays changed. The callers own every file: nothing here reads or writes one.
+//! before stays changed. Nothing here opens a file: the caller hands in a [`Persist`],
+//! and every row recorded or changed ahead of a venue call is written through it before
+//! the call, every venue result right after it, and the P&L ledger after each append.
+//! Once a journal write fails, nothing more is placed: the step stops, and the caller
+//! reports the run as fatal.
 
 use std::collections::{BTreeMap, BTreeSet};
 
@@ -199,6 +203,77 @@ pub type TtlWarned = IndexMap<String, f64>;
 /// The realized-P&L ledger, one record per filled sell, oldest first.
 pub type PnlLedger = Vec<Value>;
 
+type SaveJournal = Box<dyn FnMut(&Journal) -> Result<(), String>>;
+type SavePnl = Box<dyn FnMut(&PnlLedger) -> Result<(), String>>;
+
+/// Writes the journal and the P&L ledger to disk while a run places orders.
+///
+/// The journal write is the one that stops a double trade: a row the venue holds but the
+/// disk does not is an order the next run cannot see. So a failed journal write sticks:
+/// every later [`Persist::journal`] fails with the same error without trying, and every
+/// caller treats that as "place nothing more". A failed P&L write is kept as a warning;
+/// the run saves the ledger again at its end.
+pub struct Persist {
+    save_journal: SaveJournal,
+    save_pnl: SavePnl,
+    failed: Option<String>,
+    pnl_failed: Option<String>,
+}
+
+impl Persist {
+    pub fn new(
+        journal: impl FnMut(&Journal) -> Result<(), String> + 'static,
+        pnl: impl FnMut(&PnlLedger) -> Result<(), String> + 'static,
+    ) -> Persist {
+        Persist {
+            save_journal: Box::new(journal),
+            save_pnl: Box::new(pnl),
+            failed: None,
+            pnl_failed: None,
+        }
+    }
+
+    /// Writes to these two files.
+    pub fn to_files(journal: std::path::PathBuf, pnl: std::path::PathBuf) -> Persist {
+        Persist::new(
+            move |j| crate::store::save_journal(&journal, j),
+            move |p| crate::store::save_pnl(&pnl, p),
+        )
+    }
+
+    /// Writes nothing: a dry run, or a test that only looks at memory.
+    pub fn none() -> Persist {
+        Persist::new(|_| Ok(()), |_| Ok(()))
+    }
+
+    /// Write the journal. After the first failure, fails at once with that error.
+    pub fn journal(&mut self, j: &Journal) -> Result<(), String> {
+        if let Some(e) = &self.failed {
+            return Err(e.clone());
+        }
+        (self.save_journal)(j).map_err(|e| {
+            let msg = format!("journal write failed: {e}");
+            self.failed = Some(msg.clone());
+            msg
+        })
+    }
+
+    /// Write the P&L ledger, best effort.
+    pub fn pnl(&mut self, p: &PnlLedger) {
+        self.pnl_failed = (self.save_pnl)(p).err();
+    }
+
+    /// The journal write that failed, if one did.
+    pub fn failed(&self) -> Option<&str> {
+        self.failed.as_deref()
+    }
+
+    /// The last P&L write's error, if it failed.
+    pub fn pnl_failed(&self) -> Option<&str> {
+        self.pnl_failed.as_deref()
+    }
+}
+
 /// What housekeeping changes.
 pub struct Books<'a> {
     pub journal: &'a mut Journal,
@@ -279,6 +354,7 @@ pub fn run(
     bal: &Balances,
     books: &mut Books,
     venues: &dyn VenueSource,
+    p: &mut Persist,
 ) -> Vec<Outcome> {
     let mut out = Vec::new();
     let rec = reconcile(books.journal, venues, ctx.now);
@@ -301,13 +377,17 @@ pub fn run(
             .committed(),
         );
     }
-    if let Err(e) = book_fills(s, ctx, bal, books, venues, &rec.filled, &mut out) {
+    // What reconcile booked goes to disk before anything is placed on top of it.
+    if rec.changed {
+        let _ = p.journal(books.journal);
+    }
+    if let Err(e) = book_fills(s, ctx, bal, books, venues, &rec.filled, &mut out, p) {
         out.push(Outcome::new(None, Level::Err, format!("reconcile: {e}")));
     }
     let steps = (|| {
         if !ctx.blocked {
-            retry_failed_limit_sells(books.journal, venues, &mut out)?;
-            manage_resting_sells(s, ctx, books, venues, &mut out)?;
+            retry_failed_limit_sells(books.journal, venues, &mut out, p)?;
+            manage_resting_sells(s, ctx, books, venues, &mut out, p)?;
         }
         detect_drift(s, ctx.now, bal, books.journal, books.ladder, &mut out);
         Ok::<(), String>(())
@@ -406,13 +486,18 @@ fn limit_sell_row(cid: &str, sym: &str, exch: &str, pair: &str, base: f64, price
 }
 
 /// Place the resting limit sell paired with a buy fill of `fill_base` at `fill_price`:
-/// at fill +target net of the sell fee, journaled as `pending` before the venue call.
-/// The id is this slot's sell id for `rung` plus `cid_suffix`. The outcome is not marked
-/// housekeeping; a caller booking a reconciled fill marks it.
+/// at fill +target net of the sell fee, journaled as `pending` and written to disk
+/// before the venue call, and written again with the venue's answer. The id is this
+/// slot's sell id for `rung` plus `cid_suffix`. The outcome is not marked housekeeping;
+/// a caller booking a reconciled fill marks it.
+///
+/// When the journal cannot be written the sell is not placed: the row is left as a
+/// failed placement, which the retry step places once the journal writes again.
 #[allow(clippy::too_many_arguments)]
 pub fn pair_limit_sell(
     s: &Settings,
     j: &mut Journal,
+    p: &mut Persist,
     v: &dyn Venue,
     exch: &str,
     pair: &str,
@@ -431,7 +516,21 @@ pub fn pair_limit_sell(
     row.rung = Some(rung);
     row.ts = Some(now);
     j.record(row);
-    let mut res = match place(v, pair, fill_base, lim, &scid) {
+    if let Err(e) = p.journal(j) {
+        j.update(&scid, |o| {
+            o.status = "error".into();
+            o.last_error = Some(format!("not placed: {e}"));
+        });
+        let mut res = Outcome::new(
+            Some(sym),
+            Level::Err,
+            format!("LIMIT-SELL FAILED (auto-retries next runs): not placed, {e}"),
+        );
+        res.hk = false;
+        return Ok(res);
+    }
+    let placed = place(v, pair, fill_base, lim, &scid);
+    let mut res = match placed {
         Ok(lf) => {
             j.update(&scid, |o| {
                 o.status = status_or_open(&lf);
@@ -455,6 +554,8 @@ pub fn pair_limit_sell(
             )
         }
     };
+    // The order is at the venue now; a failed write here stops the rest of the run.
+    let _ = p.journal(j);
     res.hk = false;
     Ok(res)
 }
@@ -500,6 +601,7 @@ pub fn pnl_tail(realized: Option<f64>, cost_basis: Option<f64>, avg_price: Optio
 }
 
 /// Step 1's second half: book each fill reconcile returned. See the module docs.
+#[allow(clippy::too_many_arguments)]
 fn book_fills(
     s: &Settings,
     ctx: &RunCtx,
@@ -508,6 +610,7 @@ fn book_fills(
     venues: &dyn VenueSource,
     fills: &[Order],
     out: &mut Vec<Outcome>,
+    p: &mut Persist,
 ) -> Result<(), String> {
     let now = ctx.now;
     for o in fills {
@@ -540,6 +643,7 @@ fn book_fills(
                 let mut res = pair_limit_sell(
                     s,
                     books.journal,
+                    p,
                     v,
                     &o.exch,
                     &o.pair,
@@ -595,6 +699,7 @@ fn book_fills(
                 let cb = cost_basis(books.ladder, sym).or(nonzero(s.entries.get(sym).copied()));
                 let kind = if kind.is_empty() { "limit_sell" } else { kind };
                 let realized = log_pnl(books.pnl, sym, fb, fq, o.avg_price, cb, now, kind);
+                p.pnl(books.pnl);
                 out.push(
                     Outcome::new(
                         Some(sym),
@@ -622,9 +727,13 @@ pub fn retry_failed_limit_sells(
     j: &mut Journal,
     venues: &dyn VenueSource,
     out: &mut Vec<Outcome>,
+    p: &mut Persist,
 ) -> Result<(), String> {
     let rows: Vec<Order> = j.errored(Some("limit_sell")).into_iter().cloned().collect();
     for o in rows {
+        if p.failed().is_some() {
+            return Ok(());
+        }
         let (sym, exch, pair, cid) = (&o.sym, &o.exch, &o.pair, &o.client_id);
         let (Some(base), Some(lim)) = (nonzero(o.base), nonzero(o.price)) else {
             continue;
@@ -681,9 +790,13 @@ pub fn retry_failed_limit_sells(
             ));
             continue;
         }
-        let placed = ids::safe_cid(&format!("{cid}x{}", tries + 1))
-            .map_err(|e| e.to_string())
-            .and_then(|rcid| place(v, pair, base, lim, &rcid));
+        let rcid = ids::safe_cid(&format!("{cid}x{}", tries + 1)).map_err(|e| e.to_string());
+        // Everything changed so far is on disk before the venue sees the order. A crash
+        // after the call leaves the row failed; the next run adopts the resting order.
+        if p.journal(j).is_err() {
+            return Ok(());
+        }
+        let placed = rcid.and_then(|rcid| place(v, pair, base, lim, &rcid));
         match placed {
             Ok(lf) => {
                 j.update(cid, |r| {
@@ -716,6 +829,7 @@ pub fn retry_failed_limit_sells(
                 ));
             }
         }
+        let _ = p.journal(j);
     }
     Ok(())
 }
@@ -752,6 +866,7 @@ pub fn manage_resting_sells(
     books: &mut Books,
     venues: &dyn VenueSource,
     out: &mut Vec<Outcome>,
+    p: &mut Persist,
 ) -> Result<(), String> {
     let now = ctx.now;
     let ttl_days = hk::effective_ttl_days(
@@ -794,6 +909,11 @@ pub fn manage_resting_sells(
             if books.journal.exists(&ncid) {
                 continue;
             }
+            // A journal that cannot be written now would leave the position uncovered
+            // after the cancel: check before taking the cover down.
+            if p.journal(books.journal).is_err() {
+                return Ok(());
+            }
             if let Err(e) = v.cancel(pair, &order_id) {
                 out.push(Outcome::new(
                     Some(sym),
@@ -814,6 +934,7 @@ pub fn manage_resting_sells(
                 // next reconcile); re-place only what is still held.
                 base = (base - done.filled_base.unwrap_or(0.0)).max(0.0);
                 if base <= 0.0 {
+                    let _ = p.journal(books.journal);
                     continue;
                 }
             }
@@ -823,12 +944,33 @@ pub fn manage_resting_sells(
             row.rung = Some(rung);
             row.ts = Some(now);
             books.journal.record(row);
-            match place(v, pair, base, tgt, &ncid) {
+            if let Err(e) = p.journal(books.journal) {
+                // The cancel went through and the new sell cannot be journaled: leave
+                // it as a failed placement, which the retry step places next run.
+                books.journal.update(&ncid, |r| {
+                    r.status = "error".into();
+                    r.last_error = Some(format!("not placed: {e}"));
+                });
+                out.push(Outcome::new(
+                    Some(sym),
+                    Level::Warn,
+                    format!(
+                        "reprice: cancelled, but the new sell was not placed ({e}) -- {} \
+                         {sym} is UNPROTECTED until the retry places it @ ${}",
+                        g(base, 6),
+                        g(tgt, 6)
+                    ),
+                ));
+                return Ok(());
+            }
+            let placed = place(v, pair, base, tgt, &ncid);
+            match placed {
                 Ok(lf) => {
                     books.journal.update(&ncid, |r| {
                         r.status = status_or_open(&lf);
                         r.order_id = Some(lf.order_id.clone());
                     });
+                    let _ = p.journal(books.journal);
                     out.push(
                         Outcome::new(
                             Some(sym),
@@ -853,24 +995,45 @@ pub fn manage_resting_sells(
                     // Restore cover at the old price, the one the venue already accepted.
                     let rcid = suffixed(cid, &format!("v{}", slot(now)));
                     if books.journal.exists(&rcid) {
+                        let _ = p.journal(books.journal);
                         continue;
                     }
-                    match place(v, pair, base, price, &rcid) {
+                    // Journaled before the venue call like every other placement.
+                    let mut row = limit_sell_row(&rcid, sym, exch, pair, base, price);
+                    row.status = "pending".into();
+                    row.rung = Some(rung);
+                    row.ts = Some(now);
+                    row.note = Some(format!(
+                        "cover restored at prior price after {ncid} was rejected"
+                    ));
+                    books.journal.record(row);
+                    if let Err(e2) = p.journal(books.journal) {
+                        books.journal.orders.shift_remove(&rcid);
+                        out.push(Outcome::new(
+                            Some(sym),
+                            Level::Warn,
+                            format!(
+                                "reprice re-place failed ({e}) AND restore not placed ({e2}) \
+                                 -- {} {sym} is UNPROTECTED, place @ ${} manually",
+                                g(base, 6),
+                                g(price, 6)
+                            ),
+                        ));
+                        return Ok(());
+                    }
+                    let restored = place(v, pair, base, price, &rcid);
+                    match restored {
                         Ok(rf) => {
-                            let mut row = limit_sell_row(&rcid, sym, exch, pair, base, price);
-                            row.status = status_or_open(&rf);
-                            row.order_id = Some(rf.order_id.clone());
-                            row.rung = Some(rung);
-                            row.ts = Some(now);
-                            row.note = Some(format!(
-                                "cover restored at prior price after {ncid} was rejected"
-                            ));
-                            books.journal.record(row);
+                            books.journal.update(&rcid, |r| {
+                                r.status = status_or_open(&rf);
+                                r.order_id = Some(rf.order_id.clone());
+                            });
                             // Retire the failed one so the retry path cannot add a second cover.
                             books.journal.update(&ncid, |r| {
                                 r.status = "canceled".into();
                                 r.note = Some(format!("cover restored as {rcid}"));
                             });
+                            let _ = p.journal(books.journal);
                             out.push(
                                 Outcome::new(
                                     Some(sym),
@@ -885,16 +1048,22 @@ pub fn manage_resting_sells(
                                 .committed(),
                             );
                         }
-                        Err(e2) => out.push(Outcome::new(
-                            Some(sym),
-                            Level::Warn,
-                            format!(
-                                "reprice re-place failed ({e}) AND restore failed ({e2}) -- {} \
-                                 {sym} is UNPROTECTED, place @ ${} manually",
-                                g(base, 6),
-                                g(price, 6)
-                            ),
-                        )),
+                        Err(e2) => {
+                            // The venue refused it: no such order, so no such row. The
+                            // failed reprice stays errored and is retried next run.
+                            books.journal.orders.shift_remove(&rcid);
+                            let _ = p.journal(books.journal);
+                            out.push(Outcome::new(
+                                Some(sym),
+                                Level::Warn,
+                                format!(
+                                    "reprice re-place failed ({e}) AND restore failed ({e2}) \
+                                     -- {} {sym} is UNPROTECTED, place @ ${} manually",
+                                    g(base, 6),
+                                    g(price, 6)
+                                ),
+                            ))
+                        }
                     }
                 }
             }
