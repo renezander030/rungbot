@@ -283,6 +283,7 @@ version = "0.5.5"
 dependencies = [
  "minreq",
  "rungbot-core",
+ "rungbot-notify",
  "serde",
  "serde_json",
 ]
@@ -306,6 +307,15 @@ dependencies = [
  "serde",
  "serde_json",
  "sha2",
+]
+
+[[package]]
+name = "rungbot-notify"
+version = "0.5.5"
+dependencies = [
+ "minreq",
+ "serde",
+ "serde_json",
 ]
 
 [[package]]
