@@ -737,16 +737,17 @@ impl RunConfig {
     pub fn froth_path(&self) -> PathBuf {
         self.file(&self.froth_state, "froth-state.json")
     }
+    /// Beside the journal, or `RUNGBOT_ORDER_ARCHIVE`: as `rungbot-exec archive` has it.
     pub fn archive_path(&self) -> PathBuf {
-        self.journal_path().with_file_name("orders-archive.jsonl")
+        crate::store::archive_path(&self.journal_path())
     }
     pub fn audit_marker_path(&self) -> PathBuf {
         self.state_dir.join("audit-state.json.last")
     }
+    /// `run_lock`, else `RUNGBOT_LOCK`, else `<journal>.lock`: the lock every other
+    /// subcommand takes on this journal ([`crate::store::lock_path_for`]).
     pub fn lock_path(&self) -> PathBuf {
-        self.run_lock
-            .clone()
-            .unwrap_or_else(|| self.journal_path().with_extension("lock"))
+        crate::store::lock_path_for(&self.journal_path(), self.run_lock.as_deref())
     }
 
     /// The bull sell policy's knobs, for the core.
@@ -994,6 +995,28 @@ mod tests {
         assert!(RunConfig::from_yaml(&format!("{MIN}halt_file:\n"), &no_env).is_err());
         let c = RunConfig::from_yaml(MIN, &no_env).unwrap();
         assert!(c.halt_file.ends_with("HALT"));
+    }
+
+    #[test]
+    fn the_lock_is_run_lock_then_rungbot_lock_then_beside_the_journal() {
+        let j = Path::new("/s/orders-journal.json");
+        let own = Path::new("/l/own.lock");
+        assert_eq!(
+            crate::store::resolve_lock(j, Some(own), Some("/e/env.lock")),
+            own
+        );
+        assert_eq!(
+            crate::store::resolve_lock(j, None, Some("/e/env.lock")),
+            Path::new("/e/env.lock")
+        );
+        assert_eq!(
+            crate::store::resolve_lock(j, None, None),
+            Path::new("/s/orders-journal.lock")
+        );
+        assert_eq!(
+            crate::store::resolve_lock(j, None, Some(" ")),
+            Path::new("/s/orders-journal.lock")
+        );
     }
 
     #[test]

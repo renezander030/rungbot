@@ -58,7 +58,9 @@ OPTIONS:
   --live             actually place or cancel orders. Without it nothing is sent.
   --i-understand     acknowledge live trading. Required once, every run.
   --venue V          gate (default), revx or binance
-  --journal PATH     order journal (default: alongside the rungbot state)
+  --journal PATH     order journal (default: the run config's, as `run` uses it;
+                     else alongside the rungbot state)
+  --config FILE      the run config whose journal and lock to use (default as for run)
   --pair PAIR        limit status/cancel to one pair
   --days N           archive finished cancels older than N days (default 30)
   --write            import-cex: write the journal and the run state (ladder state,
@@ -81,7 +83,8 @@ ENVIRONMENT:
   RUNGBOT_REVX_KEY / RUNGBOT_REVX_PRIVATE_KEY_PEM    Revolut X key and Ed25519 PEM path
                      (or ~/.config/rungbot/<venue>.env, mode 600; never the watchlist)
   RUNGBOT_HALT       path to the halt file (default ~/.config/rungbot/HALT)
-  RUNGBOT_LOCK       the run lock (default: <journal>.lock)
+  RUNGBOT_LOCK       the run lock (default: the run config's run_lock, else
+                     <journal>.lock)
   RUNGBOT_LOCK_WAIT  seconds a second writer waits for the lock (default 120)
   RUNGBOT_ORDER_ARCHIVE  the archive (default: orders-archive.jsonl beside the journal)
   RUNGBOT_OFFLINE=1  refuse every network call, signed or public
@@ -179,20 +182,59 @@ fn halt_path() -> PathBuf {
     }
 }
 
-fn journal_path(args: &Args) -> PathBuf {
-    args.get("journal")
-        .map(PathBuf::from)
-        .unwrap_or_else(|| state_dir().join("orders-journal.json"))
+/// The run config: `--config FILE` (not for import-cex, where it is a switch), else
+/// `RUNGBOT_RUN_CONFIG`, else `~/.config/rungbot/run.yaml`. The flag reports whether it was
+/// named explicitly; the default is only a candidate.
+fn run_config_path(args: &Args) -> (PathBuf, bool) {
+    if args.cmd != "import-cex" {
+        if let Some(p) = args.get("config") {
+            return (PathBuf::from(p), true);
+        }
+    }
+    match std::env::var("RUNGBOT_RUN_CONFIG") {
+        Ok(v) if !v.trim().is_empty() => (PathBuf::from(v), true),
+        _ => (config_dir().join("run.yaml"), false),
+    }
+}
+
+/// The journal a subcommand works on, and the lock that guards it.
+#[derive(Debug, Clone, PartialEq)]
+struct Target {
+    journal: PathBuf,
+    lock: PathBuf,
+}
+
+/// Every subcommand resolves the journal as `run` does: `--journal`, else the run
+/// config's (named by `--config` or `RUNGBOT_RUN_CONFIG`, or the default file when it
+/// exists), else the default state dir. The lock is the run config's when the journal
+/// is its journal (so `run_lock` counts), else `RUNGBOT_LOCK`, else `<journal>.lock`.
+fn target(args: &Args) -> Result<Target, String> {
+    let (cpath, named) = run_config_path(args);
+    let cfg = if named || cpath.is_file() {
+        Some(rungbot_exec::run::config::RunConfig::load(&cpath)?)
+    } else {
+        None
+    };
+    let journal = match (args.get("journal"), &cfg) {
+        (Some(j), _) => PathBuf::from(j),
+        (None, Some(c)) => c.journal_path(),
+        (None, None) => state_dir().join("orders-journal.json"),
+    };
+    let lock = match &cfg {
+        Some(c) if c.journal_path() == journal => c.lock_path(),
+        _ => store::lock_path_for(&journal, None),
+    };
+    Ok(Target { journal, lock })
 }
 
 /// One writer at a time on the journal: see `rungbot_exec::store`. `RUNGBOT_LOCK_WAIT`
 /// (seconds, default 120) is how long a second run waits before giving up.
-fn lock_journal(jpath: &Path, who: &str) -> Result<store::RunLock, String> {
+fn lock_journal(lock: &Path, who: &str) -> Result<store::RunLock, String> {
     let wait = std::env::var("RUNGBOT_LOCK_WAIT")
         .ok()
         .and_then(|v| v.trim().parse::<u64>().ok())
         .unwrap_or(120);
-    store::RunLock::acquire(&store::lock_path(jpath), who, Duration::from_secs(wait))
+    store::RunLock::acquire(lock, who, Duration::from_secs(wait))
 }
 
 fn now() -> f64 {
@@ -310,13 +352,7 @@ fn main() -> ExitCode {
 /// 1 when prices failed outright or the state could not be read.
 fn cmd_run(args: &Args) -> ExitCode {
     use rungbot_exec::run::{self, config::RunConfig, hooks, market::PublicMarket};
-    let path = match args.get("config") {
-        Some(p) => PathBuf::from(p),
-        None => match std::env::var("RUNGBOT_RUN_CONFIG") {
-            Ok(v) if !v.trim().is_empty() => PathBuf::from(v),
-            _ => config_dir().join("run.yaml"),
-        },
-    };
+    let (path, _) = run_config_path(args);
     let cfg = match RunConfig::load(&path) {
         Ok(c) => c,
         Err(e) => {
@@ -411,7 +447,8 @@ fn cmd_keys(args: &Args) -> Result<(), String> {
 }
 
 fn cmd_status(args: &Args) -> Result<(), String> {
-    let jpath = journal_path(args);
+    let t = target(args)?;
+    let jpath = t.journal.clone();
     let j = store::load_journal(&jpath)?;
     let day_ago = now() - 86_400.0;
 
@@ -533,7 +570,8 @@ fn planned_cid(p: &Planned, at: f64) -> String {
 
 fn cmd_plan(args: &Args) -> Result<(), String> {
     let (orders, caps, budget) = prepare(args)?;
-    let jpath = journal_path(args);
+    let t = target(args)?;
+    let jpath = t.journal.clone();
     let j = store::load_journal(&jpath)?;
     let day_ago = now() - 86_400.0;
 
@@ -629,8 +667,9 @@ fn cmd_sync(args: &Args) -> Result<(), String> {
         return Err("sync without --live does nothing; use `plan` to preview".into());
     }
     let exch = venue_name(args)?;
-    let jpath = journal_path(args);
-    let _lock = lock_journal(&jpath, "rungbot-exec sync")?;
+    let t = target(args)?;
+    let jpath = t.journal.clone();
+    let _lock = lock_journal(&t.lock, "rungbot-exec sync")?;
     let mut j = store::load_journal(&jpath)?;
     let clients = Clients::new();
     let venue = clients.get(exch)?;
@@ -735,8 +774,9 @@ fn cmd_sync(args: &Args) -> Result<(), String> {
 }
 
 fn cmd_reconcile(args: &Args) -> Result<(), String> {
-    let jpath = journal_path(args);
-    let _lock = lock_journal(&jpath, "rungbot-exec reconcile")?;
+    let t = target(args)?;
+    let jpath = t.journal.clone();
+    let _lock = lock_journal(&t.lock, "rungbot-exec reconcile")?;
     let mut j = store::load_journal(&jpath)?;
     let clients = Clients::new();
     let r = reconcile::reconcile(&mut j, &clients, now());
@@ -808,8 +848,9 @@ fn cmd_cancel(args: &Args) -> Result<(), String> {
         println!("\nNothing cancelled. Add --live --i-understand to cancel these.");
         return Ok(());
     }
-    let jpath = journal_path(args);
-    let _lock = lock_journal(&jpath, "rungbot-exec cancel")?;
+    let t = target(args)?;
+    let jpath = t.journal.clone();
+    let _lock = lock_journal(&t.lock, "rungbot-exec cancel")?;
     let mut j = store::load_journal(&jpath)?;
     for o in &open {
         if let Err(e) = venue.cancel(pair, &o.order_id) {
@@ -849,8 +890,9 @@ fn cmd_cancel(args: &Args) -> Result<(), String> {
 
 fn cmd_archive(args: &Args) -> Result<(), String> {
     let days = args.num("days", 30.0)?;
-    let jpath = journal_path(args);
-    let _lock = lock_journal(&jpath, "rungbot-exec archive")?;
+    let t = target(args)?;
+    let jpath = t.journal.clone();
+    let _lock = lock_journal(&t.lock, "rungbot-exec archive")?;
     let mut j = store::load_journal(&jpath)?;
     let moved = j.archive_old(days, now());
     if moved.is_empty() {
@@ -884,7 +926,8 @@ fn cmd_import(args: &Args) -> Result<(), String> {
     for line in imported.report.lines() {
         println!("{line}");
     }
-    let jpath = journal_path(args);
+    let t = target(args)?;
+    let jpath = t.journal.clone();
     if !args.has("write") {
         println!(
             "\ndry run: nothing written. Add --write to write {}",
@@ -897,7 +940,7 @@ fn cmd_import(args: &Args) -> Result<(), String> {
             "some rows would not read back as written; pass --force to import anyway".into(),
         );
     }
-    let _lock = lock_journal(&jpath, "rungbot-exec import-cex")?;
+    let _lock = lock_journal(&t.lock, "rungbot-exec import-cex")?;
     let apath = import::write(&imported, &jpath, args.has("force"))?;
     println!(
         "\nwrote {} ({} rows) and {} ({} rows)",
@@ -990,6 +1033,55 @@ mod tests {
         let a = Args::parse(&argv).unwrap();
         assert_eq!(a.get("sub"), Some("/src/bot"));
         assert!(a.has("config"));
+    }
+
+    fn argv(a: &[&str]) -> Vec<String> {
+        a.iter().map(|s| s.to_string()).collect()
+    }
+
+    /// `run` and `cancel` pointed at the same run config take the same lock on the same
+    /// journal: while a run holds it, cancel cannot get it.
+    #[test]
+    fn run_and_cancel_on_one_config_contend_on_one_lock() {
+        let d = std::env::temp_dir().join(format!("rungbot-exec-target-{}", std::process::id()));
+        std::fs::create_dir_all(&d).unwrap();
+        let journal = d.join("books").join("orders-journal.json");
+        let yaml = d.join("run.yaml");
+        std::fs::write(
+            &yaml,
+            format!(
+                "watchlist:\n  AAA: a\nrouting:\n  AAA: gate AAA_USDT USDT\norder_journal: \"{}\"\n",
+                journal.display()
+            ),
+        )
+        .unwrap();
+        let cfg = rungbot_exec::run::config::RunConfig::load(&yaml).unwrap();
+        let y = yaml.display().to_string();
+        let t =
+            target(&Args::parse(&argv(&["cancel", "--pair", "AAA_USDT", "--config", &y])).unwrap())
+                .unwrap();
+        assert_eq!(t.journal, journal, "cancel works on the run's journal");
+        assert_eq!(t.lock, cfg.lock_path(), "and takes the run's lock");
+
+        let held =
+            store::RunLock::acquire(&cfg.lock_path(), "rungbot-exec run", Duration::ZERO).unwrap();
+        let second = store::RunLock::acquire(&t.lock, "rungbot-exec cancel", Duration::ZERO);
+        assert!(second.is_err(), "cancel got the lock while the run held it");
+        drop(held);
+
+        // An explicit run_lock is the lock for both.
+        std::fs::write(
+            &yaml,
+            format!(
+                "watchlist:\n  AAA: a\nrouting:\n  AAA: gate AAA_USDT USDT\norder_journal: \"{}\"\nrun_lock: \"{}\"\n",
+                journal.display(),
+                d.join("own.lock").display()
+            ),
+        )
+        .unwrap();
+        let t = target(&Args::parse(&argv(&["reconcile", "--config", &y])).unwrap()).unwrap();
+        assert_eq!(t.lock, d.join("own.lock"));
+        let _ = std::fs::remove_dir_all(&d);
     }
 
     #[test]
