@@ -5,14 +5,34 @@
 //! in it is a credential in a screenshot.
 //!
 //! On Unix a key file that is group- or world-readable is refused outright rather than
-//! warned about. A warning gets scrolled past.
+//! warned about. A warning gets scrolled past. The same goes for a Revolut X private
+//! key file.
+//!
+//! | venue | environment | file `~/.config/rungbot/<venue>.env` |
+//! |---|---|---|
+//! | Gate | `RUNGBOT_GATE_KEY`, `RUNGBOT_GATE_SECRET` | `KEY`, `SECRET` |
+//! | Binance | `RUNGBOT_BINANCE_KEY`, `RUNGBOT_BINANCE_SECRET` | `KEY`, `SECRET` |
+//! | Revolut X | `RUNGBOT_REVX_KEY`, `RUNGBOT_REVX_PRIVATE_KEY_PEM` (a path) | `KEY`, `PRIVATE_KEY_PEM` |
+//!
+//! Nothing here prints a secret: `Debug` redacts it.
 
 use std::path::{Path, PathBuf};
 
-#[derive(Debug, Clone, PartialEq, Eq)]
+use crate::revx::RevxCredentials;
+
+#[derive(Clone, PartialEq, Eq)]
 pub struct Credentials {
     pub key: String,
     pub secret: String,
+}
+
+impl core::fmt::Debug for Credentials {
+    fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
+        f.debug_struct("Credentials")
+            .field("key", &self.key)
+            .field("secret", &"<redacted>")
+            .finish()
+    }
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -91,6 +111,59 @@ fn parse_env(text: &str) -> std::collections::BTreeMap<String, String> {
         }
     }
     out
+}
+
+/// Revolut X: an API key and the path of the Ed25519 private key registered to it.
+/// Environment first, then `revx.env`. The key file itself must be private too.
+pub fn load_revx(path: Option<&Path>) -> Result<RevxCredentials, KeyError> {
+    let (k_env, p_env) = ("RUNGBOT_REVX_KEY", "RUNGBOT_REVX_PRIVATE_KEY_PEM");
+    let from_env = (std::env::var(k_env), std::env::var(p_env));
+    let (key, pem) = match from_env {
+        (Ok(k), Ok(p)) if !k.trim().is_empty() && !p.trim().is_empty() => {
+            (k.trim().to_string(), p.trim().to_string())
+        }
+        _ => {
+            let owned;
+            let path = match path {
+                Some(p) => p,
+                None => {
+                    owned = default_key_path("revx");
+                    &owned
+                }
+            };
+            if !path.exists() {
+                return Err(KeyError::Missing(format!(
+                    "no credentials for revx: set {k_env} and {p_env}, or create {} (mode 600)",
+                    path.display()
+                )));
+            }
+            check_permissions(path)?;
+            let text = std::fs::read_to_string(path).map_err(|e| {
+                KeyError::Unreadable(format!("cannot read {}: {e}", path.display()))
+            })?;
+            let vars = parse_env(&text);
+            let key = vars.get(k_env).or_else(|| vars.get("KEY"));
+            let pem = vars.get(p_env).or_else(|| vars.get("PRIVATE_KEY_PEM"));
+            match (key, pem) {
+                (Some(k), Some(p)) if !k.is_empty() && !p.is_empty() => (k.clone(), p.clone()),
+                _ => {
+                    return Err(KeyError::Malformed(format!(
+                        "{} has no {k_env}/{p_env} (or KEY/PRIVATE_KEY_PEM) pair",
+                        path.display()
+                    )))
+                }
+            }
+        }
+    };
+    let pem_path = PathBuf::from(pem);
+    if !pem_path.exists() {
+        return Err(KeyError::Missing(format!(
+            "the Revolut X private key {} does not exist",
+            pem_path.display()
+        )));
+    }
+    check_permissions(&pem_path)?;
+    Ok(RevxCredentials { key, pem_path })
 }
 
 /// Environment first, then the key file.
@@ -219,6 +292,44 @@ mod tests {
         assert!(matches!(
             load("gate", Some(&p)),
             Err(KeyError::Malformed(_))
+        ));
+    }
+
+    #[test]
+    fn debug_never_prints_a_secret() {
+        let c = Credentials {
+            key: "k".into(),
+            secret: "very-secret".into(),
+        };
+        assert!(!format!("{c:?}").contains("very-secret"));
+    }
+
+    #[cfg(unix)]
+    #[test]
+    fn a_revx_key_loads_from_its_file_and_its_pem_must_be_private() {
+        let _env = crate::testenv::EnvGuard::set(&[
+            ("RUNGBOT_REVX_KEY", None),
+            ("RUNGBOT_REVX_PRIVATE_KEY_PEM", None),
+        ]);
+        let pem = tmpfile("revx-pem", "-----BEGIN PRIVATE KEY-----\n", 0o600);
+        let env = tmpfile(
+            "revx",
+            &format!("KEY=rk\nPRIVATE_KEY_PEM={}\n", pem.display()),
+            0o600,
+        );
+        let c = load_revx(Some(&env)).expect("private files load");
+        assert_eq!(c.key, "rk");
+        assert_eq!(c.pem_path, pem);
+
+        let open = tmpfile("revx-pem-open", "x", 0o644);
+        let env2 = tmpfile(
+            "revx2",
+            &format!("KEY=rk\nPRIVATE_KEY_PEM={}\n", open.display()),
+            0o600,
+        );
+        assert!(matches!(
+            load_revx(Some(&env2)),
+            Err(KeyError::BadPermissions { .. })
         ));
     }
 

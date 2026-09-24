@@ -10,6 +10,7 @@
 //! rungbot plan --json > plan.json      # decides; holds no key
 //! rungbot-exec plan --from plan.json   # shows the exact orders, places nothing
 //! rungbot-exec sync --from plan.json --live --i-understand
+//! rungbot-exec reconcile               # books what the venues filled
 //! ```
 
 use std::collections::BTreeMap;
@@ -17,25 +18,27 @@ use std::path::{Path, PathBuf};
 use std::process::ExitCode;
 use std::time::Duration;
 
-use rungbot_exec::gate::Gate;
+use rungbot_exec::clients::{Clients, VENUES};
 use rungbot_exec::guard::{self, Caps, Context, Intent, Mode, Refusal};
-use rungbot_exec::journal::{self, Order, Side, Status};
-use rungbot_exec::keys;
-use rungbot_exec::store;
+use rungbot_exec::journal::{self, Order, Side};
+use rungbot_exec::reconcile::{self, Settled};
+use rungbot_exec::{ids, import, store, Venue};
 
 const USAGE: &str = "\
 rungbot-exec — opt-in live execution for rungbot.
 
-It places GTC limit orders only. A resting order fills while your machine is
-asleep; a market order needs you present and is not implemented.
+It places GTC limit orders from a plan, and reads back what the venues did.
 
 USAGE:
-  rungbot-exec status [--pair PAIR]
-  rungbot-exec plan   --from PLAN.json --budget N --pair-map SYM=PAIR,...
-  rungbot-exec sync   --from PLAN.json --budget N --pair-map SYM=PAIR,...
-                      --live --i-understand
-  rungbot-exec cancel --pair PAIR [--live --i-understand]
-  rungbot-exec keys   check
+  rungbot-exec status    [--pair PAIR --venue V]
+  rungbot-exec plan      --from PLAN.json --budget N --pair-map SYM=PAIR,...
+  rungbot-exec sync      --from PLAN.json --budget N --pair-map SYM=PAIR,...
+                         [--venue V] --live --i-understand
+  rungbot-exec reconcile
+  rungbot-exec cancel    --pair PAIR [--venue V] [--live --i-understand]
+  rungbot-exec archive   [--days N]
+  rungbot-exec import-cex DIR [--write [--force]]
+  rungbot-exec keys      check [--venue V]
 
 REQUIRED for plan and sync:
   --from FILE        a plan from `rungbot plan --json`
@@ -44,19 +47,32 @@ REQUIRED for plan and sync:
   --pair-map SYM=PAIR[,...]   which venue pair each symbol trades as
 
 OPTIONS:
-  --live             actually place orders. Without it nothing is sent.
+  --live             actually place or cancel orders. Without it nothing is sent.
   --i-understand     acknowledge live trading. Required once, every run.
+  --venue V          gate (default), revx or binance
   --journal PATH     order journal (default: alongside the rungbot state)
   --pair PAIR        limit status/cancel to one pair
+  --days N           archive finished cancels older than N days (default 30)
+  --write            import-cex: write the journal (default: a dry run with counts)
+  --force            import-cex: replace a journal that already holds rows
   --max-order N      per-order cap in quote currency (default 50)
   --max-daily N      daily notional cap (default 200)
   --max-orders N     daily order count cap (default 10)
   --max-slippage N   refuse if the venue moved this far from the decision (default 2)
 
+Commands that write the journal (sync, reconcile, cancel, archive, import-cex
+--write) take the run lock; a second one waits, then gives up naming the holder.
+
 ENVIRONMENT:
-  RUNGBOT_GATE_KEY / RUNGBOT_GATE_SECRET   credentials; never read from the watchlist
-  RUNGBOT_HALT                             path to the halt file (default ~/.config/rungbot/HALT)
-  RUNGBOT_OFFLINE=1                        refuse every network call
+  RUNGBOT_GATE_KEY / RUNGBOT_GATE_SECRET             Gate credentials
+  RUNGBOT_BINANCE_KEY / RUNGBOT_BINANCE_SECRET       Binance credentials
+  RUNGBOT_REVX_KEY / RUNGBOT_REVX_PRIVATE_KEY_PEM    Revolut X key and Ed25519 PEM path
+                     (or ~/.config/rungbot/<venue>.env, mode 600; never the watchlist)
+  RUNGBOT_HALT       path to the halt file (default ~/.config/rungbot/HALT)
+  RUNGBOT_LOCK       the run lock (default: <journal>.lock)
+  RUNGBOT_LOCK_WAIT  seconds a second writer waits for the lock (default 120)
+  RUNGBOT_ORDER_ARCHIVE  the archive (default: orders-archive.jsonl beside the journal)
+  RUNGBOT_OFFLINE=1  refuse every network call, signed or public
 
 Gate keys with no IP allowlist are disabled after 90 days, silently. If orders
 stop being accepted, check that first.
@@ -86,6 +102,8 @@ impl Args {
                 bare,
                 "from"
                     | "journal"
+                    | "venue"
+                    | "days"
                     | "pair"
                     | "pair-map"
                     | "budget"
@@ -212,7 +230,7 @@ fn planned_orders(
             let pair = pair_map
                 .get(&sym)
                 .cloned()
-                .ok_or_else(|| format!("no Gate pair for {sym}; pass --pair-map {sym}=<PAIR>"))?;
+                .ok_or_else(|| format!("no pair for {sym}; pass --pair-map {sym}=<PAIR>"))?;
             out.push(Planned {
                 sym,
                 pair,
@@ -257,7 +275,10 @@ fn main() -> ExitCode {
         "status" => cmd_status(&args),
         "plan" => cmd_plan(&args),
         "sync" => cmd_sync(&args),
+        "reconcile" => cmd_reconcile(&args),
         "cancel" => cmd_cancel(&args),
+        "archive" => cmd_archive(&args),
+        "import-cex" => cmd_import(&args),
         "keys" => cmd_keys(&args),
         other => Err(format!("unknown command {other:?}\n\n{USAGE}")),
     };
@@ -270,31 +291,48 @@ fn main() -> ExitCode {
     }
 }
 
-fn open_gate() -> Result<Gate, String> {
-    let creds = keys::load("gate", None).map_err(|e| e.to_string())?;
-    Ok(Gate::new(creds))
+fn venue_name(args: &Args) -> Result<&str, String> {
+    let v = args.get("venue").unwrap_or("gate");
+    if VENUES.contains(&v) {
+        Ok(v)
+    } else {
+        Err(format!(
+            "--venue {v:?}: expected one of {}",
+            VENUES.join(", ")
+        ))
+    }
 }
 
 fn cmd_keys(args: &Args) -> Result<(), String> {
     if args.get("sub") != Some("check") {
-        return Err("usage: rungbot-exec keys check".into());
+        return Err("usage: rungbot-exec keys check [--venue V]".into());
     }
-    let gate = open_gate()?;
-    match gate.balances() {
+    let name = venue_name(args)?;
+    let clients = Clients::new();
+    let venue = clients.get(name)?;
+    match venue.balances_full() {
         Ok(b) => {
-            let funded = b.values().filter(|(f, l)| *f > 0.0 || *l > 0.0).count();
-            println!("✓ Gate accepted the key from this IP");
+            let funded = b
+                .values()
+                .filter(|x| x.free > 0.0 || x.locked > 0.0)
+                .count();
+            println!("✓ {name} accepted the key from this IP");
             println!("✓ it can read balances ({funded} assets with a balance)");
             println!();
-            println!("What this check cannot tell you: Gate exposes no endpoint for a key's");
+            println!("What this check cannot tell you: no venue here exposes a key's full");
             println!("permission set, so withdrawal scope cannot be verified from here.");
-            println!("Open Gate's API management page and confirm withdrawals are OFF.");
-            println!();
-            println!("If this key has no IP allowlist, Gate disables it 90 days after");
-            println!("creation, without telling you. Allowlisting also prevents that.");
+            println!("Open the venue's API management page and confirm withdrawals are OFF.");
+            if name == "gate" {
+                println!();
+                println!("If this key has no IP allowlist, Gate disables it 90 days after");
+                println!("creation, without telling you. Allowlisting also prevents that.");
+            }
             Ok(())
         }
-        Err(e) => Err(format!("✗ {e}")),
+        Err(e) => Err(match e.hint() {
+            Some(h) => format!("✗ {e}\n  {h}"),
+            None => format!("✗ {e}"),
+        }),
     }
 }
 
@@ -321,6 +359,22 @@ fn cmd_status(args: &Args) -> Result<(), String> {
             "absent"
         }
     );
+    let errors: Vec<&Order> = j
+        .open_orders(None)
+        .into_iter()
+        .filter(|o| o.last_error.is_some())
+        .collect();
+    if !errors.is_empty() {
+        println!("\n{} open order(s) whose last poll failed:", errors.len());
+        for o in errors {
+            println!(
+                "  {} {} {}",
+                o.client_id,
+                o.exch,
+                o.last_error.as_deref().unwrap_or("")
+            );
+        }
+    }
 
     let unswept = j.venue_cancelled_unswept(None);
     if !unswept.is_empty() {
@@ -329,22 +383,30 @@ fn cmd_status(args: &Args) -> Result<(), String> {
             unswept.len()
         );
         for o in unswept {
-            println!("  {} {} {:.6} @ {:.6}", o.client_id, o.sym, o.base, o.price);
+            println!(
+                "  {} {} {:.6} @ {:.6}",
+                o.client_id,
+                o.sym,
+                o.base.unwrap_or(0.0),
+                o.price.unwrap_or(0.0)
+            );
         }
     }
 
     if let Some(pair) = args.get("pair") {
-        let gate = open_gate()?;
-        let open = gate.open_orders(pair).map_err(|e| e.to_string())?;
-        println!("\nresting at the venue for {pair}: {}", open.len());
+        let clients = Clients::new();
+        let venue = clients.get(venue_name(args)?)?;
+        let open = venue.open_orders(pair).map_err(|e| e.to_string())?;
+        println!("\nresting at {} for {pair}: {}", venue.name(), open.len());
         for o in open {
             println!(
-                "  {} {:.6} @ {:.6}  {} ({})",
-                o.id,
-                o.amount,
-                o.price,
+                "  {} {} {:.6} @ {:.6}  {} ({})",
+                o.order_id,
+                o.side,
+                o.qty,
+                o.price.unwrap_or(0.0),
                 o.status,
-                o.text.unwrap_or_default()
+                o.client_id
             );
         }
     }
@@ -388,6 +450,13 @@ fn prepare(args: &Args) -> Result<(Vec<Planned>, Caps, f64), String> {
     ))
 }
 
+/// The journal id for a planned order: deterministic, and already in the shape every
+/// venue accepts.
+fn planned_cid(p: &Planned, at: f64) -> String {
+    let raw = journal::client_id(&p.sym, p.side, at, p.rung);
+    ids::safe_cid(&raw).unwrap_or(raw)
+}
+
 fn cmd_plan(args: &Args) -> Result<(), String> {
     let (orders, caps, budget) = prepare(args)?;
     let jpath = journal_path(args);
@@ -404,7 +473,7 @@ fn cmd_plan(args: &Args) -> Result<(), String> {
         return Ok(());
     }
     for p in &orders {
-        let cid = journal::client_id(&p.sym, p.side, now(), p.rung);
+        let cid = planned_cid(p, now());
         let intent = Intent {
             sym: p.sym.clone(),
             quote: p.quote,
@@ -444,6 +513,37 @@ fn cmd_plan(args: &Args) -> Result<(), String> {
     Ok(())
 }
 
+/// Round to the venue's precision and check its minimums before anything is journaled.
+fn fit(venue: &dyn Venue, p: &Planned, base: f64) -> Result<(), String> {
+    let limits = venue.limits(&p.pair).map_err(|e| e.to_string())?;
+    let amount = venue
+        .round_amount(&p.pair, base)
+        .map_err(|e| e.to_string())?;
+    let price = venue
+        .round_price(&p.pair, p.price)
+        .map_err(|e| e.to_string())?;
+    if amount <= 0.0 || price <= 0.0 {
+        return Err(format!(
+            "rounded to {amount} @ {price}, which is not an order"
+        ));
+    }
+    if amount < limits.min_base {
+        return Err(format!(
+            "{amount} is below the venue minimum of {} on {}",
+            limits.min_base, p.pair
+        ));
+    }
+    if amount * price < limits.min_quote {
+        return Err(format!(
+            "{:.4} is below the venue's minimum order value of {} on {}",
+            amount * price,
+            limits.min_quote,
+            p.pair
+        ));
+    }
+    Ok(())
+}
+
 fn cmd_sync(args: &Args) -> Result<(), String> {
     let (orders, caps, _) = prepare(args)?;
     let mode = if args.has("live") {
@@ -454,15 +554,18 @@ fn cmd_sync(args: &Args) -> Result<(), String> {
     if mode != Mode::Live {
         return Err("sync without --live does nothing; use `plan` to preview".into());
     }
+    let exch = venue_name(args)?;
     let jpath = journal_path(args);
     let _lock = lock_journal(&jpath, "rungbot-exec sync")?;
     let mut j = store::load_journal(&jpath)?;
-    let gate = open_gate()?;
+    let clients = Clients::new();
+    let venue = clients.get(exch)?;
     let day_ago = now() - 86_400.0;
     let (mut placed, mut refused, mut skipped) = (0, 0, 0);
 
     for p in &orders {
-        let cid = journal::client_id(&p.sym, p.side, now(), p.rung);
+        let ts = now();
+        let cid = planned_cid(p, ts);
         if j.exists(&cid) {
             skipped += 1;
             println!("  {} {} — already journaled, not re-placed", p.sym, cid);
@@ -493,58 +596,58 @@ fn cmd_sync(args: &Args) -> Result<(), String> {
             continue;
         }
 
-        // Only now, with the rails satisfied, does anything reach the venue.
-        if let Err(e) = gate.pair_info(&p.pair) {
-            eprintln!("  {} — cannot read the pair: {e}", p.sym);
-            refused += 1;
-            continue;
-        }
-
         let base = if p.price > 0.0 {
             p.quote / p.price
         } else {
             0.0
         };
+        // Only now, with the rails satisfied, does anything reach the venue.
+        if let Err(e) = fit(venue, p, base) {
+            eprintln!("  {} — {e}", p.sym);
+            refused += 1;
+            continue;
+        }
+
         // Journal BEFORE the venue call. A crash after this point is safe; a crash
         // before it means the order was never sent.
         j.record(Order {
             client_id: cid.clone(),
             sym: p.sym.clone(),
+            exch: exch.into(),
             pair: p.pair.clone(),
-            venue: "gate".into(),
-            side: p.side,
+            side: p.side.as_str().into(),
             kind: p.kind.clone(),
-            price: p.price,
-            base,
-            quote: p.quote,
-            status: Status::Pending,
-            placed_ts: now(),
-            venue_order_id: None,
-            filled_ts: None,
-            filled_base: None,
-            filled_quote: None,
-            avg_price: None,
-            status_ts: None,
-            note: None,
-            swept: false,
+            status: "pending".into(),
+            quote: Some(p.quote),
+            price: Some(p.price),
+            base: Some(base),
+            rung: Some(p.rung),
+            ts: Some(ts),
+            ..Default::default()
         });
         store::save_journal(&jpath, &j)?;
 
-        match gate.limit_order(&p.pair, p.side, base, p.price, &cid) {
+        let resp = match p.side {
+            Side::Buy => venue.limit_buy(&p.pair, base, p.price, Some(&cid)),
+            Side::Sell => venue.limit_sell(&p.pair, base, p.price, Some(&cid)),
+        };
+        match resp.and_then(|r| venue.parse_order(&r)) {
             Ok(o) => {
                 j.update(&cid, |x| {
-                    x.status = Status::Open;
-                    x.venue_order_id = Some(o.id.clone());
-                    x.status_ts = Some(now());
+                    x.status = if o.status.is_empty() {
+                        "open".into()
+                    } else {
+                        o.status.clone()
+                    };
+                    x.order_id = Some(o.order_id.clone());
                 });
                 placed += 1;
-                println!("  {} {} placed as {}", p.sym, cid, o.id);
+                println!("  {} {} placed as {}", p.sym, cid, o.order_id);
             }
             Err(e) => {
                 j.update(&cid, |x| {
-                    x.status = Status::Error;
-                    x.note = Some(e.to_string());
-                    x.status_ts = Some(now());
+                    x.status = "error".into();
+                    x.last_error = Some(e.to_string());
                 });
                 refused += 1;
                 eprintln!("  {} {cid} FAILED: {e}", p.sym);
@@ -557,12 +660,62 @@ fn cmd_sync(args: &Args) -> Result<(), String> {
     Ok(())
 }
 
+fn cmd_reconcile(args: &Args) -> Result<(), String> {
+    let jpath = journal_path(args);
+    let _lock = lock_journal(&jpath, "rungbot-exec reconcile")?;
+    let mut j = store::load_journal(&jpath)?;
+    let clients = Clients::new();
+    let r = reconcile::reconcile(&mut j, &clients, now());
+    if r.changed {
+        store::save_journal(&jpath, &j)?;
+    }
+    for o in &r.filled {
+        println!(
+            "  filled{} {} {} {} {:.8} for {:.2} @ {}",
+            if o.partial == Some(true) {
+                " (part, then left the book)"
+            } else {
+                ""
+            },
+            o.client_id,
+            o.side,
+            o.sym,
+            o.filled_base.unwrap_or(0.0),
+            o.filled_quote.unwrap_or(0.0),
+            o.avg_price
+                .map(|p| format!("{p:.8}"))
+                .unwrap_or_else(|| "?".into())
+        );
+    }
+    for a in &r.adopted {
+        println!(
+            "  adopted {} onto venue order {} (was {:.2}, now {:.2})",
+            a.order.client_id,
+            a.order.order_id.as_deref().unwrap_or(""),
+            a.was_quote,
+            a.order.quote.unwrap_or(0.0)
+        );
+    }
+    let errors = j
+        .open_orders(None)
+        .into_iter()
+        .filter(|o| o.last_error.is_some())
+        .count();
+    println!(
+        "\nfilled {} · adopted {} · poll errors {errors}",
+        r.filled.len(),
+        r.adopted.len()
+    );
+    Ok(())
+}
+
 fn cmd_cancel(args: &Args) -> Result<(), String> {
     let pair = args
         .get("pair")
         .ok_or_else(|| "--pair is required".to_string())?;
-    let gate = open_gate()?;
-    let open = gate.open_orders(pair).map_err(|e| e.to_string())?;
+    let clients = Clients::new();
+    let venue = clients.get(venue_name(args)?)?;
+    let open = venue.open_orders(pair).map_err(|e| e.to_string())?;
     if open.is_empty() {
         println!("nothing resting for {pair}");
         return Ok(());
@@ -570,7 +723,13 @@ fn cmd_cancel(args: &Args) -> Result<(), String> {
     if !(args.has("live") && args.has("i-understand")) {
         println!("{} resting order(s) for {pair}:", open.len());
         for o in &open {
-            println!("  {} {:.6} @ {:.6}", o.id, o.amount, o.price);
+            println!(
+                "  {} {} {:.6} @ {:.6}",
+                o.order_id,
+                o.side,
+                o.qty,
+                o.price.unwrap_or(0.0)
+            );
         }
         println!("\nNothing cancelled. Add --live --i-understand to cancel these.");
         return Ok(());
@@ -579,33 +738,93 @@ fn cmd_cancel(args: &Args) -> Result<(), String> {
     let _lock = lock_journal(&jpath, "rungbot-exec cancel")?;
     let mut j = store::load_journal(&jpath)?;
     for o in &open {
-        match gate.cancel(pair, &o.id) {
-            Ok(done) => {
-                // The cancel response is the order's final state: what filled before it
-                // is booked as a fill, not dropped with the rest of the order.
-                if done.filled_amount > 0.0 {
-                    println!(
-                        "  cancelled {} after {:.6} filled ({:.2} quote)",
-                        o.id, done.filled_amount, done.filled_quote
-                    );
-                } else {
-                    println!("  cancelled {}", o.id);
-                }
-                if let Some(text) = o.text.as_ref().and_then(|t| t.strip_prefix("t-")) {
-                    j.update(text, |x| {
-                        x.book_cancel(
-                            done.filled_amount,
-                            done.filled_quote,
-                            now(),
-                            "manual cancel",
-                        )
-                    });
-                }
-            }
-            Err(e) => eprintln!("  {} failed: {e}", o.id),
+        if let Err(e) = venue.cancel(pair, &o.order_id) {
+            eprintln!("  {} failed: {e} (may have just filled)", o.order_id);
+            continue;
         }
+        let cid = j
+            .orders
+            .values()
+            .find(|x| x.exch == venue.name() && x.order_id.as_deref() == Some(&o.order_id))
+            .map(|x| x.client_id.clone());
+        let Some(cid) = cid else {
+            println!("  cancelled {} (not in the journal)", o.order_id);
+            continue;
+        };
+        j.update(&cid, |x| {
+            x.status = "canceled".into();
+            x.note = Some("manual --cancel".into());
+        });
+        // The order's final state, read once: what filled before the cancel is a fill.
+        match reconcile::settle_cancel(&mut j, venue, &cid, now()) {
+            Settled::Booked(b) => println!(
+                "  cancelled {cid} after {:.8} filled ({:.2} quote); booked on the next reconcile",
+                b.filled_base.unwrap_or(0.0),
+                b.filled_quote.unwrap_or(0.0)
+            ),
+            Settled::Unreadable(e) => {
+                println!("  cancelled {cid}; its final fill could not be read: {e}")
+            }
+            _ => println!("  cancelled {cid}"),
+        }
+        store::save_journal(&jpath, &j)?;
     }
     store::save_journal(&jpath, &j)?;
+    Ok(())
+}
+
+fn cmd_archive(args: &Args) -> Result<(), String> {
+    let days = args.num("days", 30.0)?;
+    let jpath = journal_path(args);
+    let _lock = lock_journal(&jpath, "rungbot-exec archive")?;
+    let mut j = store::load_journal(&jpath)?;
+    let moved = j.archive_old(days, now());
+    if moved.is_empty() {
+        println!("nothing to archive");
+        return Ok(());
+    }
+    // The archive first: a crash between the two leaves a row in both, never in neither.
+    let apath = store::archive_path(&jpath);
+    store::append_archive(&apath, &moved)?;
+    store::save_journal(&jpath, &j)?;
+    println!(
+        "archived {} finished cancel row(s) older than {days}d to {}",
+        moved.len(),
+        apath.display()
+    );
+    Ok(())
+}
+
+fn cmd_import(args: &Args) -> Result<(), String> {
+    let dir = args
+        .get("sub")
+        .ok_or_else(|| "usage: rungbot-exec import-cex DIR [--write [--force]]".to_string())?;
+    let imported = import::read_dir(Path::new(dir))?;
+    for line in imported.report.lines() {
+        println!("{line}");
+    }
+    let jpath = journal_path(args);
+    if !args.has("write") {
+        println!(
+            "\ndry run: nothing written. Add --write to write {}",
+            jpath.display()
+        );
+        return Ok(());
+    }
+    if !imported.report.mismatches.is_empty() && !args.has("force") {
+        return Err(
+            "some rows would not read back as written; pass --force to import anyway".into(),
+        );
+    }
+    let _lock = lock_journal(&jpath, "rungbot-exec import-cex")?;
+    let apath = import::write(&imported, &jpath, args.has("force"))?;
+    println!(
+        "\nwrote {} ({} rows) and {} ({} rows)",
+        jpath.display(),
+        imported.journal.orders.len(),
+        apath.display(),
+        imported.archive.len()
+    );
     Ok(())
 }
 
