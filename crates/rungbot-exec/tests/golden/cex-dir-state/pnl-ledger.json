@@ -1,0 +1,26 @@
+[
+  {
+    "ts": 1790000000.5,
+    "iso": "2026-09-21T14:13:20.500000+00:00",
+    "sym": "AAA",
+    "kind": "limit_sell",
+    "qty": 10.0,
+    "quote": 6.0,
+    "avg_price": 0.6,
+    "cost_basis": 0.5,
+    "realized_usd": 1.0,
+    "realized_pct": 19.999999999999996
+  },
+  {
+    "ts": 1790000001.5,
+    "iso": "2026-09-21T14:13:21.500000+00:00",
+    "sym": "AAA",
+    "kind": "market_sell",
+    "qty": 1.0,
+    "quote": 0.4,
+    "avg_price": 0.4,
+    "cost_basis": null,
+    "realized_usd": null,
+    "realized_pct": null
+  }
+]

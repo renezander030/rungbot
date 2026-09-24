@@ -1,0 +1,277 @@
+{
+ "limit_target": [
+  {
+   "fp": 0.5,
+   "exch": "gate",
+   "target_pct": 10.0,
+   "out": 0.5511022044088176
+  },
+  {
+   "fp": 2.1,
+   "exch": "revx",
+   "target_pct": 10.0,
+   "out": 2.312312312312313
+  },
+  {
+   "fp": 1.5,
+   "exch": "binance",
+   "target_pct": 8.0,
+   "out": 1.6216216216216217
+  },
+  {
+   "fp": 123.456,
+   "exch": "kraken",
+   "target_pct": 12.5,
+   "out": 139.16633266533066
+  },
+  {
+   "fp": 3.3333333,
+   "exch": "revx",
+   "target_pct": 10.0,
+   "out": 3.670336966966967
+  },
+  {
+   "fp": 1e-05,
+   "exch": "gate",
+   "target_pct": 10.0,
+   "out": 1.1022044088176354e-05
+  }
+ ],
+ "cost_basis": [
+  {
+   "state": {},
+   "sym": "AAA",
+   "held": 10.0,
+   "fq": 5.0,
+   "fb": 10.0,
+   "fp": 0.5,
+   "out": {
+    "AAA": {
+     "cost_basis": 0.45
+    }
+   }
+  },
+  {
+   "state": {},
+   "sym": "ZZZ",
+   "held": 0.0,
+   "fq": 5.0,
+   "fb": 10.0,
+   "fp": 0.5,
+   "out": {
+    "ZZZ": {
+     "cost_basis": 0.5
+    }
+   }
+  },
+  {
+   "state": {
+    "AAA": {
+     "cost_basis": 0.7
+    }
+   },
+   "sym": "AAA",
+   "held": 100.0,
+   "fq": 5.0,
+   "fb": 10.0,
+   "fp": 0.5,
+   "out": {
+    "AAA": {
+     "cost_basis": 0.6818181818181818
+    }
+   }
+  },
+  {
+   "state": {
+    "AAA": {
+     "cost_basis": 0
+    }
+   },
+   "sym": "AAA",
+   "held": 0.0,
+   "fq": 0.0,
+   "fb": 0.0,
+   "fp": 0.5,
+   "out": {
+    "AAA": {
+     "cost_basis": 0.4
+    }
+   }
+  },
+  {
+   "state": {
+    "BBB": {
+     "cost_basis": null,
+     "x": 1
+    }
+   },
+   "sym": "BBB",
+   "held": 3.0,
+   "fq": 7.0,
+   "fb": 2.0,
+   "fp": 3.5,
+   "out": {
+    "BBB": {
+     "cost_basis": 3.5,
+     "x": 1
+    }
+   }
+  }
+ ],
+ "pnl": [
+  {
+   "sym": "AAA",
+   "qty": 10.0,
+   "quote": 6.0,
+   "avg_price": 0.6,
+   "cost_basis": 0.5,
+   "now": 1790000000.0,
+   "kind": "limit_sell",
+   "realized": 1.0,
+   "tail": "; realized +1.00 USD (+20.0%)"
+  },
+  {
+   "sym": "AAA",
+   "qty": 10.0,
+   "quote": 4.0,
+   "avg_price": 0.4,
+   "cost_basis": 0.5,
+   "now": 1790000000.123456,
+   "kind": "market_sell",
+   "realized": -1.0,
+   "tail": "; realized -1.00 USD (-20.0%)"
+  },
+  {
+   "sym": "AAA",
+   "qty": 10.0,
+   "quote": 4.0,
+   "avg_price": null,
+   "cost_basis": 0.5,
+   "now": 1790000000.9999995,
+   "kind": "limit_sell",
+   "realized": -1.0,
+   "tail": "; realized -1.00 USD"
+  },
+  {
+   "sym": "AAA",
+   "qty": 0.0,
+   "quote": 4.0,
+   "avg_price": 0.4,
+   "cost_basis": 0.5,
+   "now": 1790000000.0000005,
+   "kind": "limit_sell",
+   "realized": null,
+   "tail": ""
+  },
+  {
+   "sym": "AAA",
+   "qty": 10.0,
+   "quote": 4.0,
+   "avg_price": 0.4,
+   "cost_basis": null,
+   "now": 1709164800.5,
+   "kind": "limit_sell",
+   "realized": null,
+   "tail": ""
+  }
+ ],
+ "ttl_days": [
+  {
+   "base": 14.0,
+   "market": "bull",
+   "out": 14.0
+  },
+  {
+   "base": 14.0,
+   "market": "bear",
+   "out": 45.0
+  },
+  {
+   "base": 14.0,
+   "market": "chop",
+   "out": 30.0
+  },
+  {
+   "base": 14.0,
+   "market": null,
+   "out": 14.0
+  },
+  {
+   "base": 14.0,
+   "market": "unknown",
+   "out": 14.0
+  },
+  {
+   "base": 0.0,
+   "market": "bear",
+   "out": 0.0
+  },
+  {
+   "base": -1.0,
+   "market": "chop",
+   "out": 0.0
+  }
+ ],
+ "pnl_ledger": [
+  {
+   "ts": 1790000000.0,
+   "iso": "2026-09-21T14:13:20+00:00",
+   "sym": "AAA",
+   "kind": "limit_sell",
+   "qty": 10.0,
+   "quote": 6.0,
+   "avg_price": 0.6,
+   "cost_basis": 0.5,
+   "realized_usd": 1.0,
+   "realized_pct": 19.999999999999996
+  },
+  {
+   "ts": 1790000000.123456,
+   "iso": "2026-09-21T14:13:20.123456+00:00",
+   "sym": "AAA",
+   "kind": "market_sell",
+   "qty": 10.0,
+   "quote": 4.0,
+   "avg_price": 0.4,
+   "cost_basis": 0.5,
+   "realized_usd": -1.0,
+   "realized_pct": -19.999999999999996
+  },
+  {
+   "ts": 1790000000.9999995,
+   "iso": "2026-09-21T14:13:21+00:00",
+   "sym": "AAA",
+   "kind": "limit_sell",
+   "qty": 10.0,
+   "quote": 4.0,
+   "avg_price": null,
+   "cost_basis": 0.5,
+   "realized_usd": -1.0,
+   "realized_pct": null
+  },
+  {
+   "ts": 1790000000.0000005,
+   "iso": "2026-09-21T14:13:20+00:00",
+   "sym": "AAA",
+   "kind": "limit_sell",
+   "qty": 0.0,
+   "quote": 4.0,
+   "avg_price": 0.4,
+   "cost_basis": 0.5,
+   "realized_usd": null,
+   "realized_pct": -19.999999999999996
+  },
+  {
+   "ts": 1709164800.5,
+   "iso": "2024-02-29T00:00:00.500000+00:00",
+   "sym": "AAA",
+   "kind": "limit_sell",
+   "qty": 10.0,
+   "quote": 4.0,
+   "avg_price": 0.4,
+   "cost_basis": null,
+   "realized_usd": null,
+   "realized_pct": null
+  }
+ ]
+}

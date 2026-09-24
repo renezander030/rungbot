@@ -11,7 +11,8 @@
 //! 2. [`guard::check`] refuses anything outside the rails.
 //! 3. [`journal`] writes a deterministic id **before** the venue is called.
 //! 4. Only then does a venue client ([`gate`], [`revx`], [`binance`]) sign a request.
-//! 5. [`reconcile`] later reads back what the venue did and books it.
+//! 5. [`reconcile`] later reads back what the venue did and books it, and
+//!    [`housekeeping`] acts on it: cost basis, paired sells, retries, reprices, drift.
 //!
 //! Every network call goes through [`http::Transport`], which refuses all of them while
 //! `RUNGBOT_OFFLINE` is set.
@@ -23,6 +24,7 @@ pub mod binance;
 pub mod clients;
 pub mod gate;
 pub mod guard;
+pub mod housekeeping;
 pub mod http;
 pub mod ids;
 pub mod import;
@@ -31,6 +33,7 @@ pub mod keys;
 pub mod pyfmt;
 pub mod reconcile;
 pub mod revx;
+pub mod sellcheck;
 pub mod store;
 #[cfg(test)]
 mod testenv;

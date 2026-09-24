@@ -38,9 +38,44 @@ pub fn iso8601(epoch: f64) -> String {
     format!("{y:04}-{m:02}-{d:02}T{h:02}:{mi:02}:{s:02}+00:00")
 }
 
+/// What Python's `datetime.fromtimestamp(epoch, timezone.utc).isoformat()` prints: whole
+/// seconds as [`iso8601`], a fraction as `.ffffff` before the offset, rounded half to even
+/// to the microsecond the way Python rounds it.
+pub fn iso8601_micros(epoch: f64) -> String {
+    let mut secs = epoch.trunc();
+    let mut us = ((epoch - secs) * 1e6).round_ties_even();
+    if us >= 1e6 {
+        us -= 1e6;
+        secs += 1.0;
+    } else if us < 0.0 {
+        us += 1e6;
+        secs -= 1.0;
+    }
+    let whole = iso8601(secs);
+    if us == 0.0 {
+        whole
+    } else {
+        format!("{}.{:06}{}", &whole[..19], us as i64, &whole[19..])
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn fractions_print_to_the_microsecond() {
+        assert_eq!(iso8601_micros(1_700_000_000.0), "2023-11-14T22:13:20+00:00");
+        assert_eq!(
+            iso8601_micros(1_700_000_000.25),
+            "2023-11-14T22:13:20.250000+00:00"
+        );
+        assert_eq!(
+            iso8601_micros(1_700_000_000.9999996),
+            "2023-11-14T22:13:21+00:00",
+            "rounds up into the next second"
+        );
+    }
 
     #[test]
     fn known_timestamps() {
