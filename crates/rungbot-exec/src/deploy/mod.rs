@@ -44,6 +44,7 @@ use rungbot_core::deploy::{self as plan, Pinned, PlanKnobs, ZoneOverride};
 use rungbot_core::watch::pyfmt::{round as py_round, sum as py_sum};
 use serde_json::{json, Map, Value};
 
+use crate::housekeeping::Persist;
 use crate::journal::{Journal, Order};
 use crate::pyfmt::{fixed, g};
 use crate::reconcile::{price_eq, settle_cancel, Settled, VenueSource};
@@ -178,9 +179,10 @@ pub struct Layer<'a> {
     pub regime: &'a dyn RegimeFeed,
     pub clock: &'a dyn Fn() -> f64,
     pub sleep: &'a dyn Fn(f64),
-    /// Writes the journal through: every journal change is saved before the next venue
-    /// call, so a crash never loses a row whose order may already rest.
-    pub persist: &'a dyn Fn(&Journal) -> Result<(), String>,
+    /// Writes the journal through, the run's own handle: a row is saved before the venue
+    /// call that may place it, and again with the venue's answer. Once a write fails the
+    /// layer makes no further venue call that places or cancels.
+    pub persist: &'a mut Persist,
     /// Where warnings the reference printed on stderr go.
     pub stderr: &'a dyn Fn(&str),
     pub j: &'a mut Journal,
@@ -219,8 +221,34 @@ impl<'a> Layer<'a> {
         self.push(None, None, false, Lvl::Warn, t)
     }
 
-    fn save(&self) -> Result<(), String> {
-        (self.persist)(self.j)
+    /// Write the journal before a venue call: `Err` means make no call.
+    fn save(&mut self) -> Result<(), String> {
+        self.persist.journal(self.j)
+    }
+
+    /// Write the journal after a venue call. The order may be at the venue now, so a
+    /// failure does not abort the step: it sticks in the handle, every later [`Self::save`]
+    /// fails, and nothing more is placed or cancelled.
+    fn save_after(&mut self) {
+        let _ = self.persist.journal(self.j);
+    }
+
+    /// The journal write that failed, when one did: no venue call may place or cancel.
+    fn write_failed(&self) -> Option<String> {
+        self.persist.failed().map(str::to_string)
+    }
+
+    /// Write the deploy state after venue calls: a failure is reported, not raised.
+    fn save_state_after(&mut self, path: &Path, st: &Map<String, Value>) {
+        if let Err(e) = save_state(path, st) {
+            self.push(
+                None,
+                None,
+                false,
+                Lvl::Err,
+                format!("deploy state write failed: {e}"),
+            );
+        }
     }
 
     fn now(&self) -> f64 {
@@ -534,6 +562,9 @@ impl<'a> Layer<'a> {
         o: &Order,
         note: &str,
     ) -> Result<Result<Settled, String>, String> {
+        if let Some(e) = self.write_failed() {
+            return Ok(Err(format!("not cancelled, {e}")));
+        }
         let oid = o.order_id.clone().unwrap_or_default();
         if let Err(e) = client.cancel(&o.pair, &oid) {
             return Ok(Err(e.to_string()));
@@ -542,11 +573,11 @@ impl<'a> Layer<'a> {
             r.status = "canceled".into();
             r.note = Some(note.into());
         });
-        self.save()?;
+        self.save_after();
         let now = self.now();
         let s = settle_cancel(self.j, client, &o.client_id, now);
         if !matches!(s, Settled::NothingFilled | Settled::NotPlaced) {
-            self.save()?;
+            self.save_after();
         }
         Ok(Ok(s))
     }
@@ -624,7 +655,21 @@ impl<'a> Layer<'a> {
                     }),
                     ..Default::default()
                 });
-                self.save()?;
+                if let Err(e) = self.save() {
+                    // Not on disk, so not placed: a failed placement a later run retries.
+                    self.j.update(&cid, |o| {
+                        o.status = "error".into();
+                        o.last_error = Some(format!("not placed: {e}"));
+                    });
+                    self.push(
+                        Some(s),
+                        Some("buy"),
+                        false,
+                        Lvl::Err,
+                        format!("DEPLOY {s}: not placed, {e}"),
+                    );
+                    return Ok(placements);
+                }
                 placements.push(cid);
             }
             let legs: Vec<String> = rungs
@@ -773,7 +818,10 @@ impl<'a> Layer<'a> {
             r.quote = Some(qty * price);
             r.note = Some(note);
         });
-        self.save()?;
+        if self.save().is_err() {
+            // The trimmed rung is not on disk: it is not placed this run.
+            return Ok(false);
+        }
         self.push(
             Some(&sym),
             None,
@@ -799,6 +847,10 @@ impl<'a> Layer<'a> {
         o: &mut Order,
         trimmed: bool,
     ) -> Result<bool, String> {
+        if self.write_failed().is_some() {
+            // The journal cannot record what the venue would answer: place nothing.
+            return Ok(false);
+        }
         let cid = o.client_id.clone();
         let placed = client
             .limit_buy(
@@ -819,7 +871,7 @@ impl<'a> Layer<'a> {
                     r.order_id = Some(lf.order_id.clone()).filter(|s| !s.is_empty());
                     r.last_error = None;
                 });
-                self.save()?;
+                self.save_after();
                 Ok(true)
             }
             Err(e) => {
@@ -833,7 +885,7 @@ impl<'a> Layer<'a> {
                     r.retries = Some(tries);
                     r.last_error = Some(e.clone());
                 });
-                self.save()?;
+                self.save_after();
                 let sym = o.sym.clone();
                 self.push(
                     Some(&sym),
@@ -890,7 +942,7 @@ impl<'a> Layer<'a> {
             if tries >= MAX_RETRIES {
                 if o.gave_up != Some(true) {
                     self.j.update(&cid, |r| r.gave_up = Some(true));
-                    self.save()?;
+                    self.save_after();
                     self.push(
                         Some(&sym),
                         None,
@@ -938,7 +990,7 @@ impl<'a> Layer<'a> {
                     r.order_id = Some(a.order_id.clone()).filter(|s| !s.is_empty());
                     r.last_error = None;
                 });
-                self.save()?;
+                self.save_after();
                 self.push(
                     Some(&sym),
                     None,
@@ -1410,7 +1462,23 @@ impl<'a> Layer<'a> {
                 )),
                 ..Default::default()
             });
-            self.save()?;
+            if let Err(e) = self.save() {
+                self.j.update(&cid, |o| {
+                    o.status = "error".into();
+                    o.last_error = Some(format!("not placed: {e}"));
+                });
+                self.push(
+                    Some(&sym),
+                    None,
+                    false,
+                    Lvl::Err,
+                    format!(
+                        "bull sweep: market buy {sym} ${} not placed, cash left free: {e}",
+                        fixed(mkt, 2)
+                    ),
+                );
+                continue;
+            }
             let r = client
                 .market_buy(&pair, mkt, Some(&cid))
                 .and_then(|raw| client.parse_order(&raw));
@@ -1421,7 +1489,7 @@ impl<'a> Layer<'a> {
                         o.status = "new".into();
                         o.last_error = None;
                     });
-                    self.save()?;
+                    self.save_after();
                     self.push(
                         Some(&sym),
                         Some("buy"),
@@ -1443,7 +1511,7 @@ impl<'a> Layer<'a> {
                         o.status = "error".into();
                         o.last_error = Some(e.clone());
                     });
-                    self.save()?;
+                    self.save_after();
                     self.push(
                         Some(&sym),
                         None,
@@ -1552,6 +1620,11 @@ impl<'a> Layer<'a> {
         let min = cfg.deploy_min_usd;
 
         self.resume_pending()?;
+        if self.write_failed().is_some() {
+            // A rung may be at a venue that the journal on disk does not show: move
+            // nothing more. The run reports the failed write.
+            return Ok(());
+        }
 
         let (onramp_keep, mut reserve_unknown) = match self.onramp(&mut st) {
             Ok(k) => k,
@@ -1822,7 +1895,18 @@ impl<'a> Layer<'a> {
         st.insert("stable".into(), Value::Object(new_baseline));
         st.insert("part".into(), Value::Object(part_cur));
         st.insert("offquote".into(), Value::Object(offquote));
-        save_state(&spath, &st)?;
+        if let Err(e) = save_state(&spath, &st) {
+            // Without the new baseline on disk the next run would ladder the same money
+            // again: ladder nothing now. The onramp steps above are not journaled.
+            self.push(
+                None,
+                None,
+                false,
+                Lvl::Err,
+                format!("deploy state write failed, nothing laddered this run: {e}"),
+            );
+            return Ok(());
+        }
 
         let mut placements: Vec<(&'static str, String)> = Vec::new();
         for (exch, q, tranche) in &tranches {
@@ -1848,9 +1932,9 @@ impl<'a> Layer<'a> {
             } else {
                 stuck.remove(*exch);
                 self.j.mark_swept(freed);
-                self.save()?;
+                self.save_after();
             }
-            save_state(&spath, &st)?;
+            self.save_state_after(&spath, &st);
             placements.extend(cids.into_iter().map(|c| (*exch, c)));
         }
         for (exch, q, short) in &withholds {
@@ -1870,7 +1954,7 @@ impl<'a> Layer<'a> {
             } else {
                 stuck.remove(*exch);
             }
-            save_state(&spath, &st)?;
+            self.save_state_after(&spath, &st);
             placements.extend(cids.into_iter().map(|c| (*exch, c)));
         }
         for (exch, cid) in &placements {
@@ -1899,6 +1983,9 @@ impl<'a> Layer<'a> {
         spath: &Path,
         keep: f64,
     ) -> Result<(), String> {
+        if let Some(e) = self.write_failed() {
+            return Err(e);
+        }
         let revx = self.client("revx")?;
         let rxf = revx.balances_full().map_err(|e| e.to_string())?;
         let u = bal(&rxf, "USDC");
@@ -1952,8 +2039,6 @@ impl crate::run::hooks::DeployHook for DeployLayer {
             market: ctx.market,
             now: ctx.now,
         };
-        let jpath = ctx.cfg.journal_path();
-        let persist = move |j: &Journal| crate::store::save_journal(&jpath, j);
         let stderr = |s: &str| eprintln!("{s}");
         let mut layer = Layer {
             cfg: ctx.cfg,
@@ -1961,7 +2046,7 @@ impl crate::run::hooks::DeployHook for DeployLayer {
             regime: &feed,
             clock: ctx.clock,
             sleep: ctx.sleep,
-            persist: &persist,
+            persist: &mut *ctx.persist,
             stderr: &stderr,
             j: ctx.journal,
             results: Vec::new(),

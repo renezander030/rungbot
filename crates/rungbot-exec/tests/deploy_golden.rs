@@ -20,6 +20,7 @@ use std::rc::Rc;
 use indexmap::IndexMap;
 use rungbot_exec::deploy::{self, cli, Layer, RegimeFeed};
 use rungbot_exec::gate::Deposit;
+use rungbot_exec::housekeeping::Persist;
 use rungbot_exec::journal::Journal;
 use rungbot_exec::reconcile::VenueSource;
 use rungbot_exec::run::config::RunConfig;
@@ -718,7 +719,8 @@ fn run_scenario(g: &Value, ord: &Ordered) {
                     .unwrap_or(true)
             });
         calls.borrow_mut().clear();
-        let persist = |j: &Journal| store::save_journal(&jpath, j);
+        let jp = jpath.clone();
+        let mut persist = Persist::new(move |j: &Journal| store::save_journal(&jp, j), |_| Ok(()));
         let stderr = |_: &str| {};
         let clk = || clock.get();
         let mut layer = Layer {
@@ -727,7 +729,7 @@ fn run_scenario(g: &Value, ord: &Ordered) {
             regime: &feed,
             clock: &clk,
             sleep: &|_| {},
-            persist: &persist,
+            persist: &mut persist,
             stderr: &stderr,
             j: &mut journal,
             results: Vec::new(),
@@ -1084,7 +1086,7 @@ fn a_state_file_that_does_not_parse_stops_the_layer() {
         regime: &feed,
         clock: &|| 1.0,
         sleep: &|_| {},
-        persist: &|_| Ok(()),
+        persist: &mut Persist::none(),
         stderr: &|_| {},
         j: &mut j,
         results: Vec::new(),
@@ -1104,6 +1106,9 @@ struct Rig {
     feed: Feed,
     journal: Journal,
     calls: Rc<RefCell<Vec<Value>>>,
+    /// Journal writes so far, and the write (1-based) from which every write fails.
+    writes: Rc<Cell<usize>>,
+    fail_write_from: Option<usize>,
 }
 
 struct Step {
@@ -1162,6 +1167,8 @@ impl Rig {
             feed,
             journal,
             calls,
+            writes: Rc::new(Cell::new(0)),
+            fail_write_from: None,
         }
     }
 
@@ -1176,7 +1183,18 @@ impl Rig {
     ) -> Step {
         self.calls.borrow_mut().clear();
         let jpath = self.cfg.journal_path();
-        let persist = |j: &Journal| store::save_journal(&jpath, j);
+        let writes = self.writes.clone();
+        let fail_from = self.fail_write_from;
+        let mut persist = Persist::new(
+            move |j: &Journal| {
+                writes.set(writes.get() + 1);
+                if fail_from.is_some_and(|n| writes.get() >= n) {
+                    return Err("disk full".into());
+                }
+                store::save_journal(&jpath, j)
+            },
+            |_| Ok(()),
+        );
         let clk = || now;
         let mut layer = Layer {
             cfg: &self.cfg,
@@ -1184,7 +1202,7 @@ impl Rig {
             regime: &self.feed,
             clock: &clk,
             sleep: &|_| {},
-            persist: &persist,
+            persist: &mut persist,
             stderr: &|_| {},
             j: &mut self.journal,
             results: Vec::new(),
@@ -1509,4 +1527,46 @@ fn deploy_config_rejects_non_positive_amounts_and_bad_zone_weights() {
         "deploy_zones:\n  AAA:\n    depths: [5, 10, 20]\n    weights: [30, 40, 30]\n"
     )
     .is_ok());
+}
+
+#[test]
+fn a_failed_journal_write_after_a_placement_stops_placing_without_aborting() {
+    // The onramp run journals six rungs (writes 1-6), then places them one by one, each
+    // placement written with the venue's answer (write 7 on).
+    let g = load("deploy_onramp_and_inflight.json");
+    let mut rig = Rig::new("rv-write-fail", &g, &["binance", "gate", "revx"], None);
+    rig.fail_write_from = Some(7);
+    let s = rig.check(1_800_000_000.0);
+    assert!(
+        s.r.is_ok(),
+        "the layer must not abort after a venue call: {:?}",
+        s.r
+    );
+    let placed: Vec<&Value> = s.calls.iter().filter(|c| c[1] == "limit_buy").collect();
+    assert_eq!(placed.len(), 1, "{:?}", s.calls);
+    // The placed rung is in memory with its venue id, for the run's final save.
+    let o = rig.journal.get("depxAAA1800000000r1").unwrap();
+    assert!(
+        o.order_id.as_deref().is_some_and(|x| !x.is_empty()),
+        "{o:?}"
+    );
+}
+
+#[test]
+fn a_failed_journal_write_before_a_placement_places_nothing() {
+    let g = load("deploy_onramp_and_inflight.json");
+    let mut rig = Rig::new("rv-write-fail-pre", &g, &["binance", "gate", "revx"], None);
+    rig.fail_write_from = Some(3);
+    let s = rig.check(1_800_000_000.0);
+    assert!(s.r.is_ok(), "{:?}", s.r);
+    assert!(!has_call(&s, "revx", "limit_buy"), "{:?}", s.calls);
+    let o = rig.journal.get("depxAAA1800000000r3").unwrap();
+    assert_eq!(o.status, "error");
+    assert!(
+        s.texts
+            .iter()
+            .any(|t| t.contains("not placed, journal write failed: disk full")),
+        "{:?}",
+        s.texts
+    );
 }

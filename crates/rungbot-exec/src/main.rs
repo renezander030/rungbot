@@ -580,7 +580,12 @@ fn cmd_layer(argv: &[String]) -> Result<(), String> {
         market: &market,
         now: now(),
     };
-    let persist = |j: &journal::Journal| store::save_journal(&jpath, j);
+    // The deploy commands write no P&L; the journal goes through the run's write rules.
+    let jp = jpath.clone();
+    let mut persist = rungbot_exec::housekeeping::Persist::new(
+        move |j: &journal::Journal| store::save_journal(&jp, j),
+        |_| Ok(()),
+    );
     let stderr = |s: &str| eprintln!("{s}");
     let sleep = |s: f64| std::thread::sleep(Duration::from_secs_f64(s));
     let mut layer = Layer {
@@ -589,7 +594,7 @@ fn cmd_layer(argv: &[String]) -> Result<(), String> {
         regime: &feed,
         clock: &now,
         sleep: &sleep,
-        persist: &persist,
+        persist: &mut persist,
         stderr: &stderr,
         j: &mut j,
         results: Vec::new(),
