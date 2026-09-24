@@ -19,3 +19,4 @@ serde_json = { workspace = true }
 minreq = { version = "3", features = ["https-rustls"] }
 hmac = "0.12"
 sha2 = "0.10"
+fs4 = { version = "1.1.0", default-features = false, features = ["sync"] }

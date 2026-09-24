@@ -110,6 +110,23 @@ pub struct Order {
     pub swept: bool,
 }
 
+impl Order {
+    /// We cancelled this order. Whatever filled before the cancel is still a fill: book
+    /// it, or cost basis and P&L never learn about it and the order reads as if nothing
+    /// was bought. `filled_base` and `filled_quote` come from the venue's cancel response.
+    pub fn book_cancel(&mut self, filled_base: f64, filled_quote: f64, ts: f64, note: &str) {
+        self.status = Status::Cancelled;
+        self.status_ts = Some(ts);
+        self.note = Some(note.into());
+        if filled_base > 0.0 {
+            self.filled_base = Some(filled_base);
+            self.filled_quote = Some(filled_quote);
+            self.avg_price = (filled_quote > 0.0).then(|| filled_quote / filled_base);
+            self.filled_ts = Some(ts);
+        }
+    }
+}
+
 /// Deterministic, exchange-safe client id.
 ///
 /// The same intent inside one 30-minute window produces the same id, so a retry after a
@@ -527,6 +544,34 @@ mod tests {
             "an order that never reached the venue is not one"
         );
         assert_eq!(j.notional_since(T0), 20.0);
+    }
+
+    #[test]
+    fn a_cancel_after_a_partial_fill_books_the_part() {
+        let mut j = Journal::default();
+        j.record(order("a", Status::Open, T0));
+        j.update("a", |o| {
+            o.book_cancel(4.0, 10.0, T0 + 60.0, "manual cancel")
+        });
+        let o = j.get("a").unwrap();
+        assert_eq!(o.status, Status::Cancelled);
+        assert_eq!((o.filled_base, o.filled_quote), (Some(4.0), Some(10.0)));
+        assert_eq!(o.avg_price, Some(2.5));
+        assert_eq!(
+            j.filled_since(T0, false).len(),
+            1,
+            "the part counts as a fill"
+        );
+    }
+
+    #[test]
+    fn a_cancel_with_nothing_filled_books_no_fill() {
+        let mut j = Journal::default();
+        j.record(order("a", Status::Open, T0));
+        j.update("a", |o| o.book_cancel(0.0, 0.0, T0 + 60.0, "manual cancel"));
+        let o = j.get("a").unwrap();
+        assert_eq!(o.status, Status::Cancelled);
+        assert!(o.filled_ts.is_none() && o.filled_base.is_none());
     }
 
     #[test]
