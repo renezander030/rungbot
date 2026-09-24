@@ -1,0 +1,10 @@
+[Unit]
+Description=rungbot watch: froth, then zone
+Wants=network-online.target
+After=network-online.target
+
+[Service]
+Type=oneshot
+# Resend and Telegram credentials, e.g. RESEND_API_KEY=... and RUNGBOT_TELEGRAM_TOKEN=...
+EnvironmentFile=-%h/.config/rungbot/env
+ExecStart=%h/.cargo/bin/rungbot watch daily --config %h/.config/rungbot/watchlist.yaml

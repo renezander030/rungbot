@@ -101,27 +101,8 @@ pub fn sma(vals: &[f64]) -> Option<f64> {
     if vals.is_empty() {
         return None;
     }
-    Some(sum(vals) / vals.len() as f64)
-}
-
-/// A float sum with Neumaier compensation, the way Python's `sum()` adds floats since
-/// 3.12. A plain left-to-right sum can land an ulp away, and an average that sits on a
-/// label's threshold must land on the same side in every implementation.
-pub fn sum(vals: &[f64]) -> f64 {
-    let (mut total, mut c) = (0.0_f64, 0.0_f64);
-    for &x in vals {
-        let t = total + x;
-        if total.abs() >= x.abs() {
-            c += (total - t) + x;
-        } else {
-            c += (x - t) + total;
-        }
-        total = t;
-    }
-    if c != 0.0 && c.is_finite() {
-        total += c;
-    }
-    total
+    // Python's compensated sum, so a mean sits on the same bit as the reference's.
+    Some(crate::watch::pyfmt::sum(vals.iter().copied()) / vals.len() as f64)
 }
 
 /// Is this coin running, and which signals said so?

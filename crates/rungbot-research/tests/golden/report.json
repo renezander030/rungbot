@@ -1,0 +1,250 @@
+{
+ "today": "2026-09-27",
+ "stamp": "2026-09-27T05:00:00Z",
+ "note_project": "proj1",
+ "email": {
+  "from": "from@example.com",
+  "to": "to@example.com"
+ },
+ "scenarios": [
+  {
+   "name": "bear-dry",
+   "argv": [],
+   "regime": {
+    "data": {
+     "market": "bear",
+     "coins": {}
+    }
+   },
+   "ledger": "[\n  {\n    \"symbol\": \"AAA\",\n    \"from_ath_pct\": -72.3,\n    \"value_fees30d\": 3456789.0,\n    \"value_tvl\": 100000000.0,\n    \"value_category\": \"Dexs\",\n    \"survivor_verdict_line\": \"AAA | real_revenue: $3M fees | token_capture: buyback + burn | survives_2028: yes | durability: 81 | verdict: SURVIVOR\"\n  },\n  {\n    \"symbol\": \"BBB\",\n    \"from_ath_pct\": -80.0,\n    \"value_fees30d\": null,\n    \"value_tvl\": null,\n    \"value_category\": null,\n    \"survivor_verdict_line\": \"BBB | durability: n/a | verdict: SURVIVOR (borderline)\"\n  },\n  {\n    \"symbol\": \"CCC\",\n    \"from_ath_pct\": null,\n    \"value_fees30d\": 0,\n    \"value_category\": \"Lending\",\n    \"survivor_verdict_line\": \"CCC | real_revenue: NONE | cat: fromline | verdict: speculative weak\"\n  },\n  {\n    \"symbol\": \"DDD\",\n    \"from_ath_pct\": -55.5,\n    \"value_fees30d\": 60000,\n    \"survivor_verdict_line\": \"DDD | durability: 64.9 | verdict: MOON\"\n  },\n  {\n    \"symbol\": \"EEE\",\n    \"from_ath_pct\": -41,\n    \"survivor_verdict_line\": \"EEE | durability: 70 | real_revenue: some\"\n  },\n  {\n    \"symbol\": \"FFF\",\n    \"from_ath_pct\": -43.2,\n    \"survivor_verdict_line\": \"\"\n  },\n  {\n    \"symbol\": \"GGG\",\n    \"from_ath_pct\": -44.0\n  },\n  {\n    \"symbol\": \"HHH\",\n    \"from_ath_pct\": -90.1,\n    \"value_category\": \"Chain\",\n    \"survivor_verdict_line\": \"HHH|verdict:DEAD|symbol: renamed|raw: x|team: gone \\u2620\"\n  },\n  {\n    \"symbol\": \"III\",\n    \"from_ath_pct\": -60.0,\n    \"value_fees30d\": 1000000.0,\n    \"survivor_verdict_line\": \"III | real_revenue: $1M | durability: 81 | verdict: SURVIVOR\"\n  },\n  {\n    \"symbol\": \"JJJ\",\n    \"from_ath_pct\": -61.0,\n    \"survivor_verdict_line\": \"JJJ | durability: 1_5 | verdict: Unclear\"\n  },\n  {\n    \"symbol\": \"KKK\",\n    \"from_ath_pct\": -62.0,\n    \"survivor_verdict_line\": \"just words no pipes\"\n  }\n]",
+   "replies": [],
+   "steps": [
+    "survivor run"
+   ],
+   "stdout": "[2026-09-27T05:00:00Z] regime=bear → thesis=Survivor Watch\n=== TITLE ===\n2026-09-27 Survivor Watch\n\n=== EMAIL OVERVIEW ===\nTop survivor candidate(s) this week:\n- AAA (-72.3% from ATH, durability 81)\n- III (-60.0% from ATH, durability 81)\n- BBB (-80.0% from ATH, durability 0)\n\n=== NOTE ===\n# 2026-09-27 Survivor Watch\n\nDeeply dislocated coins screened for **durable value that survives to the 2028 bull** — real revenue now + the token captures it. Narrative/hype is ignored (bear market: no marginal buyer).\nRegime: **bear** (auto-detected by `rungbot regime`). **Research-only — never trades, never wired to the bot.**\n\n## ✅ Survivors — real revenue + token value-capture (2028 candidates)\n- **AAA** (-72.3% from ATH, Dexs, $3.5M/mo fees) — real-revenue: $3M fees · token-capture: buyback + burn · survives-2028: yes _(durability 81)_\n- **III** (-60.0% from ATH, $1.0M/mo fees) — real-revenue: $1M _(durability 81)_\n- **BBB** (-80.0% from ATH) — _(durability 0)_\n\n## ❓ Unclear — needs a deeper fundamentals read\n- **EEE** (-41% from ATH) — real-revenue: some _(durability 70)_\n- **DDD** (-55.5% from ATH, $0.1M/mo fees) — _(durability 64)_\n- **JJJ** (-61.0% from ATH) — _(durability 15)_\n- **just words no pipes** (-62.0% from ATH) — _(durability 0)_\n\n## Speculative — narrative only, fails the value gate\n- **CCC** (Lending) — real-revenue: NONE _(durability 0)_\n\n## ☠️ Dead / abandoned / scam-smell\n- **renamed** (-90.1% from ATH, Chain) — team: gone ☠ _(durability 0)_\n\n## How this was built\nCoinPaprika dislocation scan → DefiLlama fees/TVL (real revenue) + exa fundamentals (treasury, tokenomics, team) → LLM survivor verdict. Free, no paid data.\n\n\n[dry-run] regime=bear survivors=3 — nothing written. Re-run with --commit.\n",
+   "stderr": "",
+   "posts": []
+  },
+  {
+   "name": "chop-commit",
+   "argv": [
+    "--refresh",
+    "--commit"
+   ],
+   "regime": {
+    "data": {
+     "market": "chop",
+     "coins": {
+      "AAA": {
+       "running": true,
+       "signals": {
+        "above_sma30": true,
+        "ret30_strong": false,
+        "fresh_30d_high": true,
+        "higher_lows": true
+       }
+      },
+      "BBB": {
+       "running": false,
+       "signals": {
+        "above_sma30": false,
+        "ret30_strong": false,
+        "fresh_30d_high": false,
+        "higher_lows": false
+       }
+      },
+      "CCC": {
+       "running": false,
+       "signals": {
+        "above_sma30": true,
+        "ret30_strong": true,
+        "fresh_30d_high": false,
+        "higher_lows": false
+       }
+      },
+      "DDD": {
+       "running": false,
+       "error": "feed down"
+      }
+     }
+    }
+   },
+   "ledger": "[\n  {\n    \"symbol\": \"AAA\",\n    \"from_ath_pct\": -72.3,\n    \"dislocation_score\": 72.3,\n    \"value_fees30d\": 1234567,\n    \"survivor_verdict_line\": \"AAA | durability: 70 | verdict: SURVIVOR\"\n  },\n  {\n    \"symbol\": \"BBB\",\n    \"from_ath_pct\": -85.0,\n    \"dislocation_score\": 85.0,\n    \"survivor_verdict_line\": \"BBB | durability: 60 | verdict: SURVIVOR\"\n  },\n  {\n    \"symbol\": \"CCC\",\n    \"from_ath_pct\": -45.55,\n    \"dislocation_score\": 45.55,\n    \"survivor_verdict_line\": \"CCC | durability: 90 | verdict: SURVIVOR\"\n  },\n  {\n    \"symbol\": \"DDD\",\n    \"from_ath_pct\": -60.0,\n    \"dislocation_score\": null,\n    \"survivor_verdict_line\": \"DDD | verdict: UNCLEAR\"\n  },\n  {\n    \"symbol\": \"EEE\",\n    \"from_ath_pct\": -50.0,\n    \"dislocation_score\": 50.0,\n    \"range_score\": 9.9,\n    \"survivor_verdict_line\": \"EEE | verdict: SPECULATIVE\"\n  }\n]",
+   "replies": [
+    {
+     "ok": "{\"id\": \"note123\", \"projectId\": \"proj1\"}"
+    },
+    {
+     "ok": ""
+    },
+    {
+     "ok": "{\"id\": \"em1\"}"
+    }
+   ],
+   "steps": [
+    "survivor build-index",
+    "survivor select",
+    "survivor run"
+   ],
+   "stdout": "[2026-09-27T05:00:00Z] regime=chop → thesis=Range Watch\n[2026-09-27T05:00:00Z] chop re-rank: 3/5 candidates had a regime basing signal (rest scored on dislocation only)\n[2026-09-27T05:00:00Z] [committed] regime=chop note=note123 email=sent setups=3\n",
+   "stderr": "",
+   "posts": [
+    {
+     "url": "https://api.ticktick.com/open/v1/task",
+     "body": "{\"projectId\": \"proj1\", \"title\": \"2026-09-27 Range Watch\", \"content\": \"# 2026-09-27 Range Watch\\n\\nChoppy/sideways market: the edge is **mean-reversion**, not conviction. Deeply dislocated coins that still pass the real-value gate AND are starting to **base** (higher lows / reclaiming the 30d SMA) \\u2014 range-trade accumulation candidates. Ranked by dislocation depth \\u00d7 basing strength.\\nRegime: **chop** (auto-detected by `rungbot regime`). **Research-only \\u2014 never trades, never wired to the bot.**\\n\\n## \\ud83d\\udd01 Range setups \\u2014 dislocated quality that's basing (mean-reversion)\\n- **AAA** (-72.3% from ATH, $1.2M/mo fees) \\u2014 _(range-score 1.45)_\\n- **BBB** (-85.0% from ATH) \\u2014 _(range-score 0.85)_\\n- **CCC** (-45.55% from ATH) \\u2014 _(range-score 0.59)_\\n\\n## \\u2753 Unclear \\u2014 needs a deeper read before a range trade\\n- **DDD** (-60.0% from ATH) \\u2014 _(range-score 0.00)_\\n\\n## Speculative \\u2014 cheap + basing but fails the value gate\\n- **EEE** (-50.0% from ATH) \\u2014 _(range-score 0.50)_\\n\\n## How this was built\\nCoinPaprika dislocation scan \\u2192 DefiLlama value gate \\u2192 regime per-coin basing signals (higher-lows / above-30d-SMA) \\u2192 re-ranked for mean-reversion. Free, no paid data.\\n\", \"kind\": \"NOTE\"}"
+    },
+    {
+     "url": "https://api.ticktick.com/open/v1/task/note123",
+     "body": "{\"id\": \"note123\", \"projectId\": \"proj1\", \"kind\": \"NOTE\"}"
+    },
+    {
+     "url": "https://api.resend.com/emails",
+     "body": "{\"from\": \"from@example.com\", \"to\": [\"to@example.com\"], \"subject\": \"\\ud83e\\udded Range Watch \\u2014 3 setup(s) \\u2014 2026-09-27\", \"html\": \"<div style='font-family:system-ui,sans-serif;max-width:640px'><h2>\\ud83e\\udded 2026-09-27 Range Watch</h2><p>Top setup candidate(s) this week:<br>- AAA (-72.3% from ATH, range-score 1.45)<br>- BBB (-85.0% from ATH, range-score 0.85)<br>- CCC (-45.55% from ATH, range-score 0.59)</p><p><a href=\\\"https://ticktick.com/webapp/#p/proj1/tasks/note123\\\" style=\\\"background:#2d6cdf;color:#fff;padding:10px 18px;border-radius:6px;text-decoration:none;display:inline-block\\\">Open the note</a></p><p style='color:#888;font-size:12px'>Research-only. Never trades. Free sources (CoinPaprika + exa).</p></div>\"}"
+    }
+   ]
+  },
+  {
+   "name": "bull-forced-note-fails",
+   "argv": [
+    "--no-synth",
+    "--commit",
+    "--regime",
+    "bull"
+   ],
+   "regime": {
+    "data": {
+     "market": "bear",
+     "coins": {
+      "AAA": {
+       "running": true,
+       "signals": {
+        "above_sma30": true,
+        "ret30_strong": false,
+        "fresh_30d_high": true,
+        "higher_lows": true
+       }
+      },
+      "BBB": {
+       "running": false,
+       "signals": {
+        "above_sma30": false,
+        "ret30_strong": false,
+        "fresh_30d_high": false,
+        "higher_lows": false
+       }
+      },
+      "CCC": {
+       "running": false,
+       "signals": {
+        "above_sma30": true,
+        "ret30_strong": true,
+        "fresh_30d_high": false,
+        "higher_lows": false
+       }
+      },
+      "DDD": {
+       "running": false,
+       "error": "feed down"
+      }
+     }
+    }
+   },
+   "ledger": "[\n  {\n    \"symbol\": \"AAA\",\n    \"from_ath_pct\": -72.3,\n    \"dislocation_score\": 72.3,\n    \"catalyst_verdict_line\": \"AAA | catalyst: mainnet in Oct | timing: 2026-10 | direction: bull | confidence: 0.72 | verdict: REPRICE_REASON\"\n  },\n  {\n    \"symbol\": \"BBB\",\n    \"from_ath_pct\": -50.0,\n    \"dislocation_score\": 50.0,\n    \"catalyst_verdict_line\": \"BBB | catalyst: listing | confidence: high | verdict: WATCH\"\n  },\n  {\n    \"symbol\": \"CCC\",\n    \"from_ath_pct\": -66.0,\n    \"dislocation_score\": 66.0,\n    \"catalyst_verdict_line\": \"CCC | catalyst: NONE | confidence: 0.1 | verdict: NO_CATALYST\"\n  },\n  {\n    \"symbol\": \"DDD\",\n    \"from_ath_pct\": -70.0,\n    \"dislocation_score\": 70.0,\n    \"catalyst_verdict_line\": \"DDD | confidence: 0.9 | verdict: REPRICE_REASON\"\n  }\n]",
+   "replies": [
+    {
+     "code": 500,
+     "body": "{\"errorMessage\":\"boom\"}"
+    },
+    {
+     "ok": "{\"id\": \"em2\"}"
+    }
+   ],
+   "steps": [],
+   "stdout": "[2026-09-27T05:00:00Z] regime=bull → thesis=Catalyst Watch\n[2026-09-27T05:00:00Z] note create failed 500 {\"errorMessage\":\"boom\"}\n[2026-09-27T05:00:00Z] [committed] regime=bull note=FAILED email=sent catalysts=2\n",
+   "stderr": "",
+   "posts": [
+    {
+     "url": "https://api.ticktick.com/open/v1/task",
+     "body": "{\"projectId\": \"proj1\", \"title\": \"2026-09-27 Catalyst Watch\", \"content\": \"# 2026-09-27 Catalyst Watch\\n\\nBull/expansion market: there IS a marginal buyer, so **narrative and catalysts reprice coins** (news-based trades work now \\u2014 the opposite of a bear). Dislocated coins screened for a recent, forward-looking catalyst (unlock cleared, listing, mainnet, partnership, regulatory). Ranked by catalyst confidence.\\nRegime: **bull** (auto-detected by `rungbot regime`). **Research-only \\u2014 never trades, never wired to the bot.**\\n\\n## \\ud83d\\ude80 Repricing reason \\u2014 a real forward catalyst\\n- **DDD** (-70.0% from ATH) \\u2014 _(confidence 0.90)_\\n- **AAA** (-72.3% from ATH) \\u2014 catalyst: mainnet in Oct \\u00b7 timing: 2026-10 \\u00b7 direction: bull _(confidence 0.72)_\\n\\n## \\ud83d\\udc40 Watch \\u2014 a catalyst forming, not yet confirmed\\n- **BBB** (-50.0% from ATH) \\u2014 catalyst: listing _(confidence 0.00)_\\n\\n## No catalyst \\u2014 dislocated but nothing to reprice it\\n- **CCC** (-66.0% from ATH) \\u2014 catalyst: NONE _(confidence 0.10)_\\n\\n## How this was built\\nCoinPaprika dislocation scan \\u2192 exa broad web search (any catalyst) \\u2192 LLM catalyst verdict. Free, no paid data (no CoinMarketCal).\\n\", \"kind\": \"NOTE\"}"
+    },
+    {
+     "url": "https://api.resend.com/emails",
+     "body": "{\"from\": \"from@example.com\", \"to\": [\"to@example.com\"], \"subject\": \"\\ud83e\\udded Catalyst Watch \\u2014 2 catalyst(s) \\u2014 2026-09-27\", \"html\": \"<div style='font-family:system-ui,sans-serif;max-width:640px'><h2>\\ud83e\\udded 2026-09-27 Catalyst Watch</h2><p>Top catalyst candidate(s) this week:<br>- DDD (-70.0% from ATH, confidence 0.90)<br>- AAA (-72.3% from ATH, confidence 0.72)</p><p></p><p style='color:#888;font-size:12px'>Research-only. Never trades. Free sources (CoinPaprika + exa).</p></div>\"}"
+    }
+   ]
+  },
+  {
+   "name": "regime-fails-empty-top",
+   "argv": [
+    "--refresh"
+   ],
+   "regime": {
+    "fail": "regime feed down"
+   },
+   "ledger": "[{\"symbol\": \"ZZZ\", \"from_ath_pct\": -50.0, \"survivor_verdict_line\": \"ZZZ | verdict: DEAD\"}]",
+   "replies": [],
+   "steps": [
+    "survivor build-index",
+    "survivor select",
+    "survivor run"
+   ],
+   "stdout": "[2026-09-27T05:00:00Z] regime read failed (regime feed down) — defaulting to bear thesis\n[2026-09-27T05:00:00Z] regime=bear → thesis=Survivor Watch\n=== TITLE ===\n2026-09-27 Survivor Watch\n\n=== EMAIL OVERVIEW ===\nNo coin cleared the value gate this week — cheap, but none with proven real revenue AND token value-capture. Correct outcome in a bear. Details in the note.\n\n=== NOTE ===\n# 2026-09-27 Survivor Watch\n\nDeeply dislocated coins screened for **durable value that survives to the 2028 bull** — real revenue now + the token captures it. Narrative/hype is ignored (bear market: no marginal buyer).\nRegime: **bear** (auto-detected by `rungbot regime`). **Research-only — never trades, never wired to the bot.**\n\n## ✅ Survivors — real revenue + token value-capture (2028 candidates)\n_None cleared the gate this run._\n\n## ☠️ Dead / abandoned / scam-smell\n- **ZZZ** (-50.0% from ATH) — _(durability 0)_\n\n## How this was built\nCoinPaprika dislocation scan → DefiLlama fees/TVL (real revenue) + exa fundamentals (treasury, tokenomics, team) → LLM survivor verdict. Free, no paid data.\n\n\n[dry-run] regime=bear survivors=0 — nothing written. Re-run with --commit.\n",
+   "stderr": "",
+   "posts": []
+  },
+  {
+   "name": "unknown-label",
+   "argv": [
+    "--no-synth"
+   ],
+   "regime": {
+    "data": {
+     "market": "Sideways ",
+     "coins": {}
+    }
+   },
+   "ledger": "[\n  {\n    \"symbol\": \"AAA\",\n    \"from_ath_pct\": -72.3,\n    \"value_fees30d\": 3456789.0,\n    \"value_tvl\": 100000000.0,\n    \"value_category\": \"Dexs\",\n    \"survivor_verdict_line\": \"AAA | real_revenue: $3M fees | token_capture: buyback + burn | survives_2028: yes | durability: 81 | verdict: SURVIVOR\"\n  },\n  {\n    \"symbol\": \"BBB\",\n    \"from_ath_pct\": -80.0,\n    \"value_fees30d\": null,\n    \"value_tvl\": null,\n    \"value_category\": null,\n    \"survivor_verdict_line\": \"BBB | durability: n/a | verdict: SURVIVOR (borderline)\"\n  },\n  {\n    \"symbol\": \"CCC\",\n    \"from_ath_pct\": null,\n    \"value_fees30d\": 0,\n    \"value_category\": \"Lending\",\n    \"survivor_verdict_line\": \"CCC | real_revenue: NONE | cat: fromline | verdict: speculative weak\"\n  },\n  {\n    \"symbol\": \"DDD\",\n    \"from_ath_pct\": -55.5,\n    \"value_fees30d\": 60000,\n    \"survivor_verdict_line\": \"DDD | durability: 64.9 | verdict: MOON\"\n  },\n  {\n    \"symbol\": \"EEE\",\n    \"from_ath_pct\": -41,\n    \"survivor_verdict_line\": \"EEE | durability: 70 | real_revenue: some\"\n  },\n  {\n    \"symbol\": \"FFF\",\n    \"from_ath_pct\": -43.2,\n    \"survivor_verdict_line\": \"\"\n  },\n  {\n    \"symbol\": \"GGG\",\n    \"from_ath_pct\": -44.0\n  },\n  {\n    \"symbol\": \"HHH\",\n    \"from_ath_pct\": -90.1,\n    \"value_category\": \"Chain\",\n    \"survivor_verdict_line\": \"HHH|verdict:DEAD|symbol: renamed|raw: x|team: gone \\u2620\"\n  },\n  {\n    \"symbol\": \"III\",\n    \"from_ath_pct\": -60.0,\n    \"value_fees30d\": 1000000.0,\n    \"survivor_verdict_line\": \"III | real_revenue: $1M | durability: 81 | verdict: SURVIVOR\"\n  },\n  {\n    \"symbol\": \"JJJ\",\n    \"from_ath_pct\": -61.0,\n    \"survivor_verdict_line\": \"JJJ | durability: 1_5 | verdict: Unclear\"\n  },\n  {\n    \"symbol\": \"KKK\",\n    \"from_ath_pct\": -62.0,\n    \"survivor_verdict_line\": \"just words no pipes\"\n  }\n]",
+   "replies": [],
+   "steps": [],
+   "stdout": "[2026-09-27T05:00:00Z] regime=Sideways  → thesis=Survivor Watch\n=== TITLE ===\n2026-09-27 Survivor Watch\n\n=== EMAIL OVERVIEW ===\nTop survivor candidate(s) this week:\n- AAA (-72.3% from ATH, durability 81)\n- III (-60.0% from ATH, durability 81)\n- BBB (-80.0% from ATH, durability 0)\n\n=== NOTE ===\n# 2026-09-27 Survivor Watch\n\nDeeply dislocated coins screened for **durable value that survives to the 2028 bull** — real revenue now + the token captures it. Narrative/hype is ignored (bear market: no marginal buyer).\nRegime: **Sideways ** (auto-detected by `rungbot regime`). **Research-only — never trades, never wired to the bot.**\n\n## ✅ Survivors — real revenue + token value-capture (2028 candidates)\n- **AAA** (-72.3% from ATH, Dexs, $3.5M/mo fees) — real-revenue: $3M fees · token-capture: buyback + burn · survives-2028: yes _(durability 81)_\n- **III** (-60.0% from ATH, $1.0M/mo fees) — real-revenue: $1M _(durability 81)_\n- **BBB** (-80.0% from ATH) — _(durability 0)_\n\n## ❓ Unclear — needs a deeper fundamentals read\n- **EEE** (-41% from ATH) — real-revenue: some _(durability 70)_\n- **DDD** (-55.5% from ATH, $0.1M/mo fees) — _(durability 64)_\n- **JJJ** (-61.0% from ATH) — _(durability 15)_\n- **just words no pipes** (-62.0% from ATH) — _(durability 0)_\n\n## Speculative — narrative only, fails the value gate\n- **CCC** (Lending) — real-revenue: NONE _(durability 0)_\n\n## ☠️ Dead / abandoned / scam-smell\n- **renamed** (-90.1% from ATH, Chain) — team: gone ☠ _(durability 0)_\n\n## How this was built\nCoinPaprika dislocation scan → DefiLlama fees/TVL (real revenue) + exa fundamentals (treasury, tokenomics, team) → LLM survivor verdict. Free, no paid data.\n\n\n[dry-run] regime=Sideways  survivors=3 — nothing written. Re-run with --commit.\n",
+   "stderr": "",
+   "posts": []
+  },
+  {
+   "name": "no-id-from-sink",
+   "argv": [
+    "--commit",
+    "--no-synth"
+   ],
+   "regime": {
+    "data": {
+     "market": null
+    }
+   },
+   "ledger": "[\n  {\n    \"symbol\": \"AAA\",\n    \"from_ath_pct\": -72.3,\n    \"value_fees30d\": 3456789.0,\n    \"value_tvl\": 100000000.0,\n    \"value_category\": \"Dexs\",\n    \"survivor_verdict_line\": \"AAA | real_revenue: $3M fees | token_capture: buyback + burn | survives_2028: yes | durability: 81 | verdict: SURVIVOR\"\n  },\n  {\n    \"symbol\": \"BBB\",\n    \"from_ath_pct\": -80.0,\n    \"value_fees30d\": null,\n    \"value_tvl\": null,\n    \"value_category\": null,\n    \"survivor_verdict_line\": \"BBB | durability: n/a | verdict: SURVIVOR (borderline)\"\n  },\n  {\n    \"symbol\": \"CCC\",\n    \"from_ath_pct\": null,\n    \"value_fees30d\": 0,\n    \"value_category\": \"Lending\",\n    \"survivor_verdict_line\": \"CCC | real_revenue: NONE | cat: fromline | verdict: speculative weak\"\n  },\n  {\n    \"symbol\": \"DDD\",\n    \"from_ath_pct\": -55.5,\n    \"value_fees30d\": 60000,\n    \"survivor_verdict_line\": \"DDD | durability: 64.9 | verdict: MOON\"\n  },\n  {\n    \"symbol\": \"EEE\",\n    \"from_ath_pct\": -41,\n    \"survivor_verdict_line\": \"EEE | durability: 70 | real_revenue: some\"\n  },\n  {\n    \"symbol\": \"FFF\",\n    \"from_ath_pct\": -43.2,\n    \"survivor_verdict_line\": \"\"\n  },\n  {\n    \"symbol\": \"GGG\",\n    \"from_ath_pct\": -44.0\n  },\n  {\n    \"symbol\": \"HHH\",\n    \"from_ath_pct\": -90.1,\n    \"value_category\": \"Chain\",\n    \"survivor_verdict_line\": \"HHH|verdict:DEAD|symbol: renamed|raw: x|team: gone \\u2620\"\n  },\n  {\n    \"symbol\": \"III\",\n    \"from_ath_pct\": -60.0,\n    \"value_fees30d\": 1000000.0,\n    \"survivor_verdict_line\": \"III | real_revenue: $1M | durability: 81 | verdict: SURVIVOR\"\n  },\n  {\n    \"symbol\": \"JJJ\",\n    \"from_ath_pct\": -61.0,\n    \"survivor_verdict_line\": \"JJJ | durability: 1_5 | verdict: Unclear\"\n  },\n  {\n    \"symbol\": \"KKK\",\n    \"from_ath_pct\": -62.0,\n    \"survivor_verdict_line\": \"just words no pipes\"\n  }\n]",
+   "replies": [
+    {
+     "ok": "{\"ok\": true}"
+    },
+    {
+     "code": 422,
+     "body": "bad from"
+    }
+   ],
+   "steps": [],
+   "stdout": "[2026-09-27T05:00:00Z] regime=bear → thesis=Survivor Watch\n[2026-09-27T05:00:00Z] [committed] regime=bear note=FAILED email=email failed 422 bad from survivors=3\n",
+   "stderr": "",
+   "posts": [
+    {
+     "url": "https://api.ticktick.com/open/v1/task",
+     "body": "{\"projectId\": \"proj1\", \"title\": \"2026-09-27 Survivor Watch\", \"content\": \"# 2026-09-27 Survivor Watch\\n\\nDeeply dislocated coins screened for **durable value that survives to the 2028 bull** \\u2014 real revenue now + the token captures it. Narrative/hype is ignored (bear market: no marginal buyer).\\nRegime: **bear** (auto-detected by `rungbot regime`). **Research-only \\u2014 never trades, never wired to the bot.**\\n\\n## \\u2705 Survivors \\u2014 real revenue + token value-capture (2028 candidates)\\n- **AAA** (-72.3% from ATH, Dexs, $3.5M/mo fees) \\u2014 real-revenue: $3M fees \\u00b7 token-capture: buyback + burn \\u00b7 survives-2028: yes _(durability 81)_\\n- **III** (-60.0% from ATH, $1.0M/mo fees) \\u2014 real-revenue: $1M _(durability 81)_\\n- **BBB** (-80.0% from ATH) \\u2014 _(durability 0)_\\n\\n## \\u2753 Unclear \\u2014 needs a deeper fundamentals read\\n- **EEE** (-41% from ATH) \\u2014 real-revenue: some _(durability 70)_\\n- **DDD** (-55.5% from ATH, $0.1M/mo fees) \\u2014 _(durability 64)_\\n- **JJJ** (-61.0% from ATH) \\u2014 _(durability 15)_\\n- **just words no pipes** (-62.0% from ATH) \\u2014 _(durability 0)_\\n\\n## Speculative \\u2014 narrative only, fails the value gate\\n- **CCC** (Lending) \\u2014 real-revenue: NONE _(durability 0)_\\n\\n## \\u2620\\ufe0f Dead / abandoned / scam-smell\\n- **renamed** (-90.1% from ATH, Chain) \\u2014 team: gone \\u2620 _(durability 0)_\\n\\n## How this was built\\nCoinPaprika dislocation scan \\u2192 DefiLlama fees/TVL (real revenue) + exa fundamentals (treasury, tokenomics, team) \\u2192 LLM survivor verdict. Free, no paid data.\\n\", \"kind\": \"NOTE\"}"
+    },
+    {
+     "url": "https://api.resend.com/emails",
+     "body": "{\"from\": \"from@example.com\", \"to\": [\"to@example.com\"], \"subject\": \"\\ud83e\\udded Survivor Watch \\u2014 3 survivor(s) \\u2014 2026-09-27\", \"html\": \"<div style='font-family:system-ui,sans-serif;max-width:640px'><h2>\\ud83e\\udded 2026-09-27 Survivor Watch</h2><p>Top survivor candidate(s) this week:<br>- AAA (-72.3% from ATH, durability 81)<br>- III (-60.0% from ATH, durability 81)<br>- BBB (-80.0% from ATH, durability 0)</p><p></p><p style='color:#888;font-size:12px'>Research-only. Never trades. Free sources (CoinPaprika + exa).</p></div>\"}"
+    }
+   ]
+  }
+ ],
+ "_about": "Recorded from the reference implementation on synthetic fixtures, with network, clock and LLM calls replaced by the fixtures in this file. Regenerate with the S9 harness; do not edit by hand."
+}

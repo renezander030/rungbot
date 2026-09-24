@@ -3,15 +3,19 @@
 //! Text output by default, `--json` for machines. The strategy itself lives in
 //! `rungbot-core`, which this binary and a Cloudflare Worker share unchanged.
 
+mod backtest_cmd;
 mod config_file;
+mod history;
 mod klines;
 mod notify;
 mod report;
+mod research_cmd;
 mod screen;
 mod state;
 #[cfg(test)]
 mod testenv;
 mod tickers;
+mod watch;
 mod yaml;
 
 use std::collections::BTreeMap;
@@ -35,8 +39,14 @@ USAGE:
                   [--prices FILE] [--now EPOCH] [--json]
   rungbot tickers [--config PATH] [--json]
   rungbot regime  [--config PATH] [--json]
+  rungbot regime  --cached [--config PATH] [--force] [-H|--human]
   rungbot kpi     [--config PATH] [--json]
   rungbot research[--config PATH] [--json] [--llm CMD]
+  rungbot watch   <regime|btc|zone|froth|divergence|daily> [--config PATH]
+                  [--dry-run] [--force] [--preview]
+  rungbot research <oppscan|survivor|catalyst|unlocks|report|theses> ...
+                  the weekly research pipeline; see `rungbot research help`
+  rungbot backtest <invariants|window|sweep|monthly|replay ...>  (see: rungbot backtest help)
   rungbot --version | --help
 
 PLAN OPTIONS:
@@ -47,6 +57,17 @@ PLAN OPTIONS:
   --steer    read the market regime and apply the sell policy
   --armed    comma-separated coins to force a one-shot armed exit on
   --notify   send the result to the configured webhook or Telegram
+
+WATCH:
+  regime      mail a market-label change, once when it flips, once when confirmed
+  btc         mail when BTC nears or breaks the `watch.btc` lines, once per crossing
+  zone        resting deploy zones: RUN-gate flips, stale rungs, idle cash
+  froth       daily crowding signals and the BTC blow-off arming
+  divergence  the live book against the last backtest's expectation
+  daily       froth, then zone; a watcher that fails says so on Telegram
+  --dry-run   print what would be sent; send and write nothing
+  --force     re-send the current picture
+  --preview   (zone) render every mail shape from fixtures
 
 ENVIRONMENT:
   RUNGBOT_OFFLINE=1   refuse every network call
@@ -59,6 +80,10 @@ ENVIRONMENT:
 /// Minimal flag parser: `--key value`, `--key=value`, and bare switches.
 struct Args {
     cmd: String,
+    /// The subcommand of `watch`.
+    sub: Option<String>,
+    /// Positional words after the command (`backtest replay alt-top`).
+    pos: Vec<String>,
     flags: BTreeMap<String, String>,
 }
 
@@ -66,9 +91,23 @@ impl Args {
     fn parse(argv: &[String]) -> Result<Args, String> {
         let mut it = argv.iter().peekable();
         let cmd = it.next().cloned().unwrap_or_default();
+        let sub = if cmd == "watch" {
+            it.next_if(|a| !a.starts_with('-')).cloned()
+        } else {
+            None
+        };
         let mut flags = BTreeMap::new();
+        let mut pos = Vec::new();
         while let Some(arg) = it.next() {
+            if arg == "-H" {
+                flags.insert("human".to_string(), "1".to_string());
+                continue;
+            }
             let Some(bare) = arg.strip_prefix("--") else {
+                if cmd == "backtest" {
+                    pos.push(arg.clone());
+                    continue;
+                }
                 return Err(format!("unexpected argument {arg:?}"));
             };
             if let Some((k, v)) = bare.split_once('=') {
@@ -77,7 +116,30 @@ impl Args {
             }
             let takes_value = matches!(
                 bare,
-                "config" | "state" | "prices" | "now" | "armed" | "llm"
+                "config"
+                    | "state"
+                    | "prices"
+                    | "now"
+                    | "armed"
+                    | "llm"
+                    | "days"
+                    | "book"
+                    | "history"
+                    | "cache-dir"
+                    | "bag"
+                    | "max-order"
+                    | "windows"
+                    | "expect"
+                    | "drift-band"
+                    | "percoin-min-gain"
+                    | "sweep-bag"
+                    | "study"
+                    | "out"
+                    | "tranche"
+                    | "recent-from"
+                    | "cutoff"
+                    | "variants"
+                    | "sources"
             );
             let value = if takes_value {
                 it.next()
@@ -88,7 +150,12 @@ impl Args {
             };
             flags.insert(bare.to_string(), value);
         }
-        Ok(Args { cmd, flags })
+        Ok(Args {
+            cmd,
+            sub,
+            pos,
+            flags,
+        })
     }
 
     fn has(&self, k: &str) -> bool {
@@ -116,6 +183,16 @@ fn main() -> ExitCode {
         return ExitCode::SUCCESS;
     }
 
+    // `rungbot research <stage> ...` is the weekly pipeline; bare `rungbot research`
+    // (flags only) stays the one-shot screen below.
+    if argv[0] == "research"
+        && argv
+            .get(1)
+            .is_some_and(|a| !a.starts_with('-') || a == "--help" || a == "-h")
+    {
+        return ExitCode::from(research_cmd::run(&argv[1..]));
+    }
+
     let args = match Args::parse(&argv) {
         Ok(a) => a,
         Err(e) => {
@@ -131,6 +208,8 @@ fn main() -> ExitCode {
         "regime" => cmd_regime(&args),
         "kpi" => cmd_kpi(&args),
         "research" => cmd_research(&args),
+        "watch" => cmd_watch(&args),
+        "backtest" => backtest_cmd::run(&args),
         other => {
             eprintln!("unknown command {other:?}\n\n{USAGE}");
             return ExitCode::from(1);
@@ -151,6 +230,7 @@ fn main() -> ExitCode {
             eprintln!("{m}");
             ExitCode::from(1)
         }
+        Err(Failure::Exit(code)) => ExitCode::from(code),
     }
 }
 
@@ -158,6 +238,8 @@ enum Failure {
     Config(String),
     Prices(String),
     Other(String),
+    /// Everything was already said; exit with this code.
+    Exit(u8),
 }
 
 fn cmd_init(args: &Args) -> Result<(), Failure> {
@@ -405,8 +487,127 @@ fn notify_run(
     Ok(())
 }
 
+fn watch_paths(args: &Args, cfg: &config_file::CliConfig) -> watch::Paths {
+    watch::Paths::resolve(&cfg.watch, &args.path("state", state::default_path))
+}
+
+fn cmd_watch(args: &Args) -> Result<(), Failure> {
+    let cfg = load_config(args)?;
+    let paths = watch_paths(args, &cfg);
+    let flags = watch::Flags {
+        dry_run: args.has("dry-run"),
+        force: args.has("force"),
+        preview: args.has("preview"),
+    };
+    let code = match args.sub.as_deref() {
+        Some("regime") => watch::regime(&cfg, &paths, flags).map_err(Failure::Other)?,
+        Some("btc") => watch::btc(&cfg, &paths, flags).map_err(Failure::Other)?,
+        Some("zone") => watch::zone(&cfg, &paths, flags).map_err(Failure::Other)?,
+        Some("froth") => watch::froth(&cfg, &paths, flags).map_err(Failure::Other)?,
+        Some("divergence") => watch::run_reported(
+            &cfg,
+            "divergence check",
+            "live-vs-backtest drift is not being checked.",
+            || watch::divergence(&cfg, &paths, flags),
+        ),
+        Some("daily") => {
+            let a = watch::run_reported(
+                &cfg,
+                "froth watch",
+                "froth alerts are not being checked.",
+                || watch::froth(&cfg, &paths, flags),
+            );
+            let b = watch::run_reported(
+                &cfg,
+                "zone watch",
+                "RUN-flip / stale-rung / idle-cash tripwires are not being checked.",
+                || watch::zone(&cfg, &paths, flags),
+            );
+            a.max(b)
+        }
+        other => {
+            return Err(Failure::Other(format!(
+                "watch needs one of regime, btc, zone, froth, divergence, daily (got {other:?})\n\n{USAGE}"
+            )))
+        }
+    };
+    match code {
+        0 => Ok(()),
+        c => Err(Failure::Exit(c.clamp(1, 255) as u8)),
+    }
+}
+
+/// `rungbot regime --cached`: the cached reading, JSON or the human table.
+fn regime_state_cmd(args: &Args, cfg: &config_file::CliConfig) -> Result<(), Failure> {
+    use rungbot_core::watch::{json::Json, pyfmt::ljust};
+    let reg = watch::get_regime(cfg, &watch_paths(args, cfg), args.has("force"));
+    if !args.has("human") {
+        println!("{}", reg.dumps(Some(2)));
+        return Ok(());
+    }
+    let b = reg.get("btc");
+    let v = |k: &str| {
+        b.and_then(|b| b.get(k))
+            .map(Json::py_str)
+            .unwrap_or_else(|| "?".into())
+    };
+    println!(
+        "market: {}  (BTC ${} vs SMA100 ${} / SMA200 ${}; breadth {} above 30d SMA)",
+        reg.get("market")
+            .map(Json::py_str)
+            .unwrap_or_default()
+            .to_uppercase(),
+        v("px"),
+        v("sma100"),
+        v("sma200"),
+        reg.get("breadth_above_sma30")
+            .map(Json::py_str)
+            .unwrap_or_default()
+    );
+    let mut coins: Vec<&(String, Json)> = reg
+        .get("coins")
+        .map(Json::entries)
+        .unwrap_or_default()
+        .iter()
+        .collect();
+    coins.sort_by(|a, b| a.0.cmp(&b.0));
+    for (sym, c) in coins {
+        if let Some(e) = c.get("error").filter(|e| e.truthy()) {
+            println!("  {} ERROR {}", ljust(sym, 5), e.py_str());
+            continue;
+        }
+        let hits: Vec<&str> = c
+            .get("signals")
+            .map(Json::entries)
+            .unwrap_or_default()
+            .iter()
+            .filter(|(_, v)| *v == Json::Bool(true))
+            .map(|(k, _)| k.as_str())
+            .collect();
+        println!(
+            "  {} {} {}/4 [{}]",
+            ljust(sym, 5),
+            if c.get("running").is_some_and(Json::truthy) {
+                "RUN "
+            } else {
+                "----"
+            },
+            hits.len(),
+            if hits.is_empty() {
+                "-".to_string()
+            } else {
+                hits.join(", ")
+            }
+        );
+    }
+    Ok(())
+}
+
 fn cmd_regime(args: &Args) -> Result<(), Failure> {
     let cfg = load_config(args)?;
+    if args.has("cached") {
+        return regime_state_cmd(args, &cfg);
+    }
     let r = read_regime(&cfg)?;
     if args.has("json") {
         println!(
