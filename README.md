@@ -245,7 +245,18 @@ The journal is a plain JSON object keyed by client id; finished cancels older th
 days move to `orders-archive.jsonl` with `rungbot-exec archive`. `rungbot-exec
 import-cex DIR` reads an existing `orders-journal.json` in the same format, prints what
 it found and checks every row reads back as written; `--write` imports it, together
-with the ladder state, P&L ledger and stale-order flags it finds beside it.
+with the ladder state, P&L ledger, stale-order flags, decision log, signal-notice
+dedupe and level-alert state it finds beside it. `import-cex DIR --config` prints the
+run config that bot runs with as YAML (its values are yours: keep the output private).
+
+`rungbot-exec run` is one complete scheduled run from a single YAML file
+([`contrib/rungbot-run.example.yaml`](contrib/rungbot-run.example.yaml) lists every
+knob): regime label and RUN gate, dip-buy and sell signals, market orders behind every
+rail when `trade_mode: live` and `live_trading_enabled: yes`, the bull sell policy,
+housekeeping, the decision log `decisions.jsonl`, one mail per new signal and the BTC
+level alert. `--dry-run` computes and prints without placing, saving or mailing
+anything; a run that finds another holding the lock prints `SKIPPED` and exits 0.
+[`contrib/systemd`](contrib/systemd) runs it every 30 minutes.
 
 | Rail | Default | |
 |---|---|---|

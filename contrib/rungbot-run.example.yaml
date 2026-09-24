@@ -1,0 +1,151 @@
+# rungbot-exec run: every knob, with the values a live setup runs.
+#
+# Copy to ~/.config/rungbot/run.yaml (or pass --config FILE, or set
+# RUNGBOT_RUN_CONFIG). Coins, prices and sizes below are examples only.
+#
+# Every scalar knob can be overridden from the environment by its upper-case name
+# (FIRST_PCT=12, TRADE_MODE=dry, ...); the maps take JSON: BANDS_JSON,
+# SELL_GIVEBACK_JSON, SELL_TRAIL_ARM_JSON, DEPLOY_ALLOC_JSON, DEPLOY_ZONES_JSON.
+# The environment wins over this file. A knob left out takes the default shown in
+# its comment. Maps are written as indented blocks and lists as comma strings
+# ("4,8"): this reader takes no inline {...} or [...].
+
+# --- Mode and kill switches --------------------------------------------------------
+trade_mode: live                # off | dry | live                        (off)
+live_trading_enabled: yes       # a second key for live: only `yes` counts (no)
+halt_file: ~/.config/rungbot/HALT   # present = no live order is placed
+
+# --- Rails ---------------------------------------------------------------------------
+max_slippage_pct: 2             # a buy's fill may sit this far over the ticker (2)
+max_order_usd: 50               # the largest single order                   (50)
+max_daily_notional: 200         # USD bought per UTC day, all coins          (200)
+max_daily_orders: 10            # orders per UTC day                          (10)
+max_weekly_notional: 500        # USD bought per ISO week                    (500)
+usdc_bag_usd: 0                 # stable cash never spent on a dip            (0)
+
+# --- The ladder ----------------------------------------------------------------------
+first_pct: 10                   # first rung: a 24h drop of this size          (10)
+step_pct: 5                     # each further rung                             (5)
+target_pct: 10                  # sell rungs start this far over entry        (10)
+min_trade_pct: 1                # smallest slice of a position worth trading    (1)
+min_core_pct: 20                # never sell below this share of the position (20)
+window_hours: 24                # a rung, once fired, rests this long          (24)
+buy_floor_pct: 50               # no buys below this share of entry           (50)
+breaker_pct: 40                 # a fall this deep in breaker_days stops buys (40)
+breaker_days: 7                 #                                               (7)
+trail_tp: off                   # trailing take-profit on sell rungs          (off)
+trail_giveback_pct: 5           #                                               (5)
+bands:                          # per-coin rung spacing                        ({})
+  AAA:
+    first_pct: 15
+    step_pct: 7
+
+# --- Resting limit orders --------------------------------------------------------
+limit_ttl_days: 14              # a resting order is flagged after this        (14)
+limit_ttl_days_bear: 45         # ... in a bear regime                         (45)
+limit_ttl_days_chop: 30         # ... in chop                                  (30)
+ttl_renag_days: 30              # a flagged order is named again after this    (30)
+
+# --- Fees (percent per fill) -----------------------------------------------------
+fee_pct_binance: 0.1
+fee_pct_gate: 0.2
+fee_pct_revx: 0.1
+
+# --- BTC level alert (0 = off) -----------------------------------------------------
+btc_alert_usd: 50000            # below: the alert mail                          (0)
+btc_warn_usd: 55000             # below: the early warning                       (0)
+btc_line_name: the flip line    # how the mails name the line
+
+# --- Bull sell policy ----------------------------------------------------------------
+sell_policy: auto               # auto | ladder | bull                        (auto)
+sell_giveback_pct: 40           # trail below the peak                         (40)
+sell_giveback:                  # per coin                                     ({})
+  AAA: 30
+sell_armed_giveback_pct: 15     # once froth arms the exit                     (15)
+sell_core_pct: 20               # kept through every exit                      (20)
+sell_tranches: "4,8,16,32"      # profit multiples that sell a tranche   (4,8,16,32)
+sell_tranche_pct: 20            # share sold per tranche                       (20)
+sell_no_tranche: BBB            # coins that ride without tranches          (none)
+sell_no_base_trail: BBB         # coins that only exit when armed           (none)
+sell_trail_slice_pct: 25        # share sold per trail hit                     (25)
+sell_giveback_next_pct: 20      # the trail after the first hit                (20)
+sell_trail_slice_next_pct: 0    # 0 = the rest goes on the second hit           (0)
+sell_trail_arm_mult: 2          # the trail arms at this multiple of cost       (2)
+sell_trail_arm:                 # per coin                                     ({})
+  AAA: 3
+sell_arm_all: no                # arm every coin's exit now                    (no)
+sell_arm_file: ~/.config/rungbot/sell-armed   # present = arm every exit
+
+# --- Regime ------------------------------------------------------------------------
+regime_ttl_h: 6                 # the label is recomputed after this             (6)
+regime_hist_ttl_h: 12           # the label history, after this                (12)
+regime_hist_days: 420           # days of history kept                        (420)
+regime_confirm_days: 14         # days a new label must hold to switch policy  (14)
+run_min_signals: 3              # RUN gate: signals that must agree              (3)
+run_ret30_min: 25               # RUN gate: 30-day return floor, percent       (25)
+regime_market_symbol: BTCUSDT   # the market proxy's daily candles
+regime_kline_source:            # pairs whose candles come from a deeper venue ({})
+  AAA/USD: binance AAAUSDT
+
+# --- Housekeeping and logs ---------------------------------------------------------
+signal_remind_s: 86400          # an unchanged signal is mailed again after this
+decisions_max_mb: 20            # the decision log is trimmed past this        (20)
+order_archive_days: 30          # closed orders move to the archive after this (30)
+run_lock_wait: 300              # seconds to wait for another run, then SKIPPED (300)
+mail_name: rungbot              # the error mail's subject: `<name> ERROR (n)`
+log_hint: journalctl --user -u rungbot-run   # where the error mail says to look
+
+# --- Deploy (carried out by the deploy layer) --------------------------------------
+deploy: off                     # off | dry | live                            (off)
+deploy_min_usd: 25
+deploy_max_tranche_usd: 1000
+deploy_max_depth_pct: 20
+deploy_pin_prices: yes
+deploy_sweep_idle: yes
+deploy_bull_sweep: no
+deploy_bull_sweep_days: 14
+deploy_bull_sweep_max_age: 120
+deploy_alloc:                   # weights of new cash per coin
+  AAA: 3
+  BBB: 1
+deploy_zones:                   # buy-zone depths and weights, percent
+  AAA:
+    depths: "5,10,20"
+    weights: "30,40,30"
+
+# --- Coins -------------------------------------------------------------------------
+watchlist:                      # symbol: price-feed id (required, at least one)
+  AAA: aaa-coin
+  BBB: bbb-coin
+names:
+  AAA: Alpha Coin
+  BBB: Beta Coin
+entries:                        # entry price per coin; sell rungs count from it
+  AAA: 1.2345
+  BBB: 0.0123
+routing:                        # symbol: "<venue> <pair> <quote>" (every coin)
+  AAA: "revx AAA/USD USD"
+  BBB: "gate BBB_USDT USDT"
+
+# --- Files (defaults shown; each lives in state_dir unless set) --------------------
+state_dir: ~/.local/state/rungbot
+# state_path: ~/.local/state/rungbot/ladder-state.json  (.dry.json / .off.json per mode)
+# order_journal: ~/.local/state/rungbot/orders-journal.json
+# pnl_ledger: ~/.local/state/rungbot/pnl-ledger.json
+# ttl_warn_state: ~/.local/state/rungbot/ttl-warned.json
+# decisions_log: ~/.local/state/rungbot/decisions.jsonl
+# signal_notices: ~/.local/state/rungbot/signal-notices.json
+# btc_alert_state: ~/.local/state/rungbot/btc-alert-state.json
+# regime_state: ~/.local/state/rungbot/regime-state.json
+# froth_state: ~/.local/state/rungbot/froth-state.json
+# run_lock: ~/.local/state/rungbot/orders-journal.lock
+
+# --- Where the mails go --------------------------------------------------------------
+notify:
+  email:
+    from: alerts@example.com
+    to: me@example.com
+    api_key_env: RESEND_API_KEY
+  telegram:
+    chat_id: "123456"
+    token_env: RUNGBOT_TELEGRAM_TOKEN
