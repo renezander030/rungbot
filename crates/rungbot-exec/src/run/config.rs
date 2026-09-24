@@ -667,6 +667,20 @@ impl RunConfig {
     }
 
     fn validate(&self) -> Result<(), String> {
+        // An empty path is a file that never exists: the rail would be off. (The
+        // reference read an empty HALT_FILE as the working directory, which exists, and
+        // halted.) Refuse it rather than guess which one was meant.
+        for (key, p) in [
+            ("halt_file", &self.halt_file),
+            ("sell_arm_file", &self.sell_arm_file),
+        ] {
+            if p.to_str().is_some_and(|s| s.trim().is_empty()) {
+                return Err(format!(
+                    "`{key}` ({}) is empty: name the file, or leave the key out for the default",
+                    env_name(key)
+                ));
+            }
+        }
         if self.watchlist.is_empty() {
             return Err("`watchlist` needs at least one coin".into());
         }
@@ -773,8 +787,9 @@ impl RunConfig {
     pub fn froth_path(&self) -> PathBuf {
         self.file(&self.froth_state, "froth-state.json")
     }
+    /// Beside the journal, or `RUNGBOT_ORDER_ARCHIVE`: as `rungbot-exec archive` has it.
     pub fn archive_path(&self) -> PathBuf {
-        self.journal_path().with_file_name("orders-archive.jsonl")
+        crate::store::archive_path(&self.journal_path())
     }
     /// The deploy layer's machine state (baselines, stuck markers, the in-flight top-up).
     pub fn deploy_state_path(&self) -> PathBuf {
@@ -802,10 +817,10 @@ impl RunConfig {
             .find(|(s, _)| s == sym)
             .map(|(_, p)| p.as_str())
     }
+    /// `run_lock`, else `RUNGBOT_LOCK`, else `<journal>.lock`: the lock every other
+    /// subcommand takes on this journal ([`crate::store::lock_path_for`]).
     pub fn lock_path(&self) -> PathBuf {
-        self.run_lock
-            .clone()
-            .unwrap_or_else(|| self.journal_path().with_extension("lock"))
+        crate::store::lock_path_for(&self.journal_path(), self.run_lock.as_deref())
     }
 
     /// The bull sell policy's knobs, for the core.
@@ -1038,6 +1053,47 @@ mod tests {
         assert!(RunConfig::from_yaml(bad, &no_env)
             .unwrap_err()
             .contains("BBB"));
+    }
+
+    #[test]
+    fn an_empty_halt_or_arm_file_is_an_error_not_a_disabled_rail() {
+        for t in [
+            format!("{MIN}halt_file: \"\"\n"),
+            format!("{MIN}sell_arm_file: \" \"\n"),
+        ] {
+            let e = RunConfig::from_yaml(&t, &no_env).unwrap_err();
+            assert!(e.contains("is empty"), "{t}: {e}");
+        }
+        for var in ["HALT_FILE", "SELL_ARM_FILE"] {
+            let env = |k: &str| (k == var).then(String::new);
+            let e = RunConfig::from_yaml(MIN, &env).unwrap_err();
+            assert!(e.contains(var), "{var}: {e}");
+        }
+        assert!(RunConfig::from_yaml(&format!("{MIN}halt_file:\n"), &no_env).is_err());
+        let c = RunConfig::from_yaml(MIN, &no_env).unwrap();
+        assert!(c.halt_file.ends_with("HALT"));
+    }
+
+    #[test]
+    fn the_lock_is_run_lock_then_rungbot_lock_then_beside_the_journal() {
+        let j = Path::new("/s/orders-journal.json");
+        let own = Path::new("/l/own.lock");
+        assert_eq!(
+            crate::store::resolve_lock(j, Some(own), Some("/e/env.lock")),
+            own
+        );
+        assert_eq!(
+            crate::store::resolve_lock(j, None, Some("/e/env.lock")),
+            Path::new("/e/env.lock")
+        );
+        assert_eq!(
+            crate::store::resolve_lock(j, None, None),
+            Path::new("/s/orders-journal.lock")
+        );
+        assert_eq!(
+            crate::store::resolve_lock(j, None, Some(" ")),
+            Path::new("/s/orders-journal.lock")
+        );
     }
 
     #[test]
