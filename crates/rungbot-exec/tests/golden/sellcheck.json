@@ -3,7 +3,7 @@
   {
    "exch": "revx",
    "pair": "AKA/USD",
-   "held": 1505.9751,
+   "held": 1234.5678,
    "price": 0.48,
    "spec": {
     "step": 0.01,
@@ -11,11 +11,11 @@
    },
    "out": {
     "ok": true,
-    "reason": "sellable 1505.97 (~$722.87)",
-    "qty": 1505.97,
+    "reason": "sellable 1234.56 (~$592.59)",
+    "qty": 1234.56,
     "min_base": 0.0,
     "min_quote": 1.0,
-    "notional": 722.8656
+    "notional": 592.5888
    }
   },
   {
@@ -261,11 +261,11 @@
   "in": {
    "S00": {
     "ok": true,
-    "reason": "sellable 1505.97 (~$722.87)",
-    "qty": 1505.97,
+    "reason": "sellable 1234.56 (~$592.59)",
+    "qty": 1234.56,
     "min_base": 0.0,
     "min_quote": 1.0,
-    "notional": 722.8656
+    "notional": 592.5888
    },
    "S01": {
     "ok": false,
