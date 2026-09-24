@@ -1,0 +1,32 @@
+{
+  "_comment": "Inputs for `rungbot backtest replay ...`. Example values only: replace the coins, zones and rungs with your own. Sources are `venue:SYMBOL` and map to candle caches named `venue_SYMBOL.json` (fetch them with `rungbot backtest replay fetch`); `llama:<id>` caches hold a price-only series.",
+  "btc_source": "binance:BTCUSDT",
+  "confirm": {
+    "coins": [
+      {"sym": "BTC", "source": "binance:BTCUSDT", "depths": [4, 8, 14], "weights": [25, 35, 40], "rung1": [60000, 65000]},
+      {"sym": "ETH", "source": "binance:ETHUSDT", "depths": [5, 10, 18], "weights": [30, 40, 30], "rung1": [2400, 2600]}
+    ]
+  },
+  "current": {
+    "last_bear_close": "2026-08-18",
+    "confirmed": "2026-09-01",
+    "coins": [
+      {"sym": "BTC", "source": "binance:BTCUSDT", "rungs": [72000, 68000, 64000], "spot": 80000},
+      {"sym": "ETH", "source": "binance:ETHUSDT", "rungs": [2500, 2350, 2200], "spot": 2700}
+    ]
+  },
+  "tranche_usd": 1000,
+  "tops": {
+    "coins": {
+      "ETH": ["binance:ETHUSDT"]
+    }
+  },
+  "microstate": {
+    "coins": [
+      {"sym": "BTC", "venue": "binance", "pair": "BTCUSDT", "cost": 70000,
+       "rungs": [[76000, 500], [72000, 700], [68000, 800]], "sells": []},
+      {"sym": "ETH", "venue": "gate", "pair": "ETH_USDT", "cost": 2500,
+       "rungs": [[2500, 300], [2350, 400]], "sells": [[3200, 0.5]]}
+    ]
+  }
+}

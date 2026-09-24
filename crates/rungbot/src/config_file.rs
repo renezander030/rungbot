@@ -37,6 +37,10 @@ pub struct CliConfig {
     pub notify: NotifyConfig,
     /// Per-coin candle source override, `symbol -> "venue:pair"`.
     pub klines: BTreeMap<String, String>,
+    /// Per-coin CoinGecko id, for the backtests' price history (`symbol -> id`).
+    pub coingecko: BTreeMap<String, String>,
+    /// `backtest:` tunables.
+    pub backtest: BacktestConfig,
     pub screen: ScreenConfig,
     /// The watchers' settings (`watch:`).
     pub watch: WatchConfig,
@@ -72,6 +76,8 @@ pub fn from_str(text: &str) -> Result<CliConfig, ConfigError> {
         sellpolicy: sellpolicy_from(doc.get("sellpolicy"))?,
         notify: notify_from(doc.get("notify"))?,
         klines: klines_from(doc.get("coins")),
+        coingecko: coin_key_from(doc.get("coins"), "coingecko"),
+        backtest: backtest_from(doc.get("backtest"))?,
         screen: screen_from(doc.get("research"))?,
         core,
     })
@@ -354,15 +360,74 @@ fn notify_from(node: Option<&Yaml>) -> Result<NotifyConfig, ConfigError> {
 }
 
 fn klines_from(node: Option<&Yaml>) -> BTreeMap<String, String> {
+    coin_key_from(node, "klines")
+}
+
+/// A per-coin string key, `symbol -> value`, for every coin that sets it.
+fn coin_key_from(node: Option<&Yaml>, key: &str) -> BTreeMap<String, String> {
     let mut out = BTreeMap::new();
     if let Some(entries) = node.and_then(|n| n.as_map()) {
         for (sym, spec) in entries {
-            if let Some(k) = spec.get("klines").and_then(|v| v.as_str()) {
+            if let Some(k) = spec.get(key).and_then(|v| v.as_str()) {
                 out.insert(sym.to_ascii_uppercase(), k);
             }
         }
     }
     out
+}
+
+/// The backtests' own knobs. Defaults are the reference implementation's.
+#[derive(Debug, Clone, PartialEq)]
+pub struct BacktestConfig {
+    /// Hard per-order cap the replay applies, in dollars. 0 = unlimited.
+    pub max_order_usd: f64,
+    /// Trailing windows the monthly run judges, in days.
+    pub windows: Vec<i64>,
+    /// A variant must beat the live bands by more than this to flag REVIEW.
+    pub drift_band_pct: f64,
+    pub percoin: bool,
+    /// Per-coin band probes gaining at least this many alpha points are recommended.
+    pub percoin_min_gain: f64,
+}
+
+impl Default for BacktestConfig {
+    fn default() -> Self {
+        BacktestConfig {
+            max_order_usd: 50.0,
+            windows: vec![28, 90, 180],
+            drift_band_pct: 5.0,
+            percoin: true,
+            percoin_min_gain: 2.0,
+        }
+    }
+}
+
+fn backtest_from(node: Option<&Yaml>) -> Result<BacktestConfig, ConfigError> {
+    let mut b = BacktestConfig::default();
+    let Some(node) = node else { return Ok(b) };
+    if node.is_null() {
+        return Ok(b);
+    }
+    if let Some(v) = node.get("max_order_usd") {
+        b.max_order_usd = number(v, "backtest.max_order_usd")?;
+    }
+    if let Some(v) = node.get("drift_band_pct") {
+        b.drift_band_pct = number(v, "backtest.drift_band_pct")?;
+    }
+    if let Some(v) = node.get("percoin_min_gain") {
+        b.percoin_min_gain = number(v, "backtest.percoin_min_gain")?;
+    }
+    if let Some(v) = node.get("percoin") {
+        let raw = v.as_str().unwrap_or_default().to_ascii_lowercase();
+        b.percoin = !matches!(raw.as_str(), "off" | "false" | "no" | "0");
+    }
+    if let Some(ws) = num_list(node.get("windows"), "backtest.windows")? {
+        if ws.is_empty() || ws.iter().any(|w| *w < 1.0 || w.fract() != 0.0) {
+            return err("`backtest.windows` must be whole days, e.g. 28,90,180");
+        }
+        b.windows = ws.iter().map(|w| *w as i64).collect();
+    }
+    Ok(b)
 }
 
 fn number(node: &Yaml, what: &str) -> Result<f64, ConfigError> {

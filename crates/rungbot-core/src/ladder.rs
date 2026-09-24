@@ -10,6 +10,8 @@
 
 use serde::{Deserialize, Serialize};
 
+use crate::pymath::{floordiv, fsum_py};
+
 /// The two numbers that define one coin's ladder spacing.
 #[derive(Debug, Clone, Copy, PartialEq, Serialize, Deserialize)]
 pub struct Bands {
@@ -46,7 +48,7 @@ impl Bands {
 pub fn buy_rung_for(chg: Option<f64>, b: Bands) -> Option<i64> {
     let chg = chg?;
     if chg <= -b.first_pct {
-        Some(((chg.abs() - b.first_pct) / b.step_pct).floor() as i64 + 1)
+        Some(floordiv(chg.abs() - b.first_pct, b.step_pct) as i64 + 1)
     } else {
         Some(0)
     }
@@ -59,7 +61,7 @@ pub fn buy_rung_for(chg: Option<f64>, b: Bands) -> Option<i64> {
 pub fn sell_rung_for(pnl: Option<f64>, b: Bands) -> Option<i64> {
     let pnl = pnl?;
     if pnl >= b.first_pct {
-        Some(((pnl - b.first_pct) / b.step_pct).floor() as i64 + 1)
+        Some(floordiv(pnl - b.first_pct, b.step_pct) as i64 + 1)
     } else {
         Some(0)
     }
@@ -76,10 +78,11 @@ pub fn rung_threshold(rung: i64, b: Bands) -> f64 {
 /// single fresh rung 1 -> 10%, a deepening rung -> 5%, and a jump that crosses rungs
 /// 1+2+3 at once -> 10+5+5 = 20%, i.e. the cumulative size of the move.
 pub fn ladder_increment(new_rungs: &[i64], b: Bands) -> f64 {
-    new_rungs
-        .iter()
-        .map(|r| if *r == 1 { b.first_pct } else { b.step_pct })
-        .sum()
+    fsum_py(
+        new_rungs
+            .iter()
+            .map(|r| if *r == 1 { b.first_pct } else { b.step_pct }),
+    )
 }
 
 #[cfg(test)]
