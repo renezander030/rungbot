@@ -1,0 +1,395 @@
+{
+ "client_id": [
+  {
+   "sym": "AAA",
+   "side": "buy",
+   "ts": 1700000000.0,
+   "rung": 1,
+   "out": "csAAAb944444r1"
+  },
+  {
+   "sym": "BTC",
+   "side": "sell",
+   "ts": 1700001799.9,
+   "rung": 3,
+   "out": "csBTCs944445r3"
+  },
+  {
+   "sym": "BBB",
+   "side": "buy",
+   "ts": 1699999999.0,
+   "rung": 0,
+   "out": "csBBBb944444r0"
+  },
+  {
+   "sym": "X/Y",
+   "side": "sell",
+   "ts": 0.0,
+   "rung": 12,
+   "out": "csX/Ys0r12"
+  },
+  {
+   "sym": "CCC",
+   "side": "buy",
+   "ts": 1700000000.5,
+   "rung": 2.9,
+   "out": "csCCCb944444r2"
+  },
+  {
+   "sym": "DDD",
+   "side": "sell",
+   "ts": -1.0,
+   "rung": 1,
+   "out": "csDDDs-1r1"
+  }
+ ],
+ "root_id": [
+  {
+   "in": "csAAAb944444r1",
+   "out": "csAAAb944444r1"
+  },
+  {
+   "in": "csAAAb944444r1u93041",
+   "out": "csAAAb944444r1"
+  },
+  {
+   "in": "csAAAb944444r1u93041u93042",
+   "out": "csAAAb944444r1"
+  },
+  {
+   "in": "mcsBTCs944444r2",
+   "out": "mcsBTCs944444r2"
+  },
+  {
+   "in": "mcsBTCs944444r2x1",
+   "out": "mcsBTCs944444r2"
+  },
+  {
+   "in": "csBTCs944444r2dx3",
+   "out": "csBTCs944444r2"
+  },
+  {
+   "in": "csAAAb944444r12v5",
+   "out": "csAAAb944444r12"
+  },
+  {
+   "in": "depAAA1700000000r1",
+   "out": "depAAA1700000000r1"
+  },
+  {
+   "in": "cs",
+   "out": "cs"
+  },
+  {
+   "in": "",
+   "out": ""
+  },
+  {
+   "in": "csaaab1r1",
+   "out": "csaaab1r1"
+  },
+  {
+   "in": "csAAAb1r",
+   "out": "csAAAb1r"
+  },
+  {
+   "in": "csAAAbr1",
+   "out": "csAAAbr1"
+  },
+  {
+   "in": "csA1B2b99r7tail",
+   "out": "csA1B2b99r7"
+  },
+  {
+   "in": "Xcsaab1r1",
+   "out": "Xcsaab1r1"
+  },
+  {
+   "in": "mcs",
+   "out": "mcs"
+  },
+  {
+   "in": "csAAAs1r1s2r3",
+   "out": "csAAAs1r1"
+  }
+ ],
+ "safe_cid": [
+  {
+   "in": "csAAAb944444r1",
+   "ok": "csAAAb944444r1"
+  },
+  {
+   "in": "",
+   "error": "1 validation error for ClientOrderId\nvalue\n  String should have at least 1 character [type=string_too_short, input_value='', input_type=str]\n    For further information visit https://errors.pydantic.dev/2.10/v/string_too_short",
+   "type": "ValidationError"
+  },
+  {
+   "in": "a b/c",
+   "ok": "a-b-c"
+  },
+  {
+   "in": "csVERYLONGSYMBOLNAMEb944444r1u93041u93042",
+   "ok": "csVERYLONGSYMBOLNAMEb944444r1-7c502b"
+  },
+  {
+   "in": "csVERYLONGSYMBOLNAMEb944444r1u93041u93042x",
+   "ok": "csVERYLONGSYMBOLNAMEb944444r1-d933f7"
+  },
+  {
+   "in": "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
+   "ok": "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+  },
+  {
+   "in": "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
+   "ok": "xxxxxxxxxxxxxxxxxxxxxxxxxxxxx-de9fb0"
+  },
+  {
+   "in": "\u00fcmlaut-ok",
+   "ok": "-mlaut-ok"
+  },
+  {
+   "in": "dots.are.bad",
+   "ok": "dots-are-bad"
+  },
+  {
+   "in": "under_score-dash",
+   "ok": "under_score-dash"
+  },
+  {
+   "in": "t-already",
+   "ok": "t-already"
+  }
+ ],
+ "gate": [
+  {
+   "in": "csAAAb944444r1",
+   "ok": {
+    "value": "csAAAb944444r1",
+    "text": "t-csAAAb944444r1"
+   }
+  },
+  {
+   "in": "t-csAAAb944444r1",
+   "ok": {
+    "value": "csAAAb944444r1",
+    "text": "t-csAAAb944444r1"
+   }
+  },
+  {
+   "in": "",
+   "error": "1 validation error for GateClientOrderId\nvalue\n  String should have at least 1 character [type=string_too_short, input_value='', input_type=str]\n    For further information visit https://errors.pydantic.dev/2.10/v/string_too_short",
+   "type": "ValidationError"
+  },
+  {
+   "in": "t-",
+   "error": "1 validation error for GateClientOrderId\nvalue\n  String should have at least 1 character [type=string_too_short, input_value='', input_type=str]\n    For further information visit https://errors.pydantic.dev/2.10/v/string_too_short",
+   "type": "ValidationError"
+  },
+  {
+   "in": "dots.are.ok",
+   "ok": {
+    "value": "dots.are.ok",
+    "text": "t-dots.are.ok"
+   }
+  },
+  {
+   "in": "a b/c",
+   "ok": {
+    "value": "a-b-c",
+    "text": "t-a-b-c"
+   }
+  },
+  {
+   "in": "xxxxxxxxxxxxxxxxxxxxxxxxxxxx",
+   "ok": {
+    "value": "xxxxxxxxxxxxxxxxxxxxxxxxxxxx",
+    "text": "t-xxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+   }
+  },
+  {
+   "in": "xxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
+   "ok": {
+    "value": "xxxxxxxxxxxxxxxxxxxxx-ede307",
+    "text": "t-xxxxxxxxxxxxxxxxxxxxx-ede307"
+   }
+  },
+  {
+   "in": "csVERYLONGSYMBOLNAMEb944444r1u93041u93042",
+   "ok": {
+    "value": "csVERYLONGSYMBOLNAMEb-7c502b",
+    "text": "t-csVERYLONGSYMBOLNAMEb-7c502b"
+   }
+  },
+  {
+   "in": "t-csVERYLONGSYMBOLNAMEb944444r1u93041u93042",
+   "ok": {
+    "value": "csVERYLONGSYMBOLNAMEb-7c502b",
+    "text": "t-csVERYLONGSYMBOLNAMEb-7c502b"
+   }
+  },
+  {
+   "in": "\u00fcmlaut",
+   "ok": {
+    "value": "-mlaut",
+    "text": "t--mlaut"
+   }
+  },
+  {
+   "in": "depxAAA1700000000r12",
+   "ok": {
+    "value": "depxAAA1700000000r12",
+    "text": "t-depxAAA1700000000r12"
+   }
+  }
+ ],
+ "revx": [
+  {
+   "in": "csAAAb944444r1",
+   "ok": "25f4ab4f-7df6-5237-b1ec-b1cdf19d2eac"
+  },
+  {
+   "in": "depxBTC1700000000r3",
+   "ok": "771f97a7-9709-5267-a6a3-130d9fe4db7f"
+  },
+  {
+   "in": "",
+   "error": "1 validation error for RevxClientOrderId\nvalue\n  String should match pattern '^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$' [type=string_pattern_mismatch, input_value='', input_type=str]\n    For further information visit https://errors.pydantic.dev/2.10/v/string_pattern_mismatch",
+   "type": "ValidationError"
+  },
+  {
+   "in": "mcsBTCs944444r2",
+   "ok": "52f5f334-5fe9-5bb7-a292-89cb82feaaf9"
+  },
+  {
+   "in": "12345678-1234-5678-1234-567812345678",
+   "ok": "12345678-1234-5678-1234-567812345678"
+  },
+  {
+   "in": "12345678-1234-5678-1234-56781234567Z",
+   "ok": "23dd6bff-0ed5-55fa-8886-f8e4bf5be342"
+  },
+  {
+   "in": "{12345678-1234-5678-1234-567812345678}",
+   "ok": "12345678-1234-5678-1234-567812345678"
+  },
+  {
+   "in": "urn:uuid:12345678-1234-5678-1234-567812345678",
+   "ok": "12345678-1234-5678-1234-567812345678"
+  },
+  {
+   "in": "123456781234567812345678123456AB",
+   "ok": "12345678-1234-5678-1234-5678123456ab"
+  },
+  {
+   "in": "1234-5678123456781234567812345678",
+   "ok": "12345678-1234-5678-1234-567812345678"
+  },
+  {
+   "in": "+2345678123456781234567812345678",
+   "ok": "02345678-1234-5678-1234-567812345678"
+  },
+  {
+   "in": "-2345678123456781234567812345678",
+   "ok": "96f23f48-3b7c-5bb0-8f58-69a4519a432a"
+  },
+  {
+   "in": "-0000000000000000000000000000000",
+   "ok": "03240456-10ac-59a6-8d13-6d01b76e464a"
+  },
+  {
+   "in": "1_345678123456781234567812345678",
+   "ok": "01345678-1234-5678-1234-567812345678"
+  },
+  {
+   "in": "_2345678123456781234567812345678",
+   "ok": "a729270a-929d-5c6c-9212-f87b9337aab9"
+  },
+  {
+   "in": "1__45678123456781234567812345678",
+   "ok": "17860b75-a536-5058-bca0-e909a1d96cad"
+  },
+  {
+   "in": " 2345678123456781234567812345678",
+   "ok": "02345678-1234-5678-1234-567812345678"
+  },
+  {
+   "in": "\u00fcmlaut",
+   "ok": "14e2a5a0-1c62-5c4b-bfc3-78296668b766"
+  }
+ ],
+ "venue_id_matches": [
+  {
+   "exch": "revx",
+   "venue_cid": "25f4ab4f-7df6-5237-b1ec-b1cdf19d2eac",
+   "cid": "csAAAb944444r1",
+   "out": true
+  },
+  {
+   "exch": "revx",
+   "venue_cid": "25F4AB4F-7DF6-5237-B1EC-B1CDF19D2EAC",
+   "cid": "csAAAb944444r1",
+   "out": true
+  },
+  {
+   "exch": "revx",
+   "venue_cid": "csAAAb944444r1",
+   "cid": "csAAAb944444r1",
+   "out": false
+  },
+  {
+   "exch": "gate",
+   "venue_cid": "csAAAb944444r1",
+   "cid": "csAAAb944444r1",
+   "out": true
+  },
+  {
+   "exch": "gate",
+   "venue_cid": "t-csAAAb944444r1",
+   "cid": "csAAAb944444r1",
+   "out": false
+  },
+  {
+   "exch": "gate",
+   "venue_cid": "csVERYLONGSYMBOLNAMEb-7c502b",
+   "cid": "csVERYLONGSYMBOLNAMEb944444r1u93041u93042",
+   "out": true
+  },
+  {
+   "exch": "binance",
+   "venue_cid": "csAAAb944444r1",
+   "cid": "csAAAb944444r1",
+   "out": true
+  },
+  {
+   "exch": "binance",
+   "venue_cid": "csAAAb944444r1x2",
+   "cid": "csAAAb944444r1",
+   "out": true
+  },
+  {
+   "exch": "binance",
+   "venue_cid": "csAAA",
+   "cid": "csAAAb944444r1",
+   "out": false
+  },
+  {
+   "exch": "gate",
+   "venue_cid": "",
+   "cid": "csAAAb944444r1",
+   "out": false
+  },
+  {
+   "exch": "gate",
+   "venue_cid": "x",
+   "cid": "",
+   "out": false
+  },
+  {
+   "exch": "other",
+   "venue_cid": "csAAAb1r1-foo",
+   "cid": "csAAAb1r1",
+   "out": true
+  }
+ ],
+ "revx_namespace": "6b8465f2-752a-568d-a981-7742917775d0"
+}
