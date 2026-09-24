@@ -1,0 +1,24 @@
+# The weekly research report: refresh the screen for the current regime, write the
+# note and send the email. Research only; it never trades.
+#
+# Install (as your user):
+#   cp rungbot-research-report.{service,timer} ~/.config/systemd/user/
+#   systemctl --user daemon-reload
+#   systemctl --user enable --now rungbot-research-report.timer
+#
+# Keys come from the environment file, never from the rungbot config:
+#   EXA_API_KEY=...       web search for the survivor/catalyst evidence
+#   RESEND_API_KEY=...    the email
+#   TICKTICK_TOKEN=...    the note (only when research.notes is configured)
+
+[Unit]
+Description=rungbot weekly research report
+Wants=network-online.target
+After=network-online.target
+
+[Service]
+Type=oneshot
+EnvironmentFile=-%h/.config/rungbot/research.env
+ExecStart=%h/.cargo/bin/rungbot research report --refresh --commit
+# A failed run should reach you: point OnFailure at a unit that notifies.
+# OnFailure=notify-failure@%n.service

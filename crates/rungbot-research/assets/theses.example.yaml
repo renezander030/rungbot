@@ -1,0 +1,70 @@
+# Which screen runs in which market regime, and how its report reads.
+#
+# `rungbot research report` reads the regime (bull | chop | bear), picks the thesis
+# with that name (an unknown label falls back to `fallback`), runs its `refresh`
+# and `synth` steps, and sorts the ledger's verdict lines into the `order` buckets.
+# Edit the wording freely; the steps must be ones `rungbot research` knows:
+#   oppscan, catalyst search, catalyst synthesize, survivor build-index,
+#   survivor select, survivor run, unlocks build-index, unlocks enrich.
+# `{market}` in regime_line is replaced with the regime label.
+
+regime_line: "Regime: **{market}** (auto-detected by `rungbot regime`). **Research-only — never trades, never wired to the bot.**"
+fallback: bear
+
+theses:
+  bear:
+    title: "Survivor Watch"
+    emoji: "✅"
+    intro: "Deeply dislocated coins screened for **durable value that survives to the 2028 bull** — real revenue now + the token captures it. Narrative/hype is ignored (bear market: no marginal buyer)."
+    refresh: "survivor build-index, survivor select"
+    synth: "survivor run"
+    verdict_field: survivor_verdict_line
+    order: "SURVIVOR, UNCLEAR, SPECULATIVE, DEAD"
+    heads:
+      SURVIVOR: "## ✅ Survivors — real revenue + token value-capture (2028 candidates)"
+      UNCLEAR: "## ❓ Unclear — needs a deeper fundamentals read"
+      SPECULATIVE: "## Speculative — narrative only, fails the value gate"
+      DEAD: "## ☠️ Dead / abandoned / scam-smell"
+    top_bucket: SURVIVOR
+    score_key: durability
+    noun: survivor
+    how: "CoinPaprika dislocation scan → DefiLlama fees/TVL (real revenue) + exa fundamentals (treasury, tokenomics, team) → LLM survivor verdict. Free, no paid data."
+    empty: "No coin cleared the value gate this week — cheap, but none with proven real revenue AND token value-capture. Correct outcome in a bear. Details in the note."
+
+  chop:
+    title: "Range Watch"
+    emoji: "🔁"
+    intro: "Choppy/sideways market: the edge is **mean-reversion**, not conviction. Deeply dislocated coins that still pass the real-value gate AND are starting to **base** (higher lows / reclaiming the 30d SMA) — range-trade accumulation candidates. Ranked by dislocation depth × basing strength."
+    refresh: "survivor build-index, survivor select"
+    synth: "survivor run"
+    verdict_field: survivor_verdict_line
+    order: "SURVIVOR, UNCLEAR, SPECULATIVE, DEAD"
+    heads:
+      SURVIVOR: "## 🔁 Range setups — dislocated quality that's basing (mean-reversion)"
+      UNCLEAR: "## ❓ Unclear — needs a deeper read before a range trade"
+      SPECULATIVE: "## Speculative — cheap + basing but fails the value gate"
+      DEAD: "## ☠️ Dead / abandoned / scam-smell"
+    top_bucket: SURVIVOR
+    score_key: range
+    noun: setup
+    how: "CoinPaprika dislocation scan → DefiLlama value gate → regime per-coin basing signals (higher-lows / above-30d-SMA) → re-ranked for mean-reversion. Free, no paid data."
+    empty: "No dislocated + basing setup cleared the value gate this week. In chop, patience beats forcing a range trade. Details in the note."
+
+  bull:
+    title: "Catalyst Watch"
+    emoji: "🚀"
+    intro: "Bull/expansion market: there IS a marginal buyer, so **narrative and catalysts reprice coins** (news-based trades work now — the opposite of a bear). Dislocated coins screened for a recent, forward-looking catalyst (unlock cleared, listing, mainnet, partnership, regulatory). Ranked by catalyst confidence."
+    refresh: "oppscan, catalyst search"
+    synth: "catalyst synthesize"
+    verdict_field: catalyst_verdict_line
+    order: "REPRICE_REASON, WATCH, NO_CATALYST, DEAD"
+    heads:
+      REPRICE_REASON: "## 🚀 Repricing reason — a real forward catalyst"
+      WATCH: "## 👀 Watch — a catalyst forming, not yet confirmed"
+      NO_CATALYST: "## No catalyst — dislocated but nothing to reprice it"
+      DEAD: "## ☠️ Dead / abandoned / scam-smell"
+    top_bucket: REPRICE_REASON
+    score_key: confidence
+    noun: catalyst
+    how: "CoinPaprika dislocation scan → exa broad web search (any catalyst) → LLM catalyst verdict. Free, no paid data (no CoinMarketCal)."
+    empty: "No dislocated coin has a real forward catalyst this week. Nothing to reprice yet — watch and wait. Details in the note."
