@@ -8,16 +8,16 @@
 //! * **Telegram** — a bot message. The bot token is read from the environment and never
 //!   from the config file, so a watchlist stays safe to paste into an issue.
 //!
-//! Dedupe lives in [`rungbot_core::notices`]: this module sends what it is given.
-
-use std::fmt;
+//! Dedupe lives in [`rungbot_core::notices`]: this module sends what it is given. The
+//! sending itself is `rungbot-notify`, shared with the executor.
 
 use rungbot_core::Outcome;
+pub use rungbot_notify::NotifyError;
+use rungbot_notify::{TelegramConfig, WebhookConfig};
 
 use crate::tickers::USER_AGENT;
 
-const TIMEOUT_S: u64 = 20;
-pub const TELEGRAM_TOKEN_ENV: &str = "RUNGBOT_TELEGRAM_TOKEN";
+pub const TELEGRAM_TOKEN_ENV: &str = rungbot_notify::telegram::DEFAULT_TOKEN_ENV;
 
 #[derive(Debug, Clone, Default, PartialEq)]
 pub struct NotifyConfig {
@@ -29,43 +29,6 @@ impl NotifyConfig {
     pub fn is_configured(&self) -> bool {
         self.webhook_url.is_some() || self.telegram_chat_id.is_some()
     }
-}
-
-#[derive(Debug)]
-pub enum NotifyError {
-    Offline(String),
-    Failed(String),
-    Misconfigured(String),
-}
-
-impl fmt::Display for NotifyError {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        match self {
-            NotifyError::Offline(m) | NotifyError::Failed(m) | NotifyError::Misconfigured(m) => {
-                write!(f, "{m}")
-            }
-        }
-    }
-}
-
-fn post(url: &str, body: String, content_type: &str) -> Result<(), NotifyError> {
-    if std::env::var("RUNGBOT_OFFLINE").as_deref() == Ok("1") {
-        return Err(NotifyError::Offline(
-            "RUNGBOT_OFFLINE=1 refuses to send a notification".into(),
-        ));
-    }
-    let resp = minreq::post(url)
-        .with_header("User-Agent", USER_AGENT)
-        .with_header("Content-Type", content_type)
-        .with_timeout(TIMEOUT_S)
-        .with_body(body)
-        .send()
-        .map_err(|e| NotifyError::Failed(format!("{e}")))?;
-    if !(200..300).contains(&resp.status_code) {
-        let head: String = resp.as_str().unwrap_or("").chars().take(160).collect();
-        return Err(NotifyError::Failed(format!("{} {head}", resp.status_code)));
-    }
-    Ok(())
 }
 
 /// A short human message: the lines that would make someone open the app.
@@ -96,10 +59,6 @@ pub fn summary(out: &Outcome) -> String {
     lines.join("\n")
 }
 
-fn json_escape(s: &str) -> String {
-    serde_json::to_string(s).unwrap_or_else(|_| "\"\"".into())
-}
-
 pub fn send(
     cfg: &NotifyConfig,
     out: &Outcome,
@@ -115,30 +74,20 @@ pub fn send(
             "sells": out.sells,
             "errors": out.errors,
         });
-        let body = serde_json::to_string(&payload).unwrap_or_else(|_| "{}".into());
-        results.push(("webhook".to_string(), post(url, body, "application/json")));
+        let mut hook = WebhookConfig::new(url);
+        hook.user_agent = Some(USER_AGENT.into());
+        results.push(("webhook".to_string(), hook.send(&payload)));
     }
 
     if let Some(chat) = &cfg.telegram_chat_id {
-        match std::env::var(TELEGRAM_TOKEN_ENV) {
-            Ok(tok) if !tok.trim().is_empty() => {
-                let url = format!("https://api.telegram.org/bot{}/sendMessage", tok.trim());
-                // Plain text on purpose: a price like `1.0*2` must never be read as
-                // formatting and silently drop the message.
-                let body = format!(
-                    "{{\"chat_id\":{},\"text\":{},\"disable_web_page_preview\":true}}",
-                    json_escape(chat),
-                    json_escape(text)
-                );
-                results.push(("telegram".to_string(), post(&url, body, "application/json")));
-            }
-            _ => results.push((
-                "telegram".to_string(),
-                Err(NotifyError::Misconfigured(format!(
-                    "a chat id is set but {TELEGRAM_TOKEN_ENV} is empty or unset"
-                ))),
-            )),
-        }
+        // Plain text on purpose: a price like `1.0*2` must never be read as formatting
+        // and silently drop the message. No 3,900-character cut here: the summary is
+        // short, and only Telegram's own 4,096 ceiling applies.
+        let mut tg = TelegramConfig::new(chat.as_str());
+        tg.token_env = TELEGRAM_TOKEN_ENV.into();
+        tg.max_chars = None;
+        tg.user_agent = Some(USER_AGENT.into());
+        results.push(("telegram".to_string(), tg.send(text)));
     }
 
     results
@@ -148,6 +97,7 @@ pub fn send(
 mod tests {
     use super::*;
     use rungbot_core::{analyze, Coin, Config, Price, Settings, Venue};
+    use rungbot_notify::json_escape;
     use std::collections::BTreeMap;
 
     fn outcome(price: f64, chg: f64) -> Outcome {

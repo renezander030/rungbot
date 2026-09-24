@@ -1,0 +1,26 @@
+[
+ {
+  "email": true,
+  "telegram": true,
+  "subject": "MARKET FROTH: COOL -> WARM",
+  "line": "sent: email=True telegram=True | MARKET FROTH: COOL -> WARM"
+ },
+ {
+  "email": true,
+  "telegram": false,
+  "subject": "MARKET FROTH: COOL -> WARM",
+  "line": "sent: email=True telegram=False | MARKET FROTH: COOL -> WARM"
+ },
+ {
+  "email": false,
+  "telegram": true,
+  "subject": "MARKET FROTH: COOL -> WARM",
+  "line": "sent: email=False telegram=True | MARKET FROTH: COOL -> WARM"
+ },
+ {
+  "email": false,
+  "telegram": false,
+  "subject": "MARKET FROTH: COOL -> WARM",
+  "line": "sent: email=False telegram=False | MARKET FROTH: COOL -> WARM"
+ }
+]
