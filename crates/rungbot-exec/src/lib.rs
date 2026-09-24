@@ -21,8 +21,10 @@
 
 pub mod gate;
 pub mod guard;
+pub mod ids;
 pub mod journal;
 pub mod keys;
+pub mod pyfmt;
 pub mod store;
 #[cfg(test)]
 mod testenv;

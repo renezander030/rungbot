@@ -1,6 +1,6 @@
 [package]
 name = "rungbot-exec"
-description = "Live order execution for rungbot: idempotent order journal, hard caps and a Gate.io spot client. Opt-in, GTC limit orders only."
+description = "Live order execution for rungbot: an idempotent order journal, hard caps, reconcile, and Gate.io, Revolut X and Binance spot clients. Opt-in."
 version.workspace = true
 edition.workspace = true
 rust-version.workspace = true
@@ -15,8 +15,13 @@ documentation = "https://docs.rs/rungbot-exec"
 [dependencies]
 rungbot-core = { path = "../rungbot-core", version = "0.5.5" }
 serde = { workspace = true }
-serde_json = { workspace = true }
+# float_roundtrip: parse every float to the nearest double, as the reference does.
+# The default parser can land one ulp off, and journal amounts must read back exactly.
+serde_json = { workspace = true, features = ["float_roundtrip"] }
 minreq = { version = "3", features = ["https-rustls"] }
 hmac = "0.12"
 sha2 = "0.10"
 fs4 = { version = "1.1.0", default-features = false, features = ["sync"] }
+sha1 = "0.10"
+ed25519-dalek = { version = "2.1", default-features = false, features = ["std", "zeroize"] }
+indexmap = { version = "2", features = ["serde"] }
