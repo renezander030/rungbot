@@ -110,21 +110,22 @@ impl Args {
                 flags.insert(k.into(), v.into());
                 continue;
             }
-            let takes = matches!(
-                bare,
-                "config"
-                    | "from"
-                    | "journal"
-                    | "venue"
-                    | "days"
-                    | "pair"
-                    | "pair-map"
-                    | "budget"
-                    | "max-order"
-                    | "max-daily"
-                    | "max-orders"
-                    | "max-slippage"
-            );
+            // `import-cex DIR --config` is a switch there; everywhere else it names a file.
+            let takes = (bare == "config" && cmd != "import-cex")
+                || matches!(
+                    bare,
+                    "from"
+                        | "journal"
+                        | "venue"
+                        | "days"
+                        | "pair"
+                        | "pair-map"
+                        | "budget"
+                        | "max-order"
+                        | "max-daily"
+                        | "max-orders"
+                        | "max-slippage"
+                );
             let value = if takes {
                 it.next()
                     .cloned()
@@ -978,6 +979,17 @@ mod tests {
 
         let bad: Vec<String> = ["sync", "--from"].iter().map(|s| s.to_string()).collect();
         assert!(Args::parse(&bad).is_err());
+    }
+
+    #[test]
+    fn import_cex_config_is_a_switch_after_the_directory() {
+        let argv: Vec<String> = ["import-cex", "/src/bot", "--config"]
+            .iter()
+            .map(|s| s.to_string())
+            .collect();
+        let a = Args::parse(&argv).unwrap();
+        assert_eq!(a.get("sub"), Some("/src/bot"));
+        assert!(a.has("config"));
     }
 
     #[test]
