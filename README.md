@@ -157,6 +157,27 @@ and one reminder a day. The bot token comes from `RUNGBOT_TELEGRAM_TOKEN`, never
 config. Every run also records why each coin did nothing; `--save` appends
 `decisions.jsonl` beside the state file.
 
+## Watchers
+
+`rungbot watch <regime|btc|zone|froth|divergence|daily>` runs the read-only checks that
+mail you when the market or the book needs a human. None of them places, cancels or
+halts anything; each mail says what to run by hand. `--dry-run` prints instead of
+sending. State files sit side by side and are written by rename, so a crash never
+leaves half a file.
+
+| Watcher | Mails when |
+|---|---|
+| `regime` | the bull/chop/bear label flips, and again when it confirms (14 days held). A confirmed label that later returns is announced again. |
+| `btc` | BTC enters the heads-up band or breaks your alert line. Once per crossing; re-arms 2% back above. |
+| `zone` | a resting buy has sat far below spot too long, a coin starts or stops running, or cash sits idle. |
+| `froth` | the heat level changes: fear & greed, funding, open interest, BTC's Mayer multiple. |
+| `divergence` | live results fall behind the last backtest, or the drawdown passes its worst window. Once per guard per baseline. |
+
+`daily` runs `froth` then `zone`. Email goes through Resend (`RESEND_API_KEY`), Telegram
+through `RUNGBOT_TELEGRAM_TOKEN`. The watchers read the executor's order journal and a
+balances snapshot from the paths under `watch:`, so `rungbot` still holds no venue key.
+Example systemd units are in [`contrib/systemd`](contrib/systemd).
+
 ## Execution
 
 ```bash
