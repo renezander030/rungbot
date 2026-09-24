@@ -107,9 +107,35 @@ struct Fake {
     spec: Value,
     calls: Calls,
     seen: RefCell<BTreeMap<String, usize>>,
+    fault: Fault,
+    dir: PathBuf,
 }
 
+/// A fault a regression test injects on top of a scenario's script.
+#[derive(Debug, Clone, Default)]
+struct Fault {
+    /// Panic right after the venue took the order with this client id: the process
+    /// dies with the order out and before anything else is written.
+    abort_after: Option<String>,
+    /// Right after the venue took this client id, the journal can no longer be written.
+    jam_after: Option<String>,
+    /// The deploy hook panics: it runs after execution and before the run's saves.
+    deploy_panics: bool,
+}
+
+const ABORT: &str = "injected abort after a venue call";
+
 impl Fake {
+    fn after_order(&self, cid: &str) {
+        if self.fault.jam_after.as_deref() == Some(cid) {
+            // A directory where the journal's temp file goes: every write fails.
+            std::fs::create_dir_all(self.dir.join("orders-journal.tmp")).unwrap();
+        }
+        if self.fault.abort_after.as_deref() == Some(cid) {
+            panic!("{ABORT}");
+        }
+    }
+
     fn err(&self, msg: &str) -> VenueError {
         VenueError::new(self.name, None, msg.to_string())
     }
@@ -139,6 +165,7 @@ impl Fake {
             .borrow_mut()
             .push(json!({"venue": self.name, "call": call, "pair": pair,
             "amount": amount, "client_id": cid}));
+        self.after_order(cid);
         let v = &self.spec[call][cid];
         if v.is_null() {
             return Ok(default);
@@ -243,6 +270,7 @@ impl Venue for Fake {
             .borrow_mut()
             .push(json!({"venue": self.name, "call": "limit_sell",
             "pair": pair, "amount": base, "price": price, "client_id": cid}));
+        self.after_order(cid);
         let v = &self.spec["limit_sell"][cid];
         if v.is_null() {
             return Ok(json!({"order_id": format!("L-{cid}"), "status": "open"}));
@@ -331,10 +359,13 @@ fn result_of(v: &Value) -> RunResult {
     }
 }
 
-struct Deploy(Value);
+struct Deploy(Value, bool);
 
 impl DeployHook for Deploy {
     fn check(&mut self, _: &mut HookCtx, execution: &mut Vec<RunResult>) -> Result<(), String> {
+        if self.1 {
+            panic!("{ABORT}");
+        }
         if self.0.is_null() {
             return Ok(());
         }
@@ -475,7 +506,8 @@ fn env_for(sc: &Value, dir: &Path, extra: &BTreeMap<String, String>) -> BTreeMap
     env
 }
 
-fn replay(sc: &Value, failures: &mut Vec<String>) {
+/// A scenario's state directory with its initial files, and its config.
+fn setup(sc: &Value, tag: &str) -> (Scratch, String) {
     let name = s(&sc["name"]);
     // Some texts cut at a fixed width after the state dir is named in them, so the
     // scratch dir is kept as short as the reference harness's own.
@@ -484,11 +516,9 @@ fn replay(sc: &Value, failures: &mut Vec<String>) {
     } else {
         std::env::temp_dir()
     };
-    let dir = base.join(format!("rr{}-{name}", std::process::id()));
+    let dir = base.join(format!("rr{}-{name}{tag}", std::process::id()));
     let _ = std::fs::remove_dir_all(&dir);
     std::fs::create_dir_all(&dir).unwrap();
-    let _scratch = Scratch(dir.clone());
-    let dstr = dir.display().to_string();
     let init = &sc["initial"];
     for (k, f) in FILES {
         if let Some(v) = init.get(k) {
@@ -502,102 +532,147 @@ fn replay(sc: &Value, failures: &mut Vec<String>) {
         std::fs::write(dir.join("ladder-state.json"), raw).unwrap();
     }
     let yaml = yaml_for(sc, &dir);
+    (Scratch(dir), yaml)
+}
 
+/// What one run did.
+struct Ran {
+    /// `None` when the run panicked (an injected abort).
+    code: Option<Result<i32, String>>,
+    out: String,
+    err: String,
+    mails: Vec<Value>,
+    pings: Vec<String>,
+    calls: Vec<Value>,
+    sleeps: Vec<f64>,
+}
+
+/// Drive one run of a scenario over `dir`, with `fault` injected.
+fn drive(sc: &Value, run: &Value, dir: &Path, yaml: &str, at: &str, fault: &Fault) -> Ran {
+    let now = n(&run["now"]);
+    if let Some(t) = run["touch"].as_object() {
+        for (f, on) in t {
+            if on.as_bool() == Some(true) {
+                std::fs::write(dir.join(f), "").unwrap();
+            } else {
+                let _ = std::fs::remove_file(dir.join(f));
+            }
+        }
+    }
+    if let Some(p) = run["put"].as_object() {
+        for (k, f) in FILES {
+            if let Some(v) = p.get(k) {
+                put(&dir.join(f), v);
+            }
+        }
+        if let Some(v) = p.get("froth") {
+            put(&dir.join("froth-state.json"), v);
+        }
+    }
+    let mut extra = BTreeMap::new();
+    if run["lock_held"].as_bool() == Some(true) {
+        extra.insert("RUN_LOCK_WAIT".to_string(), "0".to_string());
+    }
+    let env = env_for(sc, dir, &extra);
+    let cfg = RunConfig::from_yaml(yaml, &|k| env.get(k).cloned())
+        .unwrap_or_else(|e| panic!("{at}: config: {e}"));
+
+    let calls: Calls = Rc::new(RefCell::new(Vec::new()));
+    let venues = Fakes(
+        [("binance", "binance"), ("gate", "gate"), ("revx", "revx")]
+            .into_iter()
+            .map(|(k, v)| {
+                (
+                    k.to_string(),
+                    Fake {
+                        name: v,
+                        spec: run["venues"][k].clone(),
+                        calls: calls.clone(),
+                        seen: RefCell::new(BTreeMap::new()),
+                        fault: fault.clone(),
+                        dir: dir.to_path_buf(),
+                    },
+                )
+            })
+            .collect(),
+    );
+    let market = FakeMarket {
+        tickers: run["tickers"].clone(),
+        klines: run["klines"].clone(),
+    };
+    let outbox = Capture {
+        ok: run["send_ok"].as_bool().unwrap_or(true),
+        ..Default::default()
+    };
+    let mut deploy = Deploy(run["deploy"].clone(), fault.deploy_panics);
+    let mut audit = Audit(run["audit"].clone());
+    let sleeps = RefCell::new(Vec::<f64>::new());
+    let (mut out, mut err) = (Vec::<u8>::new(), Vec::<u8>::new());
+    let flags: Vec<&str> = run["flags"]
+        .as_array()
+        .map(|a| a.iter().map(s).collect())
+        .unwrap_or_default();
+    let lock_hold = (run["lock_held"].as_bool() == Some(true)).then(|| {
+        let l = store::RunLock::acquire(
+            &cfg.lock_path(),
+            "another writer",
+            std::time::Duration::ZERO,
+        )
+        .unwrap();
+        std::fs::write(cfg.lock_path(), "another writer\n").unwrap();
+        l
+    });
+    let code = {
+        let clock = || now;
+        let sleep = |x: f64| sleeps.borrow_mut().push(x);
+        let mut deps = Deps {
+            venues: &venues,
+            market: &market,
+            outbox: &outbox,
+            deploy: &mut deploy,
+            audit: &mut audit,
+            clock: &clock,
+            sleep: &sleep,
+            out: &mut out,
+            err: &mut err,
+        };
+        let f = Flags {
+            dry_run: flags.contains(&"--dry-run"),
+            verbose: flags.contains(&"--verbose"),
+        };
+        std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
+            run::run_locked(&cfg, f, &mut deps)
+        }))
+        .ok()
+    };
+    drop(lock_hold);
+    let mails = outbox.mails.borrow().clone();
+    let pings = outbox.pings.borrow().clone();
+    let calls = calls.borrow().clone();
+    let sleeps = sleeps.borrow().clone();
+    Ran {
+        code,
+        out: String::from_utf8_lossy(&out).into_owned(),
+        err: String::from_utf8_lossy(&err).into_owned(),
+        mails,
+        pings,
+        calls,
+        sleeps,
+    }
+}
+
+fn replay(sc: &Value, failures: &mut Vec<String>) {
+    let name = s(&sc["name"]);
+    let (scratch, yaml) = setup(sc, "");
+    let dir = scratch.0.clone();
+    let dstr = dir.display().to_string();
     for (i, run) in sc["runs"].as_array().unwrap().iter().enumerate() {
         let at = format!("{name}[{i}]");
-        let now = n(&run["now"]);
-        if let Some(t) = run["touch"].as_object() {
-            for (f, on) in t {
-                if on.as_bool() == Some(true) {
-                    std::fs::write(dir.join(f), "").unwrap();
-                } else {
-                    let _ = std::fs::remove_file(dir.join(f));
-                }
-            }
-        }
-        if let Some(p) = run["put"].as_object() {
-            for (k, f) in FILES {
-                if let Some(v) = p.get(k) {
-                    put(&dir.join(f), v);
-                }
-            }
-            if let Some(v) = p.get("froth") {
-                put(&dir.join("froth-state.json"), v);
-            }
-        }
-        let mut extra = BTreeMap::new();
-        if run["lock_held"].as_bool() == Some(true) {
-            extra.insert("RUN_LOCK_WAIT".to_string(), "0".to_string());
-        }
-        let env = env_for(sc, &dir, &extra);
-        let cfg = RunConfig::from_yaml(&yaml, &|k| env.get(k).cloned())
-            .unwrap_or_else(|e| panic!("{at}: config: {e}"));
-
-        let calls: Calls = Rc::new(RefCell::new(Vec::new()));
-        let venues = Fakes(
-            [("binance", "binance"), ("gate", "gate"), ("revx", "revx")]
-                .into_iter()
-                .map(|(k, v)| {
-                    (
-                        k.to_string(),
-                        Fake {
-                            name: v,
-                            spec: run["venues"][k].clone(),
-                            calls: calls.clone(),
-                            seen: RefCell::new(BTreeMap::new()),
-                        },
-                    )
-                })
-                .collect(),
-        );
-        let market = FakeMarket {
-            tickers: run["tickers"].clone(),
-            klines: run["klines"].clone(),
-        };
-        let outbox = Capture {
-            ok: run["send_ok"].as_bool().unwrap_or(true),
-            ..Default::default()
-        };
-        let mut deploy = Deploy(run["deploy"].clone());
-        let mut audit = Audit(run["audit"].clone());
-        let sleeps = RefCell::new(Vec::<f64>::new());
-        let (mut out, mut err) = (Vec::<u8>::new(), Vec::<u8>::new());
-        let flags: Vec<&str> = run["flags"]
-            .as_array()
-            .map(|a| a.iter().map(s).collect())
-            .unwrap_or_default();
-        let lock_hold = (run["lock_held"].as_bool() == Some(true)).then(|| {
-            let l = store::RunLock::acquire(
-                &cfg.lock_path(),
-                "another writer",
-                std::time::Duration::ZERO,
-            )
-            .unwrap();
-            std::fs::write(cfg.lock_path(), "another writer\n").unwrap();
-            l
-        });
-        let code = {
-            let clock = || now;
-            let sleep = |x: f64| sleeps.borrow_mut().push(x);
-            let mut deps = Deps {
-                venues: &venues,
-                market: &market,
-                outbox: &outbox,
-                deploy: &mut deploy,
-                audit: &mut audit,
-                clock: &clock,
-                sleep: &sleep,
-                out: &mut out,
-                err: &mut err,
-            };
-            let f = Flags {
-                dry_run: flags.contains(&"--dry-run"),
-                verbose: flags.contains(&"--verbose"),
-            };
-            run::run_locked(&cfg, f, &mut deps).unwrap_or(1)
-        };
-        drop(lock_hold);
-
+        let ran = drive(sc, run, &dir, &yaml, &at, &Fault::default());
+        let code = ran
+            .code
+            .unwrap_or_else(|| panic!("{at}: the run panicked"))
+            .unwrap_or(1);
         let norm = |t: &str| t.replace(&dstr, "<dir>");
         let mut check = |r: Result<(), String>| {
             if let Err(e) = r {
@@ -605,21 +680,12 @@ fn replay(sc: &Value, failures: &mut Vec<String>) {
             }
         };
         check(same(&run["exit"], &json!(code), "exit"));
-        check(text_eq(
-            s(&run["stdout"]),
-            &norm(&String::from_utf8_lossy(&out)),
-            "stdout",
-        ));
+        check(text_eq(s(&run["stdout"]), &norm(&ran.out), "stdout"));
         if !run["stderr"].is_null() {
-            check(text_eq(
-                s(&run["stderr"]),
-                &norm(&String::from_utf8_lossy(&err)),
-                "stderr",
-            ));
+            check(text_eq(s(&run["stderr"]), &norm(&ran.err), "stderr"));
         }
-        let mails: Vec<Value> = outbox
+        let mails: Vec<Value> = ran
             .mails
-            .borrow()
             .iter()
             .map(|m| serde_json::from_str(&norm(&m.to_string())).unwrap())
             .collect();
@@ -654,23 +720,14 @@ fn replay(sc: &Value, failures: &mut Vec<String>) {
                 ));
             }
         }
-        let pings: Vec<Value> = outbox
-            .pings
-            .borrow()
-            .iter()
-            .map(|p| json!(norm(p)))
-            .collect();
+        let pings: Vec<Value> = ran.pings.iter().map(|p| json!(norm(p))).collect();
         check(same(&run["telegram"], &Value::Array(pings), "telegram"));
         check(same(
             &run["calls"],
-            &Value::Array(calls.borrow().clone()),
+            &Value::Array(ran.calls.clone()),
             "calls",
         ));
-        check(same(
-            &run["sleeps"],
-            &json!(sleeps.borrow().clone()),
-            "sleeps",
-        ));
+        check(same(&run["sleeps"], &json!(ran.sleeps), "sleeps"));
         for (k, f) in FILES {
             let ours = std::fs::read_to_string(dir.join(f))
                 .ok()
@@ -764,4 +821,153 @@ fn the_example_config_loads() {
     assert_eq!(c.deploy, "off");
     let n: rungbot_notify::Notifier = serde_json::from_value(c.notify.clone()).unwrap();
     assert!(n.email.is_some() && n.telegram.is_some());
+}
+
+// ------------------------------------------------------------------ injected faults
+
+/// Replay runs `0..k` of a scenario as recorded, then run `k` with `fault`.
+fn with_fault(name: &str, k: usize, fault: Fault) -> (Scratch, Ran) {
+    let _offline = OfflineGuard::set();
+    let g = golden();
+    let sc = g["scenarios"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .find(|sc| s(&sc["name"]) == name)
+        .unwrap_or_else(|| panic!("no scenario {name}"))
+        .clone();
+    // One directory per fault: the tests run side by side.
+    let tag = format!(
+        "-f{k}-{}-{}-{}",
+        fault.abort_after.as_deref().unwrap_or("x"),
+        fault.jam_after.as_deref().unwrap_or("x"),
+        fault.deploy_panics
+    );
+    let (scratch, yaml) = setup(&sc, &tag);
+    let runs = sc["runs"].as_array().unwrap();
+    for (i, run) in runs[..k].iter().enumerate() {
+        let at = format!("{name}[{i}]");
+        let r = drive(&sc, run, &scratch.0, &yaml, &at, &Fault::default());
+        assert!(matches!(r.code, Some(Ok(_))), "{at}: the setup run failed");
+    }
+    let at = format!("{name}[{k}]");
+    let ran = drive(&sc, &runs[k], &scratch.0, &yaml, &at, &fault);
+    (scratch, ran)
+}
+
+fn on_disk(dir: &Path, file: &str) -> Value {
+    std::fs::read_to_string(dir.join(file))
+        .map(|t| serde_json::from_str(&t).unwrap())
+        .unwrap_or(Value::Null)
+}
+
+/// A process that dies right after a venue took an order must find that order in the
+/// journal on disk: the paired sell after a market buy, the paired sell of a fill booked
+/// by reconcile, and a repriced sell.
+#[test]
+fn every_limit_sell_is_on_disk_before_the_venue_sees_it() {
+    for (name, k, cid) in [
+        ("dip_executed", 0, "csAAAs976667r1"),
+        ("hooks_async_errors", 1, "csAAAs976668r1d"),
+        ("dip_executed", 1, "csAAAs976667r1u76668"),
+        ("dip_executed", 0, "csAAAb976667r1"),
+    ] {
+        let fault = Fault {
+            abort_after: Some(cid.into()),
+            ..Default::default()
+        };
+        let (scratch, ran) = with_fault(name, k, fault);
+        assert!(ran.code.is_none(), "{name}[{k}]: the abort did not fire");
+        let j = on_disk(&scratch.0, "orders-journal.json");
+        assert_eq!(
+            j[cid]["status"],
+            json!("pending"),
+            "{name}[{k}]: {cid} not on disk before the venue call: {j}"
+        );
+    }
+}
+
+/// A journal write that fails after a fill: the run does not abort. It reports a fatal
+/// error by mail, places nothing more (not the paired sell, not the next buy), and still
+/// saves the ladder state with its cap counters.
+#[test]
+fn a_journal_write_failing_after_a_fill_stops_placing_but_saves_the_rest() {
+    let fault = Fault {
+        jam_after: Some("csAAAb976667r1".into()),
+        ..Default::default()
+    };
+    let (scratch, ran) = with_fault("hooks_async_errors", 0, fault);
+    assert!(
+        matches!(ran.code, Some(Ok(1))),
+        "want exit 1, got {:?}\n{}",
+        ran.code,
+        ran.err
+    );
+    let placed: Vec<&str> = ran
+        .calls
+        .iter()
+        .map(|c| c["client_id"].as_str().unwrap_or(""))
+        .collect();
+    assert_eq!(placed, ["csAAAb976667r1"], "nothing after the failed write");
+    assert!(
+        ran.mails
+            .iter()
+            .any(|m| s(&m["text"]).contains("journal write failed")),
+        "no error mail: {:?}",
+        ran.mails
+    );
+    let ladder = on_disk(&scratch.0, "ladder-state.json");
+    assert_eq!(ladder["_daily"]["orders"], json!(1), "{ladder}");
+    assert_eq!(
+        ladder["_daily"]["notional"].as_f64(),
+        Some(50.0),
+        "{ladder}"
+    );
+}
+
+/// The same after a market sell: the realized P&L of the sell is on disk.
+#[test]
+fn a_journal_write_failing_after_a_sell_still_saves_its_pnl() {
+    let fault = Fault {
+        jam_after: Some("mcsAAAs976667r1".into()),
+        ..Default::default()
+    };
+    let (scratch, ran) = with_fault("sell_ladder", 0, fault);
+    assert!(
+        matches!(ran.code, Some(Ok(1))),
+        "{:?}\n{}",
+        ran.code,
+        ran.err
+    );
+    let pnl = on_disk(&scratch.0, "pnl-ledger.json");
+    assert_eq!(pnl.as_array().map(Vec::len), Some(1), "{pnl}");
+    assert_eq!(pnl[0]["sym"], json!("AAA"));
+    let ladder = on_disk(&scratch.0, "ladder-state.json");
+    assert_eq!(ladder["_daily"]["orders"], json!(1), "{ladder}");
+    assert!(ran
+        .mails
+        .iter()
+        .any(|m| s(&m["text"]).contains("journal write failed")));
+}
+
+/// The P&L ledger is written right after the sell, not at the end of the run: a
+/// process that dies later in the run (here in the deploy layer) keeps the record.
+#[test]
+fn the_pnl_ledger_is_on_disk_right_after_the_sell() {
+    let fault = Fault {
+        deploy_panics: true,
+        ..Default::default()
+    };
+    let (scratch, ran) = with_fault("sell_ladder", 0, fault);
+    assert!(ran.code.is_none(), "the deploy hook did not run");
+    let g = golden();
+    let want = g["scenarios"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .find(|sc| s(&sc["name"]) == "sell_ladder")
+        .unwrap()["runs"][0]["files"]["pnl"]
+        .clone();
+    let got = on_disk(&scratch.0, "pnl-ledger.json");
+    same(&want, &got, "pnl").unwrap();
 }

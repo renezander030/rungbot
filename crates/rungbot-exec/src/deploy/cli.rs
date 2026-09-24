@@ -12,8 +12,13 @@
 //! present (`cancel` works while halted, on purpose), and the caller holds the run lock.
 //!
 //! Two corrections to the reference: `market` with nothing to spend no longer sends a
-//! $0 market buy, and a `tranche` of fresh money now raises the venue's baseline by what
-//! it laddered, so the next run does not ladder the same money a second time.
+//! $0 market buy, and a `tranche` of fresh money now raises the venue's baseline by the
+//! new money it placed (never more than the balance shows above the baseline), so the
+//! next run does not ladder the same money a second time.
+//!
+//! Inputs are checked before anything reaches a venue: amounts must be finite, a
+//! `tranche` at least 0 (there is no manual withhold), a `market` share above 0 and at
+//! most 100, and `cancel` refuses a venue it does not know.
 
 use std::collections::BTreeSet;
 use std::io::Write;
@@ -40,6 +45,15 @@ fn print_results(layer: &Layer, out: &mut dyn Write) -> Result<(), String> {
         say!(out, "{t}");
     }
     Ok(())
+}
+
+/// Print the results; a journal write that failed on the way makes the command fail.
+fn finish(layer: &Layer, out: &mut dyn Write) -> Result<(), String> {
+    print_results(layer, out)?;
+    match layer.write_failed() {
+        Some(e) => Err(format!("{e}; nothing more was placed")),
+        None => Ok(()),
+    }
 }
 
 fn venues_usage(what: &str) -> String {
@@ -149,6 +163,15 @@ pub fn plan(layer: &Layer, budget: f64, out: &mut dyn Write) -> Result<(), Strin
     Ok(())
 }
 
+/// A command-line amount: a finite number (`nan`, `inf` and overflow are refused).
+pub fn parse_num(s: &str, what: &str) -> Result<f64, String> {
+    let x: f64 = s.trim().parse().map_err(|e| format!("{what}: {e}"))?;
+    if !x.is_finite() {
+        return Err(format!("{what}: {s:?} is not a finite number"));
+    }
+    Ok(x)
+}
+
 fn check_live(layer: &Layer) -> Result<(), String> {
     if Layer::blocked(layer.cfg).is_some() {
         return Err("blocked: LIVE_TRADING_ENABLED/halt file".into());
@@ -164,6 +187,14 @@ pub fn tranche(
     only: Only,
     out: &mut dyn Write,
 ) -> Result<(), String> {
+    // The reference has no manual withhold: a negative tranche is refused, not laddered
+    // lighter.
+    if !(budget.is_finite() && budget >= 0.0) {
+        return Err(format!(
+            "tranche <usd> must be a number of at least 0, got {}",
+            crate::pyfmt::float_repr(budget)
+        ));
+    }
     check_live(layer)?;
     if !VENUES.contains(&venue) {
         return Err(venues_usage("tranche <usd> <{V}>"));
@@ -173,24 +204,68 @@ pub fn tranche(
         .get(venue)
         .cloned()
         .unwrap_or_default();
+    // New money not yet in the baseline, read before the tranche moves anything: only
+    // that part of the budget can be laddered twice by the next run.
+    let path = layer.cfg.deploy_state_path();
+    let fresh = if budget > 0.0 {
+        let st = load_state(&path)?;
+        let base = st
+            .get("stable")
+            .and_then(|s| s.get(venue))
+            .and_then(Value::as_f64);
+        match (base, client.balances_full()) {
+            (None, _) => 0.0,
+            (Some(base), Ok(b)) => {
+                let (explained, _) = layer.explained(&st, &[venue]);
+                let x = b.get(&quote).copied().unwrap_or_default();
+                (x.free + x.locked - (base + explained[venue])).max(0.0)
+            }
+            (Some(_), Err(e)) => {
+                layer.warn(format!(
+                    "deploy tranche: {venue} balances unreadable, baseline not raised: {e}"
+                ));
+                0.0
+            }
+        }
+    } else {
+        0.0
+    };
     let ts = (layer.clock)();
-    let cids = layer.deploy_tranche(client, venue, &quote, budget, ts, &only)?;
+    let (cids, rolled) = layer.deploy_tranche_rolled(client, venue, &quote, budget, ts, &only)?;
     layer.place_unplaced(client, &cids)?;
-    if budget > 0.0 && !cids.is_empty() {
-        // The money this laddered is deployed: count it in the baseline, or the next run
-        // reads it as new capital and ladders it again.
-        let path = layer.cfg.deploy_state_path();
+    // What reached the venue, less the rolled budget that was already in the baseline.
+    let placed = rungbot_core::watch::pyfmt::sum(
+        cids.iter()
+            .filter_map(|c| layer.j.get(c))
+            .filter(|o| o.order_id.as_deref().is_some_and(|s| !s.is_empty()))
+            .map(|o| o.quote.unwrap_or(0.0)),
+    );
+    let bump = fresh.min(budget).min((placed - rolled).max(0.0));
+    if bump > 0.0 {
+        // The fresh money this laddered is deployed: count it in the baseline, or the
+        // next run reads it as new capital and ladders it again.
         let mut st = load_state(&path)?;
         if let Some(b) = st
             .get_mut("stable")
             .and_then(Value::as_object_mut)
             .and_then(|m| m.get_mut(venue))
         {
-            *b = json!(b.as_f64().unwrap_or(0.0) + budget);
-            save_state(&path, &st)?;
+            *b = json!(b.as_f64().unwrap_or(0.0) + bump);
+            if let Err(e) = save_state(&path, &st) {
+                layer.push(
+                    None,
+                    None,
+                    false,
+                    super::Lvl::Err,
+                    format!(
+                        "deploy state write failed, baseline not raised by ${}: {e}",
+                        fixed(bump, 2)
+                    ),
+                );
+            }
         }
     }
-    print_results(layer, out)
+    finish(layer, out)
 }
 
 /// `market <share%> <venue> <SYM>`.
@@ -201,6 +276,12 @@ pub fn market(
     sym: &str,
     out: &mut dyn Write,
 ) -> Result<(), String> {
+    if !(share_pct > 0.0 && share_pct <= 100.0) {
+        return Err(format!(
+            "--market share must be above 0 and at most 100, got {}",
+            crate::pyfmt::float_repr(share_pct)
+        ));
+    }
     check_live(layer)?;
     if !VENUES.contains(&venue) {
         return Err(venues_usage("market <share%> <{V}> <SYM>"));
@@ -242,18 +323,25 @@ pub fn market(
             )),
             ..Default::default()
         });
-        layer.save()?;
-        match client
-            .market_buy(&pair, mkt, Some(&cid))
-            .and_then(|raw| client.parse_order(&raw))
-        {
+        let placed = match layer.save() {
+            Ok(()) => client
+                .market_buy(&pair, mkt, Some(&cid))
+                .and_then(|raw| client.parse_order(&raw))
+                .map_err(|e| e.to_string()),
+            Err(e) => {
+                // Not on disk, so not sent; nothing else is placed either.
+                rest = 0.0;
+                Err(format!("not placed, {e}"))
+            }
+        };
+        match placed {
             Ok(lf) => {
                 layer.j.update(&cid, |o| {
                     o.order_id = Some(lf.order_id.clone()).filter(|s| !s.is_empty());
                     o.status = "new".into();
                     o.last_error = None;
                 });
-                layer.save()?;
+                layer.save_after();
                 layer.push(
                     Some(sym),
                     Some("buy"),
@@ -268,12 +356,11 @@ pub fn market(
                 );
             }
             Err(e) => {
-                let e = e.to_string();
                 layer.j.update(&cid, |o| {
                     o.status = "error".into();
                     o.last_error = Some(e.clone());
                 });
-                layer.save()?;
+                layer.save_after();
                 layer.push(
                     Some(sym),
                     None,
@@ -281,7 +368,9 @@ pub fn market(
                     super::Lvl::Warn,
                     format!("market buy {sym} ${} FAILED: {e}", fixed(mkt, 2)),
                 );
-                rest = budget;
+                if layer.write_failed().is_none() {
+                    rest = budget;
+                }
             }
         }
     }
@@ -310,11 +399,15 @@ pub fn market(
             }
         }
     }
-    print_results(layer, out)
+    finish(layer, out)
 }
 
 /// `cancel [venue]`.
 pub fn cancel(layer: &mut Layer, venue: Option<&str>, out: &mut dyn Write) -> Result<(), String> {
+    // An unknown venue is refused: it must never widen to "cancel everything".
+    if venue.is_some_and(|v| !VENUES.contains(&v)) {
+        return Err(venues_usage("cancel [{V}]"));
+    }
     let open: Vec<Order> = layer
         .j
         .open_orders(Some("deploy_buy"))
@@ -360,5 +453,8 @@ pub fn cancel(layer: &mut Layer, venue: Option<&str>, out: &mut dyn Write) -> Re
         venue.map(|v| format!(" on {v}")).unwrap_or_default(),
         layer.cfg.halt_file.display()
     );
-    Ok(())
+    match layer.write_failed() {
+        Some(e) => Err(format!("{e}; nothing more was cancelled")),
+        None => Ok(()),
+    }
 }

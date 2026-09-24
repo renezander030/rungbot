@@ -17,11 +17,15 @@
 //! price levels still resting are held ([`rungbot_core::deploy::plan_levels`]). Around it:
 //!
 //! * the Revolut X onramp: EUR → USDC → USD, keeping the pending transfer to Gate in USDC
-//!   and ring-fencing it from the ladder, with an in-flight guard while it travels;
+//!   and ring-fencing it from the ladder, with an in-flight guard while it travels; when
+//!   Gate's balances cannot be read the reserve is unknown and the layer fails closed
+//!   (staged USDC stays USDC, no free Revolut X cash is laddered that run);
 //! * Gate's USDC (the transfer's bridge asset) auto-converted to USDT;
 //! * the idle sweep: cash a venue freed by cancelling a zone is re-laddered;
 //! * the withhold: the onramp venue re-laddered lighter so the transfer can leave;
-//! * the bull sweep: a zone resting too long in a young bull is bought at market;
+//! * the bull sweep: a zone resting too long in a young bull is bought at market (a
+//!   cancel whose final status is unreadable adds nothing, and the buy never exceeds
+//!   the venue's free cash minus the reserve);
 //! * resume: journaled rungs that never reached the venue are placed (or adopted when
 //!   they did), a rung short of free balance by pennies is trimmed once.
 //!
@@ -40,6 +44,7 @@ use rungbot_core::deploy::{self as plan, Pinned, PlanKnobs, ZoneOverride};
 use rungbot_core::watch::pyfmt::{round as py_round, sum as py_sum};
 use serde_json::{json, Map, Value};
 
+use crate::housekeeping::Persist;
 use crate::journal::{Journal, Order};
 use crate::pyfmt::{fixed, g};
 use crate::reconcile::{price_eq, settle_cancel, Settled, VenueSource};
@@ -174,9 +179,10 @@ pub struct Layer<'a> {
     pub regime: &'a dyn RegimeFeed,
     pub clock: &'a dyn Fn() -> f64,
     pub sleep: &'a dyn Fn(f64),
-    /// Writes the journal through: every journal change is saved before the next venue
-    /// call, so a crash never loses a row whose order may already rest.
-    pub persist: &'a dyn Fn(&Journal) -> Result<(), String>,
+    /// Writes the journal through, the run's own handle: a row is saved before the venue
+    /// call that may place it, and again with the venue's answer. Once a write fails the
+    /// layer makes no further venue call that places or cancels.
+    pub persist: &'a mut Persist,
     /// Where warnings the reference printed on stderr go.
     pub stderr: &'a dyn Fn(&str),
     pub j: &'a mut Journal,
@@ -215,8 +221,34 @@ impl<'a> Layer<'a> {
         self.push(None, None, false, Lvl::Warn, t)
     }
 
-    fn save(&self) -> Result<(), String> {
-        (self.persist)(self.j)
+    /// Write the journal before a venue call: `Err` means make no call.
+    fn save(&mut self) -> Result<(), String> {
+        self.persist.journal(self.j)
+    }
+
+    /// Write the journal after a venue call. The order may be at the venue now, so a
+    /// failure does not abort the step: it sticks in the handle, every later [`Self::save`]
+    /// fails, and nothing more is placed or cancelled.
+    fn save_after(&mut self) {
+        let _ = self.persist.journal(self.j);
+    }
+
+    /// The journal write that failed, when one did: no venue call may place or cancel.
+    fn write_failed(&self) -> Option<String> {
+        self.persist.failed().map(str::to_string)
+    }
+
+    /// Write the deploy state after venue calls: a failure is reported, not raised.
+    fn save_state_after(&mut self, path: &Path, st: &Map<String, Value>) {
+        if let Err(e) = save_state(path, st) {
+            self.push(
+                None,
+                None,
+                false,
+                Lvl::Err,
+                format!("deploy state write failed: {e}"),
+            );
+        }
     }
 
     fn now(&self) -> f64 {
@@ -358,6 +390,12 @@ impl<'a> Layer<'a> {
             Ok(x) => x,
             Err(e) => return Ok(Err(format!("venue data: {e}"))),
         };
+        if !(spot.is_finite() && spot > 0.0) {
+            return Ok(Err(format!(
+                "venue data: spot {} is not a positive price",
+                crate::pyfmt::float_repr(spot)
+            )));
+        }
         let (profile, warn) = plan::zone_profile(label, sym, &self.overrides());
         if let Some(w) = warn {
             (self.stderr)(&w);
@@ -524,6 +562,9 @@ impl<'a> Layer<'a> {
         o: &Order,
         note: &str,
     ) -> Result<Result<Settled, String>, String> {
+        if let Some(e) = self.write_failed() {
+            return Ok(Err(format!("not cancelled, {e}")));
+        }
         let oid = o.order_id.clone().unwrap_or_default();
         if let Err(e) = client.cancel(&o.pair, &oid) {
             return Ok(Err(e.to_string()));
@@ -532,11 +573,11 @@ impl<'a> Layer<'a> {
             r.status = "canceled".into();
             r.note = Some(note.into());
         });
-        self.save()?;
+        self.save_after();
         let now = self.now();
         let s = settle_cancel(self.j, client, &o.client_id, now);
         if !matches!(s, Settled::NothingFilled | Settled::NotPlaced) {
-            self.save()?;
+            self.save_after();
         }
         Ok(Ok(s))
     }
@@ -614,7 +655,21 @@ impl<'a> Layer<'a> {
                     }),
                     ..Default::default()
                 });
-                self.save()?;
+                if let Err(e) = self.save() {
+                    // Not on disk, so not placed: a failed placement a later run retries.
+                    self.j.update(&cid, |o| {
+                        o.status = "error".into();
+                        o.last_error = Some(format!("not placed: {e}"));
+                    });
+                    self.push(
+                        Some(s),
+                        Some("buy"),
+                        false,
+                        Lvl::Err,
+                        format!("DEPLOY {s}: not placed, {e}"),
+                    );
+                    return Ok(placements);
+                }
                 placements.push(cid);
             }
             let legs: Vec<String> = rungs
@@ -647,6 +702,20 @@ impl<'a> Layer<'a> {
         ts_cut: f64,
         only: &Only,
     ) -> Result<Vec<String>, String> {
+        self.deploy_tranche_rolled(client, exch, quote, tranche, ts_cut, only)
+            .map(|(cids, _)| cids)
+    }
+
+    /// [`Layer::deploy_tranche`], also returning the unspent budget it rolled in.
+    pub fn deploy_tranche_rolled(
+        &mut self,
+        client: &dyn Venue,
+        exch: &str,
+        quote: &str,
+        tranche: f64,
+        ts_cut: f64,
+        only: &Only,
+    ) -> Result<(Vec<String>, f64), String> {
         let label = self.regime_label();
         let pinned = if self.cfg.deploy_pin_prices {
             self.resting_levels(exch, only)
@@ -699,9 +768,10 @@ impl<'a> Layer<'a> {
         }
         self.push(None, None, !vp.plans.is_empty(), Lvl::Done, text);
         if vp.plans.is_empty() {
-            return Ok(Vec::new());
+            return Ok((Vec::new(), rolled));
         }
-        self.journal_and_place(exch, &vp.plans, ts_cut, Some(&label))
+        let cids = self.journal_and_place(exch, &vp.plans, ts_cut, Some(&label))?;
+        Ok((cids, rolled))
     }
 
     /// Re-fit a rung to the venue's real free balance when only pennies are missing
@@ -748,7 +818,10 @@ impl<'a> Layer<'a> {
             r.quote = Some(qty * price);
             r.note = Some(note);
         });
-        self.save()?;
+        if self.save().is_err() {
+            // The trimmed rung is not on disk: it is not placed this run.
+            return Ok(false);
+        }
         self.push(
             Some(&sym),
             None,
@@ -774,6 +847,10 @@ impl<'a> Layer<'a> {
         o: &mut Order,
         trimmed: bool,
     ) -> Result<bool, String> {
+        if self.write_failed().is_some() {
+            // The journal cannot record what the venue would answer: place nothing.
+            return Ok(false);
+        }
         let cid = o.client_id.clone();
         let placed = client
             .limit_buy(
@@ -794,7 +871,7 @@ impl<'a> Layer<'a> {
                     r.order_id = Some(lf.order_id.clone()).filter(|s| !s.is_empty());
                     r.last_error = None;
                 });
-                self.save()?;
+                self.save_after();
                 Ok(true)
             }
             Err(e) => {
@@ -808,7 +885,7 @@ impl<'a> Layer<'a> {
                     r.retries = Some(tries);
                     r.last_error = Some(e.clone());
                 });
-                self.save()?;
+                self.save_after();
                 let sym = o.sym.clone();
                 self.push(
                     Some(&sym),
@@ -865,7 +942,7 @@ impl<'a> Layer<'a> {
             if tries >= MAX_RETRIES {
                 if o.gave_up != Some(true) {
                     self.j.update(&cid, |r| r.gave_up = Some(true));
-                    self.save()?;
+                    self.save_after();
                     self.push(
                         Some(&sym),
                         None,
@@ -913,7 +990,7 @@ impl<'a> Layer<'a> {
                     r.order_id = Some(a.order_id.clone()).filter(|s| !s.is_empty());
                     r.last_error = None;
                 });
-                self.save()?;
+                self.save_after();
                 self.push(
                     Some(&sym),
                     None,
@@ -983,6 +1060,17 @@ impl<'a> Layer<'a> {
         rxf: &BTreeMap<String, Balance>,
         gtf: &BTreeMap<String, Balance>,
     ) -> f64 {
+        if let Some(v) = st
+            .get("inflight")
+            .filter(|v| truthy_obj(v) && !v.is_object())
+        {
+            // A hand-edited or corrupt marker: read it as no top-up in flight.
+            let shown = crate::pyfmt::dumps(v, None);
+            st.remove("inflight");
+            self.warn(format!(
+                "deploy state: `inflight` is not an object ({shown}), treated as no top-up in flight"
+            ));
+        }
         let usdc = bal(rxf, "USDC");
         let usdc_now = usdc.free + usdc.locked;
         let gate_stable = funding::gate_stable_from(gtf);
@@ -1005,12 +1093,11 @@ impl<'a> Layer<'a> {
                     fixed(landed, 2)
                 )),
                 _ => {
-                    let fl_present = st.get("inflight").is_some_and(truthy_obj);
-                    if fl_present {
-                        let fl = st
-                            .get_mut("inflight")
-                            .and_then(Value::as_object_mut)
-                            .expect("checked");
+                    let present = st
+                        .get_mut("inflight")
+                        .filter(|v| inflight_marker(v))
+                        .and_then(Value::as_object_mut);
+                    if let Some(fl) = present {
                         let amt = fl.get("amount").and_then(Value::as_f64).unwrap_or(0.0) + out;
                         fl.insert("amount".into(), json!(amt));
                     } else {
@@ -1031,7 +1118,7 @@ impl<'a> Layer<'a> {
                 }
             }
         }
-        if let Some(fl) = st.get("inflight").filter(|v| truthy_obj(v)).cloned() {
+        if let Some(fl) = st.get("inflight").filter(|v| inflight_marker(v)).cloned() {
             let fts = fl.get("ts").and_then(Value::as_f64).unwrap_or(0.0);
             let since = match num(fl.get("since")) {
                 x if x != 0.0 => x,
@@ -1086,8 +1173,10 @@ impl<'a> Layer<'a> {
     }
 
     /// The Revolut X onramp pre-step: EUR → USDC, then USDC → USD except what the Gate
-    /// top-up keeps, or stage the top-up as USDC. Returns the kept amount.
-    fn onramp(&mut self, st: &mut Map<String, Value>) -> Result<f64, String> {
+    /// top-up keeps, or stage the top-up as USDC. Returns the kept amount and whether
+    /// the reserve is unknown (Gate's balances could not be read, or Gate has no client):
+    /// then nothing moves out of USDC this run.
+    fn onramp(&mut self, st: &mut Map<String, Value>) -> Result<(f64, bool), String> {
         let min = self.cfg.deploy_min_usd;
         let revx = self.client("revx")?;
         let mut rxb = revx.balances().map_err(|e| e.to_string())?;
@@ -1111,6 +1200,7 @@ impl<'a> Layer<'a> {
         }
         let rx_usdc = rxb.get("USDC").copied().unwrap_or(0.0);
         let mut keep = 0.0;
+        let mut unknown = false;
         let mut rxf = BTreeMap::new();
         let both = (|| -> Result<_, String> {
             let a = revx.balances_full().map_err(|e| e.to_string())?;
@@ -1125,11 +1215,19 @@ impl<'a> Layer<'a> {
                 rxf = a;
                 keep = self.onramp_keep(st, &rxf, &b);
             }
-            Err(e) => self.warn(format!(
-                "Gate top-up reserve unavailable in the revx pre-step; USDC may convert back to USD: {e}"
-            )),
+            Err(e) => {
+                // Fail closed: without Gate's balance the reserve is unknown, and selling
+                // the staged USDC back to USD would let this run ladder the top-up.
+                unknown = true;
+                self.warn(format!(
+                    "Gate top-up reserve unavailable in the revx pre-step; staged USDC stays USDC this run: {e}"
+                ))
+            }
         }
         let rx_usdc_out = bal(&rxf, "USDC").locked;
+        if unknown {
+            return Ok((keep, true));
+        }
         if rx_usdc - keep >= min {
             let qty = revx
                 .round_amount("USDC/USD", rx_usdc - keep)
@@ -1152,7 +1250,7 @@ impl<'a> Layer<'a> {
             let usd = rxb.get("USD").copied().unwrap_or(0.0);
             self.stage_usdc(revx, keep - rx_usdc - rx_usdc_out, usd)?;
         }
-        Ok(keep)
+        Ok((keep, false))
     }
 
     /// Gate: USDC that landed (the top-up's bridge asset) becomes USDT. Not journaled.
@@ -1183,7 +1281,13 @@ impl<'a> Layer<'a> {
 
     /// The bull sweep: market-buy the unspent budget of zones resting at least
     /// `deploy_bull_sweep_days`, per coin, while the bull is young and the coin runs.
-    pub fn bull_sweep(&mut self, clients: &[&str], now: f64) -> Result<Vec<String>, String> {
+    /// The buy is capped at the venue's free quote minus what `reserves` holds there.
+    pub fn bull_sweep(
+        &mut self,
+        clients: &[&str],
+        now: f64,
+        reserves: &BTreeMap<&str, f64>,
+    ) -> Result<Vec<String>, String> {
         let cfg = self.cfg;
         if !cfg.deploy_bull_sweep {
             return Ok(Vec::new());
@@ -1254,6 +1358,20 @@ impl<'a> Layer<'a> {
             let mut budget = 0.0;
             for o in &rows {
                 match self.cancel_ours(client, o, BULL_NOTE)? {
+                    Ok(Settled::Unreadable(_)) => {
+                        // Final status unreadable: it may have filled since the last poll.
+                        // A market buy of the stale unspent would spend other free cash.
+                        self.push(
+                            Some(&sym),
+                            None,
+                            false,
+                            Lvl::Warn,
+                            format!(
+                                "bull sweep: {} final status unreadable, its budget is not swept",
+                                o.client_id
+                            ),
+                        );
+                    }
                     Ok(s) => budget += Self::unspent(o, &s),
                     Err(e) => self.push(
                         Some(&sym),
@@ -1266,7 +1384,47 @@ impl<'a> Layer<'a> {
                     ),
                 }
             }
-            let mkt = plan::floor_cents(budget * 0.997);
+            let mut mkt = plan::floor_cents(budget * 0.997);
+            if mkt >= min {
+                // Never spend more than the venue holds free beyond the top-up reserve:
+                // the journal's unspent can be stale (a fill the venue has not reported).
+                let q = Self::quotes(cfg).get(&exch).cloned().unwrap_or_default();
+                match client.balances_full() {
+                    Ok(b) => {
+                        let held = reserves.get(exch.as_str()).copied().unwrap_or(0.0);
+                        let spendable =
+                            plan::floor_cents((bal(&b, &q).free - held).max(0.0) * 0.997);
+                        if spendable < mkt {
+                            self.push(
+                                Some(&sym),
+                                None,
+                                false,
+                                Lvl::Warn,
+                                format!(
+                                    "bull sweep: {sym} on {exch} capped at ${} (free {q} ${} minus ${} held) instead of ${}",
+                                    fixed(spendable, 2),
+                                    fixed(bal(&b, &q).free, 2),
+                                    fixed(held, 2),
+                                    fixed(mkt, 2)
+                                ),
+                            );
+                            mkt = spendable;
+                        }
+                    }
+                    Err(e) => {
+                        self.push(
+                            Some(&sym),
+                            None,
+                            false,
+                            Lvl::Warn,
+                            format!(
+                                "bull sweep: {exch} balances unreadable, {sym} cash left free: {e}"
+                            ),
+                        );
+                        continue;
+                    }
+                }
+            }
             if mkt < min {
                 if budget != 0.0 {
                     self.push(
@@ -1304,7 +1462,23 @@ impl<'a> Layer<'a> {
                 )),
                 ..Default::default()
             });
-            self.save()?;
+            if let Err(e) = self.save() {
+                self.j.update(&cid, |o| {
+                    o.status = "error".into();
+                    o.last_error = Some(format!("not placed: {e}"));
+                });
+                self.push(
+                    Some(&sym),
+                    None,
+                    false,
+                    Lvl::Err,
+                    format!(
+                        "bull sweep: market buy {sym} ${} not placed, cash left free: {e}",
+                        fixed(mkt, 2)
+                    ),
+                );
+                continue;
+            }
             let r = client
                 .market_buy(&pair, mkt, Some(&cid))
                 .and_then(|raw| client.parse_order(&raw));
@@ -1315,7 +1489,7 @@ impl<'a> Layer<'a> {
                         o.status = "new".into();
                         o.last_error = None;
                     });
-                    self.save()?;
+                    self.save_after();
                     self.push(
                         Some(&sym),
                         Some("buy"),
@@ -1337,7 +1511,7 @@ impl<'a> Layer<'a> {
                         o.status = "error".into();
                         o.last_error = Some(e.clone());
                     });
-                    self.save()?;
+                    self.save_after();
                     self.push(
                         Some(&sym),
                         None,
@@ -1352,6 +1526,46 @@ impl<'a> Layer<'a> {
             }
         }
         Ok(done)
+    }
+
+    /// Journal-explained quote deltas per venue since the baseline in `st` (fills since
+    /// its `ts`, partial fills already netted while open counted once), and the partial
+    /// fills now on open zones (the next `part`).
+    pub fn explained(
+        &self,
+        st: &Map<String, Value>,
+        venues: &[&str],
+    ) -> (BTreeMap<String, f64>, Map<String, Value>) {
+        let prev_ts = num(st.get("ts"));
+        let part_prev: Map<String, Value> = st
+            .get("part")
+            .and_then(Value::as_object)
+            .cloned()
+            .unwrap_or_default();
+        let mut explained: BTreeMap<String, f64> =
+            venues.iter().map(|e| (e.to_string(), 0.0)).collect();
+        if prev_ts != 0.0 {
+            for o in self.j.filled_since(prev_ts, false) {
+                let Some(x) = explained.get_mut(o.exch.as_str()) else {
+                    continue;
+                };
+                let fq = o.filled_quote.unwrap_or(0.0);
+                if o.side == "buy" {
+                    *x -= (fq - num(part_prev.get(&o.client_id))).max(0.0);
+                } else {
+                    *x += fq;
+                }
+            }
+        }
+        let mut part_cur = Map::new();
+        for o in self.j.open_orders(Some("deploy_buy")) {
+            let pq = o.part_quote.unwrap_or(0.0);
+            if let Some(x) = explained.get_mut(o.exch.as_str()) {
+                part_cur.insert(o.client_id.clone(), json!(pq));
+                *x -= (pq - num(part_prev.get(&o.client_id))).max(0.0);
+            }
+        }
+        (explained, part_cur)
     }
 
     /// Why the layer may not trade, if it may not.
@@ -1406,17 +1620,22 @@ impl<'a> Layer<'a> {
         let min = cfg.deploy_min_usd;
 
         self.resume_pending()?;
+        if self.write_failed().is_some() {
+            // A rung may be at a venue that the journal on disk does not show: move
+            // nothing more. The run reports the failed write.
+            return Ok(());
+        }
 
-        let onramp_keep = match self.onramp(&mut st) {
+        let (onramp_keep, mut reserve_unknown) = match self.onramp(&mut st) {
             Ok(k) => k,
             Err(e) => {
                 self.warn(format!(
                     "revx onramp conversion failed (deposit keeps its currency, retried next run): {e}"
                 ));
-                0.0
+                (0.0, false)
             }
         };
-        let inflight_active = st.get("inflight").is_some_and(truthy_obj);
+        let inflight_active = st.get("inflight").is_some_and(inflight_marker);
 
         if let Err(e) = self.gate_convert() {
             self.warn(format!(
@@ -1424,12 +1643,6 @@ impl<'a> Layer<'a> {
             ));
         }
 
-        let prev_ts = num(st.get("ts"));
-        let part_prev: Map<String, Value> = st
-            .get("part")
-            .and_then(Value::as_object)
-            .cloned()
-            .unwrap_or_default();
         let quotes = Self::quotes(cfg);
 
         let mut full: BTreeMap<&str, Option<BTreeMap<String, Balance>>> = BTreeMap::new();
@@ -1451,34 +1664,13 @@ impl<'a> Layer<'a> {
             }
         }
 
-        let mut explained: BTreeMap<&str, f64> = clients.iter().map(|e| (*e, 0.0)).collect();
-        if prev_ts != 0.0 {
-            for o in self.j.filled_since(prev_ts, false) {
-                let Some(x) = explained.get_mut(o.exch.as_str()) else {
-                    continue;
-                };
-                let fq = o.filled_quote.unwrap_or(0.0);
-                if o.side == "buy" {
-                    *x -= (fq - num(part_prev.get(&o.client_id))).max(0.0);
-                } else {
-                    *x += fq;
-                }
-            }
-        }
-        let mut part_cur = Map::new();
+        let (explained, part_cur) = self.explained(&st, &clients);
         let open_zones: Vec<Order> = self
             .j
             .open_orders(Some("deploy_buy"))
             .into_iter()
             .cloned()
             .collect();
-        for o in &open_zones {
-            let pq = o.part_quote.unwrap_or(0.0);
-            if let Some(x) = explained.get_mut(o.exch.as_str()) {
-                part_cur.insert(o.client_id.clone(), json!(pq));
-                *x -= (pq - num(part_prev.get(&o.client_id))).max(0.0);
-            }
-        }
 
         let baselines: Map<String, Value> = st
             .get("stable")
@@ -1493,22 +1685,42 @@ impl<'a> Layer<'a> {
 
         let mut reserves: BTreeMap<&str, f64> = BTreeMap::new();
         let mut rx_reserve_full = 0.0;
-        if let (Some(Some(rxb)), Some(Some(gtb))) = (full.get("revx"), full.get("gate")) {
-            if !rxb.is_empty() && !gtb.is_empty() {
-                let rx_stable = funding::revx_stable_from(rxb);
-                let gate_stable = funding::gate_stable_from(gtb);
-                let u = bal(rxb, "USDC");
-                let staged = u.free + u.locked;
-                rx_reserve_full = if inflight_active {
-                    0.0
-                } else {
-                    self.reserve(rx_stable, gate_stable)
-                };
-                let held = (rx_reserve_full - staged).max(0.0);
-                if held > 0.0 {
-                    reserves.insert("revx", held);
-                }
+        let rx_full = full
+            .get("revx")
+            .and_then(Option::as_ref)
+            .filter(|b| !b.is_empty());
+        let gt_full = full
+            .get("gate")
+            .and_then(Option::as_ref)
+            .filter(|b| !b.is_empty());
+        if rx_full.is_some() && gt_full.is_none() {
+            // Gate unreadable or without a client: the reserve is unknown.
+            reserve_unknown = true;
+        }
+        if let (Some(rxb), Some(gtb)) = (rx_full, gt_full) {
+            let rx_stable = funding::revx_stable_from(rxb);
+            let gate_stable = funding::gate_stable_from(gtb);
+            let u = bal(rxb, "USDC");
+            let staged = u.free + u.locked;
+            rx_reserve_full = if inflight_active {
+                0.0
+            } else {
+                self.reserve(rx_stable, gate_stable)
+            };
+            let held = (rx_reserve_full - staged).max(0.0);
+            if held > 0.0 {
+                reserves.insert("revx", held);
             }
+        }
+        if let (true, Some(rxb)) = (reserve_unknown, rx_full) {
+            // Fail closed: hold ALL free revx stable this run. New capital is not absorbed
+            // into the baseline (it carries to the next run), nothing is swept or laddered.
+            let q = quotes.get("revx").cloned().unwrap_or_default();
+            reserves.insert("revx", bal(rxb, &q).free);
+            self.warn(
+                "Gate top-up reserve unknown (Gate balance unreadable): no new capital laddered on revx this run"
+                    .into(),
+            );
         }
 
         type Tranche = (&'static str, String, f64);
@@ -1669,12 +1881,32 @@ impl<'a> Layer<'a> {
             offquote.insert(okey, json!(ototal));
         }
 
+        // A venue with no client this run keeps its baseline: dropping it would read the
+        // venue's whole balance as a cold start (or, once re-baselined, lose a deposit).
+        for (exch, b) in &baselines {
+            if !clients.contains(&exch.as_str()) {
+                new_baseline
+                    .entry(exch.clone())
+                    .or_insert_with(|| b.clone());
+            }
+        }
         // The baseline commits before anything is journaled or placed.
         st.insert("ts".into(), json!(ts_cut));
         st.insert("stable".into(), Value::Object(new_baseline));
         st.insert("part".into(), Value::Object(part_cur));
         st.insert("offquote".into(), Value::Object(offquote));
-        save_state(&spath, &st)?;
+        if let Err(e) = save_state(&spath, &st) {
+            // Without the new baseline on disk the next run would ladder the same money
+            // again: ladder nothing now. The onramp steps above are not journaled.
+            self.push(
+                None,
+                None,
+                false,
+                Lvl::Err,
+                format!("deploy state write failed, nothing laddered this run: {e}"),
+            );
+            return Ok(());
+        }
 
         let mut placements: Vec<(&'static str, String)> = Vec::new();
         for (exch, q, tranche) in &tranches {
@@ -1700,9 +1932,9 @@ impl<'a> Layer<'a> {
             } else {
                 stuck.remove(*exch);
                 self.j.mark_swept(freed);
-                self.save()?;
+                self.save_after();
             }
-            save_state(&spath, &st)?;
+            self.save_state_after(&spath, &st);
             placements.extend(cids.into_iter().map(|c| (*exch, c)));
         }
         for (exch, q, short) in &withholds {
@@ -1722,7 +1954,7 @@ impl<'a> Layer<'a> {
             } else {
                 stuck.remove(*exch);
             }
-            save_state(&spath, &st)?;
+            self.save_state_after(&spath, &st);
             placements.extend(cids.into_iter().map(|c| (*exch, c)));
         }
         for (exch, cid) in &placements {
@@ -1730,7 +1962,7 @@ impl<'a> Layer<'a> {
             self.place_unplaced(client, std::slice::from_ref(cid))?;
         }
 
-        self.bull_sweep(&clients, ts_cut)?;
+        self.bull_sweep(&clients, ts_cut, &reserves)?;
 
         let touched_revx = tranches.iter().any(|t| t.0 == "revx")
             || sweeps.iter().any(|s| s.0 == "revx")
@@ -1751,6 +1983,9 @@ impl<'a> Layer<'a> {
         spath: &Path,
         keep: f64,
     ) -> Result<(), String> {
+        if let Some(e) = self.write_failed() {
+            return Err(e);
+        }
         let revx = self.client("revx")?;
         let rxf = revx.balances_full().map_err(|e| e.to_string())?;
         let u = bal(&rxf, "USDC");
@@ -1784,6 +2019,11 @@ fn truthy_obj(v: &Value) -> bool {
     crate::pyfmt::truthy(Some(v))
 }
 
+/// A top-up-in-flight marker: a non-empty object. Anything else is no marker.
+fn inflight_marker(v: &Value) -> bool {
+    v.as_object().is_some_and(|m| !m.is_empty())
+}
+
 /// The deploy hook a live run calls, bound to its config.
 #[derive(Debug, Default, Clone, Copy)]
 pub struct DeployLayer;
@@ -1799,8 +2039,6 @@ impl crate::run::hooks::DeployHook for DeployLayer {
             market: ctx.market,
             now: ctx.now,
         };
-        let jpath = ctx.cfg.journal_path();
-        let persist = move |j: &Journal| crate::store::save_journal(&jpath, j);
         let stderr = |s: &str| eprintln!("{s}");
         let mut layer = Layer {
             cfg: ctx.cfg,
@@ -1808,7 +2046,7 @@ impl crate::run::hooks::DeployHook for DeployLayer {
             regime: &feed,
             clock: ctx.clock,
             sleep: ctx.sleep,
-            persist: &persist,
+            persist: &mut *ctx.persist,
             stderr: &stderr,
             j: ctx.journal,
             results: Vec::new(),
