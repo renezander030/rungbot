@@ -171,6 +171,9 @@ rungbot-exec sync --from plan.json --budget 1000 --pair-map BTC=BTC_USDT \
 The ladder decides with no key loaded; the rails refuse; the journal writes a
 deterministic id **before** the venue is called; only then is a request signed.
 **GTC limit orders only** — a resting order fills while the machine is asleep.
+One `sync` or `cancel` at a time holds the journal (a second waits up to
+`RUNGBOT_LOCK_WAIT` seconds, default 120), and a journal that exists but does not
+parse stops the run instead of reading as empty.
 
 | Rail | Default | |
 |---|---|---|
