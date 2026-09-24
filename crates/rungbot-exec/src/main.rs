@@ -168,7 +168,7 @@ impl Args {
 
     fn num(&self, k: &str, default: f64) -> Result<f64, String> {
         match self.get(k) {
-            Some(v) => v.parse().map_err(|e| format!("--{k}: {e}")),
+            Some(v) => rungbot_exec::deploy::cli::parse_num(v, &format!("--{k}")),
             None => Ok(default),
         }
     }
@@ -557,15 +557,16 @@ fn cmd_layer(argv: &[String]) -> Result<(), String> {
         results: Vec::new(),
     };
     let num = |s: Option<&String>, what: &str| -> Result<f64, String> {
-        s.ok_or_else(|| format!("usage: rungbot-exec deploy {what}"))?
-            .parse::<f64>()
-            .map_err(|e| format!("{what}: {e}"))
+        cli::parse_num(
+            s.ok_or_else(|| format!("usage: rungbot-exec deploy {what}"))?,
+            what,
+        )
     };
     match sub {
         "status" => cli::status(&layer, &mut out),
         "plan" => {
             let b = match pos.get(1) {
-                Some(v) => v.parse::<f64>().map_err(|e| format!("plan: {e}"))?,
+                Some(v) => cli::parse_num(v, "plan")?,
                 None => 100.0,
             };
             cli::plan(&layer, b, &mut out)
@@ -591,13 +592,7 @@ fn cmd_layer(argv: &[String]) -> Result<(), String> {
             };
             cli::market(&mut layer, share, venue, &sym.to_uppercase(), &mut out)
         }
-        "cancel" => {
-            let venue = pos
-                .get(1)
-                .map(String::as_str)
-                .filter(|v| deploy::VENUES.contains(v));
-            cli::cancel(&mut layer, venue, &mut out)
-        }
+        "cancel" => cli::cancel(&mut layer, pos.get(1).map(String::as_str), &mut out),
         _ => Err(
             "usage: rungbot-exec deploy status | plan [USD] | tranche USD VENUE \
                   [--only A,B] | market SHARE% VENUE SYM | cancel [VENUE]"

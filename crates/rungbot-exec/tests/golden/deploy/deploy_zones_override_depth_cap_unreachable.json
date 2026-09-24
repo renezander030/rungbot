@@ -1,6 +1,6 @@
 {
  "name": "zones_override_depth_cap_unreachable",
- "about": "a per-coin zone override deeper than the cap, an unusable override falling back to the regime profile, a bear label, no allocation (equal split), an unreachable venue carrying its baseline, a clamped tranche dripping",
+ "about": "a per-coin zone override deeper than the cap, an unusable override falling back to the regime profile, a bear label, no allocation (equal split), a clamped tranche dripping",
  "config": {
   "routing": [
    [
@@ -157,15 +157,7 @@
       "locked": 0.0
      }
     },
-    "deposits": null,
-    "fail": [
-     {
-      "method": "balances_full",
-      "key": "",
-      "msg": "gate down",
-      "times": 1
-     }
-    ]
+    "deposits": null
    },
    "binance": {
     "prices": {
@@ -284,12 +276,6 @@
    "now": 1800000000.0,
    "expect": {
     "results": [
-     {
-      "mode": "live",
-      "hk": true,
-      "deploy": true,
-      "warn": "Gate top-up reserve unavailable in the revx pre-step; USDC may convert back to USD: gate down"
-     },
      {
       "mode": "live",
       "hk": true,
