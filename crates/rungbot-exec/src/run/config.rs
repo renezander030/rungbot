@@ -754,6 +754,30 @@ impl RunConfig {
         (self.usdc_bag_usd > 0.0).then(|| self.usdc_bag_usd / self.watchlist.len() as f64)
     }
 
+    /// Point every state file and the run lock at `dir`, dropping single-file
+    /// overrides: the shadow run's scratch copy of the state. The halt and sell-arm
+    /// files stay where they are, so the shadow reads the same rails as the real run.
+    pub fn rebase(&mut self, dir: &Path) {
+        self.state_dir = dir.to_path_buf();
+        for f in [
+            &mut self.state_path,
+            &mut self.order_journal,
+            &mut self.pnl_ledger,
+            &mut self.ttl_warn_state,
+            &mut self.decisions_log,
+            &mut self.signal_notices,
+            &mut self.btc_alert_state,
+            &mut self.regime_state,
+            &mut self.froth_state,
+            &mut self.deploy_state,
+            &mut self.audit_state,
+            &mut self.fillodds_cache,
+        ] {
+            *f = None;
+        }
+        self.run_lock = Some(dir.join("orders-journal.lock"));
+    }
+
     fn file(&self, over: &Option<PathBuf>, name: &str) -> PathBuf {
         over.clone().unwrap_or_else(|| self.state_dir.join(name))
     }
@@ -1114,5 +1138,37 @@ mod tests {
         assert_eq!(c.ladder_path(), PathBuf::from("/s/ladder-state.json"));
         c.trade_mode = "dry".into();
         assert_eq!(c.ladder_path(), PathBuf::from("/s/ladder-state.dry.json"));
+    }
+
+    #[test]
+    fn rebase_moves_every_state_file_but_not_the_rails() {
+        let y = format!(
+            "{MIN}order_journal: /live/j.json\npnl_ledger: /live/p.json\nrun_lock: /live/l\n\
+             halt_file: /rails/HALT\nsell_arm_file: /rails/ARM\ndeploy_state: /live/d.json\n"
+        );
+        let mut c = RunConfig::from_yaml(&y, &no_env).unwrap();
+        c.trade_mode = "live".into();
+        c.rebase(Path::new("/scratch"));
+        for p in [
+            c.journal_path(),
+            c.pnl_path(),
+            c.ttl_path(),
+            c.decisions_path(),
+            c.notices_path(),
+            c.btc_alert_path(),
+            c.regime_path(),
+            c.regime_history_path(),
+            c.froth_path(),
+            c.deploy_state_path(),
+            c.audit_state_path(),
+            c.audit_marker_path(),
+            c.ladder_path(),
+            c.lock_path(),
+            c.fillodds_cache_path(),
+        ] {
+            assert!(p.starts_with("/scratch"), "{}", p.display());
+        }
+        assert_eq!(c.halt_file, PathBuf::from("/rails/HALT"));
+        assert_eq!(c.sell_arm_file, PathBuf::from("/rails/ARM"));
     }
 }

@@ -140,6 +140,8 @@ struct VState {
 struct FakeVenue {
     name: &'static str,
     has_deposits: bool,
+    /// Panic on any order placement or cancel: the shadow tests' tripwire.
+    trip: Cell<bool>,
     st: RefCell<VState>,
     calls: Rc<RefCell<Vec<Value>>>,
 }
@@ -149,6 +151,7 @@ impl FakeVenue {
         let v = FakeVenue {
             name,
             has_deposits: spec.get("deposits").is_some_and(|d| !d.is_null()),
+            trip: Cell::new(false),
             st: RefCell::new(VState {
                 n: spec.get("next_id").and_then(Value::as_u64).unwrap_or(1),
                 ..Default::default()
@@ -229,6 +232,7 @@ impl FakeVenue {
     }
 
     fn log(&self, v: Value) {
+        assert!(!self.trip.get(), "a venue write reached the venue: {v}");
         self.calls.borrow_mut().push(v);
     }
 
@@ -436,6 +440,10 @@ impl Venue for FakeVenue {
         Ok(json!({"id": oid, "status": "open"}))
     }
     fn limit_sell(&self, _: &str, _: f64, _: f64, _: Option<&str>) -> Result<Value, VenueError> {
+        assert!(
+            !self.trip.get(),
+            "a venue write reached the venue: limit_sell"
+        );
         Err(VenueError::new(self.name, None, "not scripted"))
     }
     fn deposits(&self, _since: f64) -> Option<Result<Vec<Deposit>, VenueError>> {
@@ -853,6 +861,279 @@ fn every_deploy_golden_is_replayed() {
     assert_eq!(names.len(), 14, "{names:?}");
 }
 
+// ------------------------------------------------------------------ the shadow run
+
+/// Every run of the layer in a deploy golden, again, through the shadow venue set over
+/// venues that panic on any write. Returns the writes the golden's live run sent in
+/// those runs, and the ones the shadow simulated.
+fn shadow_scenario(file: &str) -> (Vec<Value>, Vec<rungbot_exec::shadow::Intent>) {
+    let g = load(file);
+    let ord = load_ordered(file);
+    let name = g["name"].as_str().unwrap();
+    let dir = Scratch::new(&format!("shadow-{name}"));
+    let base_cfg = config(&g["config"], &dir.0);
+    let init = &g["initial"];
+    let jpath = base_cfg.journal_path();
+    let mut journal = Journal::default();
+    for (cid, row) in &ord.initial.journal {
+        journal
+            .orders
+            .insert(cid.clone(), serde_json::from_value(row.clone()).unwrap());
+    }
+    store::save_journal(&jpath, &journal).unwrap();
+    if !init["state"].is_null() {
+        std::fs::write(base_cfg.deploy_state_path(), init["state"].to_string()).unwrap();
+    }
+    let calls = Rc::new(RefCell::new(Vec::new()));
+    let venues = Venues(
+        ["binance", "gate", "revx"]
+            .into_iter()
+            .map(|n| {
+                let v = FakeVenue::new(n, &init["venues"][n], calls.clone());
+                v.trip.set(true);
+                (n.to_string(), v)
+            })
+            .collect(),
+    );
+    let shadow = rungbot_exec::shadow::ShadowVenues::new(&venues);
+    let feed = Feed {
+        regime: RefCell::new(
+            init.get("regime")
+                .cloned()
+                .unwrap_or_else(|| json!({"market": "chop", "coins": {}})),
+        ),
+        history: RefCell::new(
+            init.get("history")
+                .cloned()
+                .unwrap_or_else(|| json!({"labels": []})),
+        ),
+        closes: RefCell::new(closes_of(&init["closes"])),
+    };
+    let mut live_writes = Vec::new();
+    for step in g["steps"].as_array().unwrap() {
+        if let Some(m) = step.get("venues").and_then(Value::as_object) {
+            for (n, p) in m {
+                venues.0[n].apply(p);
+            }
+        }
+        if let Some(r) = step.get("regime") {
+            *feed.regime.borrow_mut() = r.clone();
+        }
+        if let Some(h) = step.get("history") {
+            *feed.history.borrow_mut() = h.clone();
+        }
+        if let Some(c) = step.get("closes") {
+            feed.closes.borrow_mut().extend(closes_of(c));
+        }
+        if step["op"] != "check" {
+            continue; // the manual commands are not part of a run
+        }
+        live_writes.extend(
+            step["expect"]["calls"]
+                .as_array()
+                .cloned()
+                .unwrap_or_default(),
+        );
+        let halt = base_cfg.halt_file.clone();
+        if step["halt"].as_bool() == Some(true) {
+            std::fs::write(&halt, "").unwrap();
+        } else {
+            let _ = std::fs::remove_file(&halt);
+        }
+        let mut cfg = base_cfg.clone();
+        cfg.live_trading_enabled = step
+            .get("live")
+            .and_then(Value::as_bool)
+            .unwrap_or_else(|| g["config"]["live"].as_bool().unwrap_or(true));
+        let now = step["now"].as_f64().unwrap();
+        let jp = jpath.clone();
+        let mut persist = Persist::new(move |j: &Journal| store::save_journal(&jp, j), |_| Ok(()));
+        let clk = || now;
+        let mut layer = Layer {
+            cfg: &cfg,
+            venues: &shadow,
+            regime: &feed,
+            clock: &clk,
+            sleep: &|_| {},
+            persist: &mut persist,
+            stderr: &|_: &str| {},
+            j: &mut journal,
+            results: Vec::new(),
+        };
+        let _ = layer.check();
+    }
+    assert!(calls.borrow().is_empty(), "{name}: a write reached a venue");
+    (live_writes, shadow.intents())
+}
+
+/// Tranches, rolls (cancel and re-place), idle and bull sweeps, the onramp and the
+/// resume of unplaced rows all go through the shadow without one venue write, and the
+/// first write the shadow simulates is the first one the live run sent.
+#[test]
+fn the_shadow_deploy_layer_sends_no_venue_write() {
+    let mut names: Vec<String> = std::fs::read_dir(golden_dir())
+        .unwrap()
+        .filter_map(|e| e.ok()?.file_name().into_string().ok())
+        .filter(|n| n.starts_with("deploy_"))
+        .collect();
+    names.sort();
+    let mut kinds = std::collections::BTreeSet::new();
+    let mut with_writes = 0;
+    for n in &names {
+        let (live, sim) = shadow_scenario(n);
+        if live.is_empty() {
+            continue;
+        }
+        with_writes += 1;
+        assert!(
+            !sim.is_empty(),
+            "{n}: the live run wrote, the shadow saw nothing"
+        );
+        let first = &live[0];
+        assert_eq!(
+            (
+                sim[0].venue.as_str(),
+                sim[0].call.as_str(),
+                sim[0].pair.as_str()
+            ),
+            (
+                first[0].as_str().unwrap(),
+                first[1].as_str().unwrap(),
+                first[2].as_str().unwrap()
+            ),
+            "{n}: the first write"
+        );
+        kinds.extend(sim.iter().map(|i| i.call.clone()));
+    }
+    assert!(with_writes >= 6, "{with_writes}");
+    for k in ["cancel", "limit_buy", "market_buy"] {
+        assert!(kinds.contains(k), "no scenario exercised {k}: {kinds:?}");
+    }
+}
+
+/// Prices from the scripted venues, closes from the scenario.
+struct VenueMarket<'a> {
+    venues: &'a Venues,
+    closes: BTreeMap<String, Vec<f64>>,
+}
+
+impl rungbot_exec::run::market::Market for VenueMarket<'_> {
+    fn ticker(&self, exch: &str, pair: &str) -> Result<(f64, f64), String> {
+        let v = self.venues.0.get(exch).ok_or("no venue")?;
+        v.st.borrow()
+            .prices
+            .get(pair)
+            .map(|p| (*p, 0.0))
+            .ok_or_else(|| format!("no ticker {pair}"))
+    }
+    fn closes(&self, exch: &str, symbol: &str, days: usize) -> Result<Vec<f64>, String> {
+        let c = self
+            .closes
+            .get(&format!("{exch}|{symbol}"))
+            .ok_or_else(|| format!("no closes for {symbol}"))?;
+        Ok(c[c.len().saturating_sub(days)..].to_vec())
+    }
+}
+
+/// Fails the test on any mail or ping.
+struct NoMail;
+
+impl rungbot_exec::run::Outbox for NoMail {
+    fn email(&self, subject: &str, _: &str, _: Option<&str>) -> bool {
+        panic!("a dry run sent a mail: {subject}")
+    }
+    fn telegram(&self, text: &str) {
+        panic!("a dry run sent a ping: {text}")
+    }
+}
+
+/// The whole 30-minute run as a shadow (`run --dry-run --state-dir`), with the real
+/// deploy layer and book audit, over deploy goldens whose live run places a first
+/// tranche, sweeps idle cash, and rolls zones: every write is simulated, none reaches
+/// a venue, no mail or ping goes out.
+#[test]
+fn a_full_shadow_run_with_the_deploy_layer_and_the_audit_sends_nothing() {
+    std::env::set_var("RUNGBOT_OFFLINE", "1");
+    for file in [
+        "deploy_first_tranche_and_roll.json",
+        "deploy_idle_sweep.json",
+        "deploy_resume_adoption_and_trim.json",
+    ] {
+        let g = load(file);
+        let ord = load_ordered(file);
+        let dir = Scratch::new(&format!("fullshadow-{}", g["name"].as_str().unwrap()));
+        let mut cfg = config(&g["config"], &dir.0);
+        cfg.trade_mode = "live".into();
+        let init = &g["initial"];
+        let mut journal = Journal::default();
+        for (cid, row) in &ord.initial.journal {
+            journal
+                .orders
+                .insert(cid.clone(), serde_json::from_value(row.clone()).unwrap());
+        }
+        store::save_journal(&cfg.journal_path(), &journal).unwrap();
+        if !init["state"].is_null() {
+            std::fs::write(cfg.deploy_state_path(), init["state"].to_string()).unwrap();
+        }
+        let calls = Rc::new(RefCell::new(Vec::new()));
+        let venues = Venues(
+            ["binance", "gate", "revx"]
+                .into_iter()
+                .map(|n| {
+                    let v = FakeVenue::new(n, &init["venues"][n], calls.clone());
+                    v.trip.set(true);
+                    (n.to_string(), v)
+                })
+                .collect(),
+        );
+        let step = &g["steps"][0];
+        if let Some(m) = step.get("venues").and_then(Value::as_object) {
+            for (n, p) in m {
+                venues.0[n].apply(p);
+            }
+        }
+        let market = VenueMarket {
+            venues: &venues,
+            closes: closes_of(&init["closes"]),
+        };
+        let now = step["now"].as_f64().unwrap();
+        let (mut deploy, mut audit) = (deploy::DeployLayer, deploy::audit::BookAudit);
+        let (mut out, mut err) = (Vec::<u8>::new(), Vec::<u8>::new());
+        let mut deps = rungbot_exec::run::Deps {
+            venues: &venues,
+            market: &market,
+            outbox: &NoMail,
+            deploy: &mut deploy,
+            audit: &mut audit,
+            clock: &|| now,
+            sleep: &|_| {},
+            out: &mut out,
+            err: &mut err,
+        };
+        let flags = rungbot_exec::run::Flags {
+            dry_run: true,
+            verbose: false,
+            shadow: true,
+        };
+        let code = rungbot_exec::run::run_locked(&cfg, flags, &mut deps);
+        let out = String::from_utf8(out).unwrap();
+        assert!(code.is_ok(), "{file}: {code:?}");
+        assert!(calls.borrow().is_empty(), "{file}: a write reached a venue");
+        let n: usize = out
+            .lines()
+            .find_map(|l| l.strip_prefix("SHADOW: "))
+            .and_then(|l| l.split(' ').next()?.parse().ok())
+            .unwrap_or_else(|| panic!("{file}: no shadow summary\n{out}"));
+        let live = step["expect"]["calls"].as_array().map_or(0, Vec::len);
+        assert!(
+            n > 0 || live == 0,
+            "{file}: live wrote {live}, the shadow 0\n{out}"
+        );
+        // The simulated writes land in the scratch journal, as a live run's would.
+        assert!(store::load_journal(&cfg.journal_path()).is_ok());
+    }
+}
+
 // ------------------------------------------------------------------ audit, churn, odds, card
 
 fn routing_cfg(routing: &Value, dir: &Path) -> RunConfig {
@@ -1061,8 +1342,9 @@ fn deploy_and_audit_state_import_from_the_reference() {
         serde_json::from_str(&std::fs::read_to_string(out.0.join("audit-state.json")).unwrap())
             .unwrap();
     check_same("imported audit state", &audit_state, &a);
-    // A second import does not replace them without --force.
-    std::fs::write(&target, "{}").unwrap();
+    // The same import again is a no-op; one over state that moved on is refused.
+    rungbot_exec::import::write(&imp, &target, false).unwrap();
+    std::fs::write(out.0.join("deploy-state.json"), "{}").unwrap();
     let e = rungbot_exec::import::write(&imp, &target, false).unwrap_err();
     assert!(e.contains("deploy-state.json"), "{e}");
 }
