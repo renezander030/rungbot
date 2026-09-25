@@ -1,0 +1,345 @@
+[
+ {
+  "result": "fail",
+  "now": 1735000000.5,
+  "file": "{\n \"last_ok_ts\": null,\n \"last_fail_ts\": 1735000000.5,\n \"consecutive_failures\": 1\n}",
+  "exit": 0,
+  "stdout": ""
+ },
+ {
+  "result": "fail",
+  "now": 1735000300.75,
+  "file": "{\n \"last_ok_ts\": null,\n \"last_fail_ts\": 1735000300.75,\n \"consecutive_failures\": 2\n}",
+  "exit": 0,
+  "stdout": ""
+ },
+ {
+  "result": "fail",
+  "now": 1735000600.5,
+  "file": "{\n \"last_ok_ts\": null,\n \"last_fail_ts\": 1735000600.5,\n \"consecutive_failures\": 3\n}",
+  "exit": 1,
+  "stdout": "deploy failed 3x in a row\n"
+ },
+ {
+  "result": "fail",
+  "now": 1735000900.75,
+  "file": "{\n \"last_ok_ts\": null,\n \"last_fail_ts\": 1735000900.75,\n \"consecutive_failures\": 4\n}",
+  "exit": 0,
+  "stdout": ""
+ },
+ {
+  "result": "fail",
+  "now": 1735001200.5,
+  "file": "{\n \"last_ok_ts\": null,\n \"last_fail_ts\": 1735001200.5,\n \"consecutive_failures\": 5\n}",
+  "exit": 0,
+  "stdout": ""
+ },
+ {
+  "result": "fail",
+  "now": 1735001500.75,
+  "file": "{\n \"last_ok_ts\": null,\n \"last_fail_ts\": 1735001500.75,\n \"consecutive_failures\": 6\n}",
+  "exit": 0,
+  "stdout": ""
+ },
+ {
+  "result": "fail",
+  "now": 1735001800.5,
+  "file": "{\n \"last_ok_ts\": null,\n \"last_fail_ts\": 1735001800.5,\n \"consecutive_failures\": 7\n}",
+  "exit": 0,
+  "stdout": ""
+ },
+ {
+  "result": "fail",
+  "now": 1735002100.75,
+  "file": "{\n \"last_ok_ts\": null,\n \"last_fail_ts\": 1735002100.75,\n \"consecutive_failures\": 8\n}",
+  "exit": 0,
+  "stdout": ""
+ },
+ {
+  "result": "fail",
+  "now": 1735002400.5,
+  "file": "{\n \"last_ok_ts\": null,\n \"last_fail_ts\": 1735002400.5,\n \"consecutive_failures\": 9\n}",
+  "exit": 0,
+  "stdout": ""
+ },
+ {
+  "result": "fail",
+  "now": 1735002700.75,
+  "file": "{\n \"last_ok_ts\": null,\n \"last_fail_ts\": 1735002700.75,\n \"consecutive_failures\": 10\n}",
+  "exit": 0,
+  "stdout": ""
+ },
+ {
+  "result": "fail",
+  "now": 1735003000.5,
+  "file": "{\n \"last_ok_ts\": null,\n \"last_fail_ts\": 1735003000.5,\n \"consecutive_failures\": 11\n}",
+  "exit": 0,
+  "stdout": ""
+ },
+ {
+  "result": "fail",
+  "now": 1735003300.75,
+  "file": "{\n \"last_ok_ts\": null,\n \"last_fail_ts\": 1735003300.75,\n \"consecutive_failures\": 12\n}",
+  "exit": 0,
+  "stdout": ""
+ },
+ {
+  "result": "fail",
+  "now": 1735003600.5,
+  "file": "{\n \"last_ok_ts\": null,\n \"last_fail_ts\": 1735003600.5,\n \"consecutive_failures\": 13\n}",
+  "exit": 0,
+  "stdout": ""
+ },
+ {
+  "result": "fail",
+  "now": 1735003900.75,
+  "file": "{\n \"last_ok_ts\": null,\n \"last_fail_ts\": 1735003900.75,\n \"consecutive_failures\": 14\n}",
+  "exit": 0,
+  "stdout": ""
+ },
+ {
+  "result": "fail",
+  "now": 1735004200.5,
+  "file": "{\n \"last_ok_ts\": null,\n \"last_fail_ts\": 1735004200.5,\n \"consecutive_failures\": 15\n}",
+  "exit": 1,
+  "stdout": "deploy failed 15x in a row\n"
+ },
+ {
+  "result": "fail",
+  "now": 1735004500.75,
+  "file": "{\n \"last_ok_ts\": null,\n \"last_fail_ts\": 1735004500.75,\n \"consecutive_failures\": 16\n}",
+  "exit": 0,
+  "stdout": ""
+ },
+ {
+  "result": "ok",
+  "now": 1735004800.5,
+  "file": "{\n \"last_ok_ts\": 1735004800.5,\n \"last_fail_ts\": 1735004500.75,\n \"consecutive_failures\": 0\n}",
+  "exit": 0,
+  "stdout": ""
+ },
+ {
+  "result": "fail",
+  "now": 1735005100.75,
+  "file": "{\n \"last_ok_ts\": 1735004800.5,\n \"last_fail_ts\": 1735005100.75,\n \"consecutive_failures\": 1\n}",
+  "exit": 0,
+  "stdout": ""
+ },
+ {
+  "result": "fail",
+  "now": 1735005400.5,
+  "file": "{\n \"last_ok_ts\": 1735004800.5,\n \"last_fail_ts\": 1735005400.5,\n \"consecutive_failures\": 2\n}",
+  "exit": 0,
+  "stdout": ""
+ },
+ {
+  "result": "fail",
+  "now": 1735005700.75,
+  "file": "{\n \"last_ok_ts\": 1735004800.5,\n \"last_fail_ts\": 1735005700.75,\n \"consecutive_failures\": 3\n}",
+  "exit": 1,
+  "stdout": "deploy failed 3x in a row\n"
+ },
+ {
+  "result": "ok",
+  "now": 1735006000.5,
+  "file": "{\n \"last_ok_ts\": 1735006000.5,\n \"last_fail_ts\": 1735005700.75,\n \"consecutive_failures\": 0\n}",
+  "exit": 0,
+  "stdout": ""
+ },
+ {
+  "result": "fail",
+  "now": 1735006300.75,
+  "file": "{\n \"last_ok_ts\": 1735006000.5,\n \"last_fail_ts\": 1735006300.75,\n \"consecutive_failures\": 1\n}",
+  "exit": 0,
+  "stdout": ""
+ },
+ {
+  "result": "fail",
+  "now": 1735006600.5,
+  "file": "{\n \"last_ok_ts\": 1735006000.5,\n \"last_fail_ts\": 1735006600.5,\n \"consecutive_failures\": 2\n}",
+  "exit": 0,
+  "stdout": ""
+ },
+ {
+  "result": "fail",
+  "now": 1735006900.75,
+  "file": "{\n \"last_ok_ts\": 1735006000.5,\n \"last_fail_ts\": 1735006900.75,\n \"consecutive_failures\": 3\n}",
+  "exit": 1,
+  "stdout": "deploy failed 3x in a row\n"
+ },
+ {
+  "result": "fail",
+  "now": 1735007200.5,
+  "file": "{\n \"last_ok_ts\": 1735006000.5,\n \"last_fail_ts\": 1735007200.5,\n \"consecutive_failures\": 4\n}",
+  "exit": 0,
+  "stdout": ""
+ },
+ {
+  "result": "fail",
+  "now": 1735007500.75,
+  "file": "{\n \"last_ok_ts\": 1735006000.5,\n \"last_fail_ts\": 1735007500.75,\n \"consecutive_failures\": 5\n}",
+  "exit": 0,
+  "stdout": ""
+ },
+ {
+  "result": "fail",
+  "now": 1735007800.5,
+  "file": "{\n \"last_ok_ts\": 1735006000.5,\n \"last_fail_ts\": 1735007800.5,\n \"consecutive_failures\": 6\n}",
+  "exit": 0,
+  "stdout": ""
+ },
+ {
+  "result": "fail",
+  "now": 1735008100.75,
+  "file": "{\n \"last_ok_ts\": 1735006000.5,\n \"last_fail_ts\": 1735008100.75,\n \"consecutive_failures\": 7\n}",
+  "exit": 0,
+  "stdout": ""
+ },
+ {
+  "result": "fail",
+  "now": 1735008400.5,
+  "file": "{\n \"last_ok_ts\": 1735006000.5,\n \"last_fail_ts\": 1735008400.5,\n \"consecutive_failures\": 8\n}",
+  "exit": 0,
+  "stdout": ""
+ },
+ {
+  "result": "fail",
+  "now": 1735008700.75,
+  "file": "{\n \"last_ok_ts\": 1735006000.5,\n \"last_fail_ts\": 1735008700.75,\n \"consecutive_failures\": 9\n}",
+  "exit": 0,
+  "stdout": ""
+ },
+ {
+  "result": "fail",
+  "now": 1735009000.5,
+  "file": "{\n \"last_ok_ts\": 1735006000.5,\n \"last_fail_ts\": 1735009000.5,\n \"consecutive_failures\": 10\n}",
+  "exit": 0,
+  "stdout": ""
+ },
+ {
+  "result": "fail",
+  "now": 1735009300.75,
+  "file": "{\n \"last_ok_ts\": 1735006000.5,\n \"last_fail_ts\": 1735009300.75,\n \"consecutive_failures\": 11\n}",
+  "exit": 0,
+  "stdout": ""
+ },
+ {
+  "result": "fail",
+  "now": 1735009600.5,
+  "file": "{\n \"last_ok_ts\": 1735006000.5,\n \"last_fail_ts\": 1735009600.5,\n \"consecutive_failures\": 12\n}",
+  "exit": 0,
+  "stdout": ""
+ },
+ {
+  "result": "fail",
+  "now": 1735009900.75,
+  "file": "{\n \"last_ok_ts\": 1735006000.5,\n \"last_fail_ts\": 1735009900.75,\n \"consecutive_failures\": 13\n}",
+  "exit": 0,
+  "stdout": ""
+ },
+ {
+  "result": "fail",
+  "now": 1735010200.5,
+  "file": "{\n \"last_ok_ts\": 1735006000.5,\n \"last_fail_ts\": 1735010200.5,\n \"consecutive_failures\": 14\n}",
+  "exit": 0,
+  "stdout": ""
+ },
+ {
+  "result": "fail",
+  "now": 1735010500.75,
+  "file": "{\n \"last_ok_ts\": 1735006000.5,\n \"last_fail_ts\": 1735010500.75,\n \"consecutive_failures\": 15\n}",
+  "exit": 1,
+  "stdout": "deploy failed 15x in a row\n"
+ },
+ {
+  "result": "fail",
+  "now": 1735010800.5,
+  "file": "{\n \"last_ok_ts\": 1735006000.5,\n \"last_fail_ts\": 1735010800.5,\n \"consecutive_failures\": 16\n}",
+  "exit": 0,
+  "stdout": ""
+ },
+ {
+  "result": "fail",
+  "now": 1735011100.75,
+  "file": "{\n \"last_ok_ts\": 1735006000.5,\n \"last_fail_ts\": 1735011100.75,\n \"consecutive_failures\": 17\n}",
+  "exit": 0,
+  "stdout": ""
+ },
+ {
+  "result": "fail",
+  "now": 1735011400.5,
+  "file": "{\n \"last_ok_ts\": 1735006000.5,\n \"last_fail_ts\": 1735011400.5,\n \"consecutive_failures\": 18\n}",
+  "exit": 0,
+  "stdout": ""
+ },
+ {
+  "result": "fail",
+  "now": 1735011700.75,
+  "file": "{\n \"last_ok_ts\": 1735006000.5,\n \"last_fail_ts\": 1735011700.75,\n \"consecutive_failures\": 19\n}",
+  "exit": 0,
+  "stdout": ""
+ },
+ {
+  "result": "fail",
+  "now": 1735012000.5,
+  "file": "{\n \"last_ok_ts\": 1735006000.5,\n \"last_fail_ts\": 1735012000.5,\n \"consecutive_failures\": 20\n}",
+  "exit": 0,
+  "stdout": ""
+ },
+ {
+  "result": "fail",
+  "now": 1735012300.75,
+  "file": "{\n \"last_ok_ts\": 1735006000.5,\n \"last_fail_ts\": 1735012300.75,\n \"consecutive_failures\": 21\n}",
+  "exit": 0,
+  "stdout": ""
+ },
+ {
+  "result": "fail",
+  "now": 1735012600.5,
+  "file": "{\n \"last_ok_ts\": 1735006000.5,\n \"last_fail_ts\": 1735012600.5,\n \"consecutive_failures\": 22\n}",
+  "exit": 0,
+  "stdout": ""
+ },
+ {
+  "result": "fail",
+  "now": 1735012900.75,
+  "file": "{\n \"last_ok_ts\": 1735006000.5,\n \"last_fail_ts\": 1735012900.75,\n \"consecutive_failures\": 23\n}",
+  "exit": 0,
+  "stdout": ""
+ },
+ {
+  "result": "fail",
+  "now": 1735013200.5,
+  "file": "{\n \"last_ok_ts\": 1735006000.5,\n \"last_fail_ts\": 1735013200.5,\n \"consecutive_failures\": 24\n}",
+  "exit": 0,
+  "stdout": ""
+ },
+ {
+  "result": "fail",
+  "now": 1735013500.75,
+  "file": "{\n \"last_ok_ts\": 1735006000.5,\n \"last_fail_ts\": 1735013500.75,\n \"consecutive_failures\": 25\n}",
+  "exit": 0,
+  "stdout": ""
+ },
+ {
+  "result": "fail",
+  "now": 1735013800.5,
+  "file": "{\n \"last_ok_ts\": 1735006000.5,\n \"last_fail_ts\": 1735013800.5,\n \"consecutive_failures\": 26\n}",
+  "exit": 0,
+  "stdout": ""
+ },
+ {
+  "result": "fail",
+  "now": 1735014100.75,
+  "file": "{\n \"last_ok_ts\": 1735006000.5,\n \"last_fail_ts\": 1735014100.75,\n \"consecutive_failures\": 27\n}",
+  "exit": 1,
+  "stdout": "deploy failed 27x in a row\n"
+ },
+ {
+  "result": "fail",
+  "now": 1735014400.5,
+  "file": "{\n \"last_ok_ts\": 1735006000.5,\n \"last_fail_ts\": 1735014400.5,\n \"consecutive_failures\": 28\n}",
+  "exit": 0,
+  "stdout": ""
+ }
+]

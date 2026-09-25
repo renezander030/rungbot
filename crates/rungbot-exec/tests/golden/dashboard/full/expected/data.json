@@ -1,0 +1,513 @@
+{
+  "generated": "2024-12-24T00:26:40.250000+00:00",
+  "health": {
+    "mode": "live",
+    "live_enabled": "yes",
+    "halt": false,
+    "last_run": "2024-12-24T00:10:00.123457+00:00",
+    "daily": {
+      "date": "2024-12-24",
+      "notional": 125.5,
+      "orders": 3
+    },
+    "errors": [],
+    "deploy": {
+      "last_ok_ts": 1734999700.5,
+      "last_fail_ts": null,
+      "consecutive_failures": 0
+    },
+    "audit": {
+      "ts": 1734990000.0,
+      "ok": false,
+      "findings": [
+        "synthetic finding"
+      ],
+      "checked": {
+        "revx": 3,
+        "gate": 2
+      }
+    }
+  },
+  "portfolio": {
+    "total_value": 1915.965,
+    "stable_bag": 1412.728021978022,
+    "stable_locked": 89.5,
+    "unrealized_pnl": 746.365,
+    "realized_proceeds": 127.15
+  },
+  "coins": [
+    {
+      "sym": "CCC",
+      "exch": "gate",
+      "pair": "CCC_USDT",
+      "quote": "USDT",
+      "venues": [
+        "gate"
+      ],
+      "held": 3000.0,
+      "price": 0.12,
+      "chg24h": 7.25,
+      "value": 360.0,
+      "entry": 0.05,
+      "pnl": 140.0,
+      "sell_target": 0.057499999999999996,
+      "to_sell_pct": 108.69565217391303,
+      "to_buy_pct": 22.25,
+      "win_dir": "",
+      "deployed_pct": 0.0,
+      "sold_pct": 0.0,
+      "sell_ready": {
+        "ok": true,
+        "reason": "sellable 3000 (~$360.00)",
+        "qty": 3000.0,
+        "min_base": 10.0,
+        "min_quote": 3.0,
+        "notional": 360.0
+      },
+      "decision": {
+        "kind": "err",
+        "text": "venue said no",
+        "ts": 1734998000,
+        "src": "policy"
+      }
+    },
+    {
+      "sym": "BTC",
+      "exch": "revx",
+      "pair": "BTC-USD",
+      "quote": "USD",
+      "venues": [
+        "revx"
+      ],
+      "held": 0.01,
+      "price": 41000.0,
+      "chg24h": 2.5,
+      "value": 410.0,
+      "entry": 20000.0,
+      "pnl": 104.99999999999999,
+      "sell_target": 23000.0,
+      "to_sell_pct": 78.26086956521738,
+      "to_buy_pct": 17.5,
+      "win_dir": "",
+      "deployed_pct": 0.0,
+      "sold_pct": 0.0,
+      "sell_ready": {
+        "ok": true,
+        "reason": "sellable 0.01 (~$410.00)",
+        "qty": 0.01,
+        "min_base": 0.0001,
+        "min_quote": 5.0,
+        "notional": 410.0
+      },
+      "decision": null
+    },
+    {
+      "sym": "AAA",
+      "exch": "gate",
+      "pair": "AAA_USDT",
+      "quote": "USDT",
+      "venues": [
+        "gate"
+      ],
+      "held": 500.0,
+      "price": 1.25,
+      "chg24h": -3.0,
+      "value": 625.0,
+      "entry": 0.75,
+      "pnl": 66.66666666666667,
+      "sell_target": 0.8624999999999999,
+      "to_sell_pct": 44.927536231884076,
+      "to_buy_pct": 12.0,
+      "win_dir": "buy",
+      "deployed_pct": 30,
+      "sold_pct": 5.0,
+      "sell_ready": {
+        "ok": true,
+        "reason": "sellable 500 (~$625.00)",
+        "qty": 500.0,
+        "min_base": 1.0,
+        "min_quote": 3.0,
+        "notional": 625.0
+      },
+      "decision": {
+        "kind": "done",
+        "text": "sold 5% at +20%",
+        "ts": 1734997000.25,
+        "src": "ladder"
+      }
+    },
+    {
+      "sym": "VVV",
+      "exch": "revx",
+      "pair": "VVV-USD",
+      "quote": "USD",
+      "venues": [
+        "revx"
+      ],
+      "held": 400.5,
+      "price": 0.33,
+      "chg24h": 0.0,
+      "value": 132.165,
+      "entry": 0.2,
+      "pnl": 64.99999999999999,
+      "sell_target": 0.22999999999999998,
+      "to_sell_pct": 43.47826086956523,
+      "to_buy_pct": 15.0,
+      "win_dir": "",
+      "deployed_pct": 0.0,
+      "sold_pct": 0.0,
+      "sell_ready": {
+        "ok": false,
+        "reason": "dust: 400.5 < min 1000 VVV-USD",
+        "qty": 400.5,
+        "min_base": 1000.0,
+        "min_quote": 5.0,
+        "notional": 132.165
+      },
+      "decision": {
+        "kind": "plan",
+        "text": "zone planned",
+        "ts": 1734999900.25,
+        "src": "deploy"
+      }
+    },
+    {
+      "sym": "BBB",
+      "exch": "revx",
+      "pair": "BBB-USD",
+      "quote": "USD",
+      "venues": [
+        "revx",
+        "gate"
+      ],
+      "held": 121.5,
+      "price": 3.2,
+      "chg24h": -16.0,
+      "value": 388.8,
+      "entry": 3.0,
+      "pnl": 6.666666666666665,
+      "sell_target": 3.4499999999999997,
+      "to_sell_pct": -7.246376811594191,
+      "to_buy_pct": -1.0,
+      "win_dir": "",
+      "deployed_pct": 12.5,
+      "sold_pct": 0.0,
+      "sell_ready": {
+        "ok": true,
+        "reason": "sellable 121.5 (~$388.80)",
+        "qty": 121.5,
+        "min_base": 0.1,
+        "min_quote": 5.0,
+        "notional": 388.8
+      },
+      "decision": {
+        "kind": "warn",
+        "text": "below exchange min",
+        "ts": 1734997500.25,
+        "src": "deploy"
+      }
+    },
+    {
+      "sym": "DDD",
+      "exch": "binance",
+      "pair": "DDDUSDT",
+      "quote": "USDT",
+      "venues": [
+        "binance"
+      ],
+      "held": 0.0,
+      "price": 1.1,
+      "chg24h": -1.5,
+      "value": 0.0,
+      "entry": 1.5,
+      "pnl": -26.66666666666666,
+      "sell_target": 1.7249999999999999,
+      "to_sell_pct": -36.23188405797101,
+      "to_buy_pct": 13.5,
+      "win_dir": "",
+      "deployed_pct": 0.0,
+      "sold_pct": 0.0,
+      "sell_ready": {
+        "ok": false,
+        "reason": "no binance client"
+      },
+      "decision": null
+    }
+  ],
+  "order_log": [
+    {
+      "client_id": "csVVVb1r1",
+      "sym": "VVV",
+      "side": "buy",
+      "kind": "deploy_buy",
+      "status": "open",
+      "venue": "revx",
+      "base": 50.0,
+      "quote": 15.0,
+      "price": 0.3,
+      "ts": 1734990000.0
+    },
+    {
+      "client_id": "depxBBBb1r2",
+      "sym": "BBB",
+      "side": "buy",
+      "kind": "deploy_buy",
+      "status": "new",
+      "venue": "revx",
+      "base": 24.0,
+      "quote": 60.0,
+      "price": 2.5,
+      "ts": 1734950000.5
+    },
+    {
+      "client_id": "depxAAAb1r2",
+      "sym": "AAA",
+      "side": "buy",
+      "kind": "deploy_buy",
+      "status": "open",
+      "venue": "revx",
+      "base": 37.5,
+      "quote": 30.0,
+      "price": 0.8,
+      "ts": 1734900300.0
+    },
+    {
+      "client_id": "depxAAAb1r1",
+      "sym": "AAA",
+      "side": "buy",
+      "kind": "deploy_buy",
+      "status": "open",
+      "venue": "revx",
+      "base": 44.44,
+      "quote": 40.0,
+      "price": 0.9,
+      "ts": 1734900000.0
+    },
+    {
+      "client_id": "csCCCb1r1",
+      "sym": "CCC",
+      "side": "buy",
+      "kind": "ladder_buy",
+      "status": "PARTIALLY_FILLED",
+      "venue": "gate",
+      "base": 500.0,
+      "quote": 20.0,
+      "price": 0.04,
+      "ts": 1734500000.0
+    },
+    {
+      "client_id": "csAAAb1r3x",
+      "sym": "AAA",
+      "side": "buy",
+      "kind": "deploy_buy",
+      "status": "placed",
+      "venue": "gate",
+      "base": 35.7,
+      "quote": 25.0,
+      "price": 0.7,
+      "ts": 1733900000
+    },
+    {
+      "client_id": "csCCCs1r1",
+      "sym": "CCC",
+      "side": "sell",
+      "kind": "ladder_sell",
+      "status": "filled",
+      "venue": "gate",
+      "base": 200.0,
+      "quote": 15.9,
+      "price": 0.08,
+      "ts": 1734991000.0
+    },
+    {
+      "client_id": "csAAAs1r1",
+      "sym": "AAA",
+      "side": "sell",
+      "kind": "ladder_sell",
+      "status": "filled",
+      "venue": "gate",
+      "base": 25.0,
+      "quote": 29.75,
+      "price": 1.19,
+      "ts": 1734800100.0
+    },
+    {
+      "client_id": "manual-synthetic",
+      "sym": "BBB",
+      "side": "buy",
+      "kind": "manual",
+      "status": "filled",
+      "venue": "revx",
+      "base": 10.0,
+      "quote": 25.0,
+      "price": 2.5,
+      "ts": 1734800050.0,
+      "note": "synthetic manual fill"
+    },
+    {
+      "client_id": "depxBBBb0r2",
+      "sym": "BBB",
+      "side": "buy",
+      "kind": "deploy_buy",
+      "status": "filled",
+      "venue": "revx",
+      "base": 10.0,
+      "quote": 26.0,
+      "price": 2.6,
+      "ts": 1734650000.0
+    },
+    {
+      "client_id": "csBTCb1r1",
+      "sym": "BTC",
+      "side": "buy",
+      "kind": "market_buy",
+      "status": "filled",
+      "venue": "revx",
+      "base": 0.00249,
+      "quote": 100.0,
+      "price": 40100.5,
+      "ts": 1734000600.0
+    },
+    {
+      "client_id": "csDDDb1r1",
+      "sym": "DDD",
+      "side": "buy",
+      "kind": "ladder_buy",
+      "status": "filled",
+      "venue": "binance",
+      "base": 10.0,
+      "quote": 14.0,
+      "price": 1.4,
+      "ts": 1733500000.0
+    },
+    {
+      "client_id": "csBBBs1r1",
+      "sym": "BBB",
+      "side": "sell",
+      "kind": "policy_sell",
+      "status": "filled",
+      "venue": null,
+      "base": 20.0,
+      "quote": 81.5,
+      "price": 4.0,
+      "ts": 1733000500
+    }
+  ],
+  "funding": {
+    "gate_stable": 310.0,
+    "gate_target": 569.0912087912088,
+    "gate_share_pct": 40.0,
+    "gate_gap": 259.0912087912088,
+    "revx_stable": 1112.728021978022,
+    "deposit_headroom": 0.0,
+    "reserved_on_revx": 259.0912087912088,
+    "revx_sendable": 900.25,
+    "in_flight": false,
+    "due": true,
+    "send_now": 259.0912087912088,
+    "revx_usdc_free": 900.25
+  },
+  "regime": {
+    "label": "bull",
+    "btc": {
+      "px": 42000.5,
+      "sma100": 38000.25,
+      "sma200": 35000.0
+    },
+    "breadth": "3/6",
+    "coins": {
+      "BTC": {
+        "running": true,
+        "score": 3,
+        "signals": {
+          "above_sma30": true,
+          "ret30_strong": true,
+          "fresh_30d_high": true,
+          "higher_lows": false
+        }
+      },
+      "AAA": {
+        "running": false,
+        "score": 2,
+        "signals": {
+          "above_sma30": false,
+          "ret30_strong": false,
+          "fresh_30d_high": true,
+          "higher_lows": true
+        }
+      },
+      "BBB": {
+        "running": false,
+        "score": 2,
+        "signals": {
+          "above_sma30": true,
+          "ret30_strong": false,
+          "fresh_30d_high": true,
+          "higher_lows": false
+        }
+      },
+      "CCC": {
+        "running": false,
+        "score": 2,
+        "signals": {
+          "above_sma30": false,
+          "ret30_strong": true,
+          "fresh_30d_high": true,
+          "higher_lows": false
+        }
+      },
+      "VVV": {
+        "running": false,
+        "score": 2,
+        "signals": {
+          "above_sma30": true,
+          "ret30_strong": false,
+          "fresh_30d_high": true,
+          "higher_lows": false
+        }
+      },
+      "DDD": {
+        "error": "synthetic kline failure xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+      }
+    },
+    "held_days": 20,
+    "prev_label": "chop",
+    "confirmed": true,
+    "confirm_days": 14,
+    "days_covered": 400,
+    "inputs": "BTC vs its 100d and 200d SMA, plus how many coins sit above their own 30d SMA. Trend filter only: no valuation, flows, on-chain, funding or sentiment."
+  },
+  "decisions": {
+    "today": {
+      "plan": 1
+    },
+    "journal_errors": 1,
+    "poll_errors": 1
+  },
+  "churn": {
+    "window_days": 7,
+    "roll_events": 2,
+    "roll_events_24h": 0,
+    "rungs_rolled": 2,
+    "rungs_placed": 6,
+    "fills": 1,
+    "cancels_per_fill": 2.0,
+    "rung_lifetime_h_median": 41.7,
+    "rung_lifetime_h_p25": 27.9,
+    "last_roll_ts": 1734900300.0,
+    "last_roll_exch": "gate",
+    "d28": {
+      "window_days": 28,
+      "roll_events": 2,
+      "roll_events_24h": 0,
+      "rungs_rolled": 2,
+      "rungs_placed": 7,
+      "fills": 1,
+      "cancels_per_fill": 2.0,
+      "rung_lifetime_h_median": 41.7,
+      "rung_lifetime_h_p25": 27.9,
+      "last_roll_ts": 1734900300.0,
+      "last_roll_exch": "gate"
+    }
+  }
+}
