@@ -1,0 +1,14 @@
+[Unit]
+Description=rungbot run: signals, ladder orders and housekeeping
+Wants=network-online.target
+After=network-online.target
+
+[Service]
+Type=oneshot
+# Venue keys and mail/Telegram credentials, e.g. RUNGBOT_GATE_KEY=...,
+# RUNGBOT_GATE_SECRET=..., RESEND_API_KEY=... and RUNGBOT_TELEGRAM_TOKEN=...
+EnvironmentFile=-%h/.config/rungbot/env
+ExecStart=%h/.cargo/bin/rungbot-exec run --config %h/.config/rungbot/run.yaml
+# A run that finds another one holding the lock waits run_lock_wait seconds, then
+# logs SKIPPED and exits 0; this bound only stops a run that hangs outright.
+TimeoutStartSec=20min

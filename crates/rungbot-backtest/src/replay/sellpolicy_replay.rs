@@ -233,6 +233,8 @@ impl Params {
             trail_arm_mult: self.arm_default,
             no_tranche: no_tranche.iter().map(|s| s.to_string()).collect(),
             no_base_trail: Vec::new(),
+            giveback: Default::default(),
+            trail_arm: Default::default(),
         }
     }
 }

@@ -549,6 +549,7 @@ dependencies = [
  "indexmap",
  "minreq",
  "rungbot-core",
+ "rungbot-notify",
  "serde",
  "serde_json",
  "sha1",
