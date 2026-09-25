@@ -1,0 +1,10 @@
+[Unit]
+Description=rungbot snapshot, every 5 minutes
+
+[Timer]
+# Offset from the run's :00/:30 so a refresh never reads the journal mid-write.
+OnCalendar=*:2/5
+Persistent=true
+
+[Install]
+WantedBy=timers.target

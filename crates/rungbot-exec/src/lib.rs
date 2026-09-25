@@ -22,6 +22,7 @@
 
 pub mod binance;
 pub mod clients;
+pub mod dashboard;
 pub mod deploy;
 pub mod gate;
 pub mod guard;

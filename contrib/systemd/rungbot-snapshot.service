@@ -1,0 +1,15 @@
+[Unit]
+Description=rungbot snapshot: dashboard data.json, scenarios.json and wallets.json
+Wants=network-online.target
+After=network-online.target
+# The 3rd deploy failure in a row (then every 12th) exits 1; hook your alert here, e.g.
+# OnFailure=notify-failure@%n.service
+
+[Service]
+Type=oneshot
+# Venue keys (read-only calls only) and the deploy command's credentials.
+EnvironmentFile=-%h/.config/rungbot/env
+# Publish public_dir after each refresh with dashboard.deploy_command.
+Environment=DASHBOARD_DEPLOY=1
+ExecStart=%h/.cargo/bin/rungbot-exec snapshot --config %h/.config/rungbot/run.yaml
+TimeoutStartSec=10min

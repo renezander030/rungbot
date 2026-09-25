@@ -1,0 +1,21 @@
+[Tue Dec 24 00:26:40 UTC 2024] snapshot
+CHURN 7d: 2 rolls (2 rungs) / 1 fills, 2.0 cancels per fill, rung life median 41.7h; 0 rolls in 24h
+SELL-CHECK 4/6 sellable; DDD no binance client; VVV dust: 400.5 < min 1000 VVV-USD
+wrote <public>/data.json | 6 coins | value $1915.96 | stable $1412.73 (locked $89.50) | errors 0
+  FORECAST cycle top, bot book + $2,500 new (invested now $4,640):
+    hold_top     p10 $   13,283  p50 $   30,033  p90 $    70,184  mean $   35,957
+    policy_top   p10 $   13,211  p50 $   27,128  p90 $    51,526  mean $   29,657
+    keep_hold    p10 $    2,013  p50 $    3,721  p90 $     7,760  mean $    4,331
+    keep_policy  p10 $    6,413  p50 $   14,315  p90 $    29,232  mean $   15,929
+    dex_top      p10 $    2,698  p50 $    7,008  p90 $    12,677  mean $    7,861
+scenarios.json: 5 scenarios, nw0 $3,394, 108 KB
+  ATH level 10% of ATH, BTC at ATH     hold $     1,266 policy $     1,266 | kept after the bear: hold $      313 policy $      654
+  ATH level 25% of ATH, BTC at ATH     hold $     2,130 policy $     2,130 | kept after the bear: hold $      399 policy $    1,036
+  ATH level 50% of ATH, BTC 1.5x ATH   hold $     3,916 policy $     3,916 | kept after the bear: hold $      671 policy $    1,871
+  ATH level ATH again, BTC 2x ATH      hold $     7,142 policy $     7,043 | kept after the bear: hold $    1,087 policy $    3,690
+  synthetic early  proxied ['CCC', 'DDD'] | hold peak 1.27x end 1.25x | ladder end 1.1x | live peak 1.27x end 1.25x kept 0.98
+  synthetic run    proxied ['CCC', 'DDD'] | hold peak 5.81x end 5.81x | ladder end 2.33x | live peak 4.0x end 4.0x kept 1.0
+  synthetic top    proxied ['DDD'] | hold peak 13.42x end 7.59x | ladder end 3.35x | live peak 5.3x end 4.11x kept 0.78
+  synthetic late   proxied ['DDD'] | hold peak 19.16x end 17.12x | ladder end 6.22x | live peak 7.29x end 6.89x kept 0.92
+  synthetic none: skipped
+wrote <public>/wallets.json | 6 wallets | $357,722.67 | staked 76% | of all 75% | alerts 3 | errors 0

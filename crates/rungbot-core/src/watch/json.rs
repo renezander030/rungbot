@@ -193,6 +193,41 @@ impl Json {
         out
     }
 
+    /// `json.dumps(obj, separators=(",", ":"))`: no whitespace at all.
+    pub fn dumps_compact(&self) -> String {
+        let mut out = String::new();
+        self.write_compact(&mut out);
+        out
+    }
+
+    fn write_compact(&self, out: &mut String) {
+        match self {
+            Json::Arr(a) => {
+                out.push('[');
+                for (i, v) in a.iter().enumerate() {
+                    if i > 0 {
+                        out.push(',');
+                    }
+                    v.write_compact(out);
+                }
+                out.push(']');
+            }
+            Json::Obj(o) => {
+                out.push('{');
+                for (i, (k, v)) in o.iter().enumerate() {
+                    if i > 0 {
+                        out.push(',');
+                    }
+                    write_str(out, k);
+                    out.push(':');
+                    v.write_compact(out);
+                }
+                out.push('}');
+            }
+            scalar => scalar.write(out, None, 0),
+        }
+    }
+
     fn write(&self, out: &mut String, indent: Option<usize>, level: usize) {
         match self {
             Json::Null => out.push_str("null"),
