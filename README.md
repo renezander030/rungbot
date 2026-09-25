@@ -71,7 +71,7 @@ rungbot plan --save                         # record that you acted, so rungs do
 
 On a schedule: `*/30 * * * * rungbot plan --save`
 
-Rust 1.82+. No system dependencies.
+Rust 1.85+. No system dependencies.
 
 ## Commands
 

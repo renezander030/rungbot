@@ -37,6 +37,7 @@ pub mod reconcile;
 pub mod revx;
 pub mod run;
 pub mod sellcheck;
+pub mod shadow;
 pub mod store;
 #[cfg(test)]
 mod testenv;

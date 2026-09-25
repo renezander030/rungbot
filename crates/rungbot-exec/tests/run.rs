@@ -121,11 +121,25 @@ struct Fault {
     jam_after: Option<String>,
     /// The deploy hook panics: it runs after execution and before the run's saves.
     deploy_panics: bool,
+    /// Panic on any order placement or cancel that reaches a venue.
+    panic_on_write: bool,
+    /// Run as `run --dry-run --state-dir`: the shadow run.
+    shadow: bool,
+    /// Run as a plain `--dry-run`, with a venue set that panics when asked for a venue.
+    preview: bool,
 }
 
 const ABORT: &str = "injected abort after a venue call";
 
 impl Fake {
+    fn tripwire(&self, call: &str) {
+        assert!(
+            !self.fault.panic_on_write,
+            "a venue write reached {}: {call}",
+            self.name
+        );
+    }
+
     fn after_order(&self, cid: &str) {
         if self.fault.jam_after.as_deref() == Some(cid) {
             // A directory where the journal's temp file goes: every write fails.
@@ -161,6 +175,7 @@ impl Fake {
         cid: &str,
         default: Value,
     ) -> Result<Value, VenueError> {
+        self.tripwire(call);
         self.calls
             .borrow_mut()
             .push(json!({"venue": self.name, "call": call, "pair": pair,
@@ -207,6 +222,7 @@ impl Venue for Fake {
         Ok(serde_json::from_value(if v.is_null() { json!([]) } else { v.clone() }).unwrap())
     }
     fn cancel(&self, pair: &str, order_id: &str) -> Result<ParsedOrder, VenueError> {
+        self.tripwire("cancel");
         self.calls.borrow_mut().push(
             json!({"venue": self.name, "call": "cancel", "pair": pair, "order_id": order_id}),
         );
@@ -256,6 +272,7 @@ impl Venue for Fake {
         self.order("market_sell", pair, base, cid, filled_default("S", cid))
     }
     fn limit_buy(&self, _: &str, _: f64, _: f64, _: Option<&str>) -> Result<Value, VenueError> {
+        self.tripwire("limit_buy");
         unimplemented!()
     }
     fn limit_sell(
@@ -266,6 +283,7 @@ impl Venue for Fake {
         cid: Option<&str>,
     ) -> Result<Value, VenueError> {
         let cid = cid.unwrap_or("");
+        self.tripwire("limit_sell");
         self.calls
             .borrow_mut()
             .push(json!({"venue": self.name, "call": "limit_sell",
@@ -288,6 +306,15 @@ impl VenueSource for Fakes {
             .get(exch)
             .map(|v| v as &dyn Venue)
             .ok_or_else(|| format!("'{exch}'"))
+    }
+}
+
+/// A venue set a plain dry run must never ask for a venue.
+struct NoVenues;
+
+impl VenueSource for NoVenues {
+    fn venue(&self, exch: &str) -> Result<&dyn Venue, String> {
+        panic!("a --dry-run preview asked for the {exch} client")
     }
 }
 
@@ -625,8 +652,13 @@ fn drive(sc: &Value, run: &Value, dir: &Path, yaml: &str, at: &str, fault: &Faul
     let code = {
         let clock = || now;
         let sleep = |x: f64| sleeps.borrow_mut().push(x);
+        let none = NoVenues;
         let mut deps = Deps {
-            venues: &venues,
+            venues: if fault.preview {
+                &none as &dyn VenueSource
+            } else {
+                &venues
+            },
             market: &market,
             outbox: &outbox,
             deploy: &mut deploy,
@@ -637,8 +669,9 @@ fn drive(sc: &Value, run: &Value, dir: &Path, yaml: &str, at: &str, fault: &Faul
             err: &mut err,
         };
         let f = Flags {
-            dry_run: flags.contains(&"--dry-run"),
+            dry_run: flags.contains(&"--dry-run") || fault.shadow || fault.preview,
             verbose: flags.contains(&"--verbose"),
+            shadow: fault.shadow,
         };
         std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
             run::run_locked(&cfg, f, &mut deps)
@@ -970,4 +1003,168 @@ fn the_pnl_ledger_is_on_disk_right_after_the_sell() {
         .clone();
     let got = on_disk(&scratch.0, "pnl-ledger.json");
     same(&want, &got, "pnl").unwrap();
+}
+
+// ------------------------------------------------------------------ dry runs never write
+
+/// The writes a golden run sent, as `(call, pair, id)`: the client id of an order; a
+/// cancel names the venue's order id, which differs between a simulated order and a
+/// scripted one, so it is left out.
+fn live_writes(run: &Value) -> Vec<(String, String, String)> {
+    run["calls"]
+        .as_array()
+        .map(|a| {
+            a.iter()
+                .map(|c| {
+                    let id = if c["call"] == "cancel" {
+                        &Value::Null
+                    } else {
+                        &c["client_id"]
+                    };
+                    (
+                        s(&c["call"]).to_string(),
+                        s(&c["pair"]).to_string(),
+                        s(id).to_string(),
+                    )
+                })
+                .collect()
+        })
+        .unwrap_or_default()
+}
+
+/// The `SHADOW venue call pair ... cid=X id=Y` lines of a shadow run.
+fn shadow_writes(out: &str) -> Vec<(String, String, String)> {
+    out.lines()
+        .filter_map(|l| l.strip_prefix("SHADOW "))
+        .filter(|l| !l.starts_with(char::is_numeric) && !l.starts_with("run "))
+        .filter_map(|l| {
+            let w: Vec<&str> = l.split(' ').collect();
+            let field = |k: &str| {
+                w.iter()
+                    .find_map(|x| x.strip_prefix(k))
+                    .unwrap_or("")
+                    .to_string()
+            };
+            let id = if w.get(1) == Some(&"cancel") {
+                String::new()
+            } else {
+                field("cid=")
+            };
+            Some((w.get(1)?.to_string(), w.get(2)?.to_string(), id))
+        })
+        .collect()
+}
+
+/// Every scenario of the run golden, every run in turn, as a shadow run over venues
+/// that panic on any placement or cancel. The golden's live runs place market buys,
+/// paired and repriced limit sells, retries, cover restores and cancels; the shadow
+/// must reach each of those writes, simulate it and send none, and send no mail or
+/// ping. On a scenario's first run, where the state is still the golden's, the shadow
+/// simulates every write the live run sent, in order.
+#[test]
+#[cfg_attr(windows, ignore = "reference texts carry POSIX paths")]
+fn a_shadow_run_sends_no_venue_write_and_no_mail() {
+    let _offline = OfflineGuard::set();
+    let g = golden();
+    let fault = Fault {
+        panic_on_write: true,
+        shadow: true,
+        ..Default::default()
+    };
+    let (mut live_total, mut simulated) = (0, 0);
+    let mut kinds = BTreeSet::new();
+    for sc in g["scenarios"].as_array().unwrap() {
+        let name = s(&sc["name"]);
+        let (scratch, yaml) = setup(sc, "-shadow");
+        for (i, run) in sc["runs"].as_array().unwrap().iter().enumerate() {
+            let at = format!("{name}[{i}]");
+            let ran = drive(sc, run, &scratch.0, &yaml, &at, &fault);
+            // `Err` is a run that refused to start (an unreadable state file), not a panic.
+            assert!(
+                ran.code.is_some(),
+                "{at}: the shadow run panicked\n{}",
+                ran.err
+            );
+            assert!(ran.calls.is_empty(), "{at}: {:?}", ran.calls);
+            assert!(ran.mails.is_empty(), "{at}: a mail was sent");
+            assert!(ran.pings.is_empty(), "{at}: a ping was sent");
+            let live = live_writes(run);
+            let sim = shadow_writes(&ran.out);
+            if run["lock_held"].as_bool() != Some(true) {
+                assert!(
+                    ran.out.contains("venue write(s) simulated, none sent"),
+                    "{at}: {}",
+                    ran.out
+                );
+            }
+            let golden_dry = run["flags"]
+                .as_array()
+                .is_some_and(|f| f.iter().any(|x| x == "--dry-run"));
+            if i == 0 && !golden_dry {
+                // The shadow answers every order as accepted (a market order filled), so
+                // it can go further than a live run whose venue refused or delayed one:
+                // the live writes are a subsequence of the simulated ones.
+                let mut it = sim.iter();
+                assert!(
+                    live.iter().all(|w| it.any(|x| x == w)),
+                    "{at}: the first run's writes\n live {live:?}\n shadow {sim:?}"
+                );
+            }
+            live_total += live.len();
+            simulated += sim.len();
+            kinds.extend(sim.into_iter().map(|w| w.0));
+        }
+    }
+    assert!(live_total > 0 && simulated > 0, "{live_total} {simulated}");
+    for k in ["market_buy", "limit_sell", "cancel"] {
+        assert!(kinds.contains(k), "no scenario reached {k}: {kinds:?}");
+    }
+}
+
+/// A plain `--dry-run` never even asks for a venue client, and sends nothing.
+#[test]
+#[cfg_attr(windows, ignore = "reference texts carry POSIX paths")]
+fn a_dry_run_preview_never_touches_a_venue() {
+    let _offline = OfflineGuard::set();
+    let g = golden();
+    let fault = Fault {
+        panic_on_write: true,
+        preview: true,
+        ..Default::default()
+    };
+    for sc in g["scenarios"].as_array().unwrap() {
+        let name = s(&sc["name"]);
+        let (scratch, yaml) = setup(sc, "-preview");
+        for (i, run) in sc["runs"].as_array().unwrap().iter().enumerate() {
+            let at = format!("{name}[{i}]");
+            // What the scenario itself puts in place before the run is not the run's doing.
+            let before: Vec<(String, Option<String>)> = FILES
+                .iter()
+                .filter(|(k, _)| run["put"].get(*k).is_none())
+                .map(|(_, f)| {
+                    (
+                        f.to_string(),
+                        std::fs::read_to_string(scratch.0.join(f)).ok(),
+                    )
+                })
+                .collect();
+            let ran = drive(sc, run, &scratch.0, &yaml, &at, &fault);
+            assert!(
+                ran.code.is_some(),
+                "{at}: the preview panicked\n{}",
+                ran.err
+            );
+            assert!(ran.calls.is_empty() && ran.mails.is_empty() && ran.pings.is_empty());
+            for (f, was) in before {
+                if f == "regime-state.json" || f == "regime-history.json" {
+                    continue; // the market cache, read-only on venues
+                }
+                assert_eq!(
+                    std::fs::read_to_string(scratch.0.join(&f)).ok(),
+                    was,
+                    "{at}: a preview changed {f}"
+                );
+            }
+        }
+    }
 }

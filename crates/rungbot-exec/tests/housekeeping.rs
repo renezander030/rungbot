@@ -603,8 +603,10 @@ fn the_run_state_written_by_the_reference_imports_losslessly() {
     check(&mut f, same(&read(import::TTL_SOURCE), &jv(&ttl), "ttl"));
     finish("import", f);
 
-    // The run state is refused like the journal: not replaced without --force.
-    std::fs::write(&target, "{}").unwrap();
+    // The same import again is a no-op. Run state that moved on is refused like the
+    // journal: not replaced without --force.
+    import::write(&imp, &target, false).unwrap();
+    std::fs::write(store::sibling(&target, store::LADDER_FILE), "{}").unwrap();
     assert!(import::write(&imp, &target, false)
         .unwrap_err()
         .contains("ladder-state.json"));

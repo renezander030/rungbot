@@ -769,7 +769,12 @@ fn a_journal_written_by_the_reference_imports_losslessly() {
     if !src_archive.contains("null") {
         assert_eq!(std::fs::read_to_string(&apath).unwrap(), src_archive);
     }
-    // A second import refuses to overwrite without --force.
+    // A second import of the same source is a no-op; over a journal that moved on it
+    // refuses without --force.
+    import::write(&imp, &target, false).unwrap();
+    let mut moved = imp.journal.clone();
+    moved.orders.shift_remove_index(0);
+    store::save_journal(&target, &moved).unwrap();
     assert!(import::write(&imp, &target, false)
         .unwrap_err()
         .contains("--force"));
