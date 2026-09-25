@@ -243,11 +243,21 @@ const MAP_KNOBS: [&str; 5] = [
     "deploy_zones",
 ];
 
+/// How many of the run's knobs a wrapper exports.
+fn knob_count(sh: &str) -> usize {
+    let exported = wrapper_values(sh);
+    ENV_KNOBS
+        .iter()
+        .filter(|k| exported.contains_key(&env_name(k)))
+        .count()
+}
+
 /// Print the config for the bot in `dir`. Every `*.py` there is read for module
-/// defaults and coin tables; the `*-cron.sh` that exports `TRADE_MODE` is the wrapper.
+/// defaults and coin tables; of the `*-cron.sh` files that export `TRADE_MODE`, the one
+/// exporting the most knobs is the wrapper.
 pub fn generate(dir: &Path) -> Result<String, String> {
     let mut py = String::new();
-    let mut wrapper: Option<(String, String)> = None;
+    let mut wrapper: Option<(String, String, usize)> = None;
     let mut entries: Vec<_> = std::fs::read_dir(dir)
         .map_err(|e| format!("cannot read {}: {e}", dir.display()))?
         .filter_map(Result::ok)
@@ -265,10 +275,17 @@ pub fn generate(dir: &Path) -> Result<String, String> {
         } else if name.ends_with("-cron.sh") {
             let t = std::fs::read_to_string(&p).unwrap_or_default();
             if t.contains("export TRADE_MODE=") {
-                wrapper = Some((name.trim_end_matches("-cron.sh").to_string(), t));
+                // Side jobs (a backtest, a watcher) export TRADE_MODE too, pinned off. The
+                // bot's own wrapper is the one that exports the most knobs; on a tie the
+                // first by name.
+                let n = knob_count(&t);
+                if wrapper.as_ref().is_none_or(|(_, _, best)| n > *best) {
+                    wrapper = Some((name.trim_end_matches("-cron.sh").to_string(), t, n));
+                }
             }
         }
     }
+    let wrapper = wrapper.map(|(bot, sh, _)| (bot, sh));
     let (bot, sh) = wrapper.ok_or_else(|| {
         format!(
             "no *-cron.sh exporting TRADE_MODE in {}; nothing to translate",
@@ -450,6 +467,25 @@ export EMAIL_FROM="${EMAIL_FROM:-bot@example.com}"
         let y = generate(&d);
         let _ = std::fs::remove_dir_all(&d);
         y
+    }
+
+    /// Side jobs export `TRADE_MODE="off"` too; the bot's own wrapper wins whatever the
+    /// file names sort as.
+    #[test]
+    fn the_wrapper_is_the_one_exporting_the_most_knobs() {
+        let d = std::env::temp_dir().join(format!("rungbot-cexcfg-side-{}", std::process::id()));
+        std::fs::create_dir_all(&d).unwrap();
+        std::fs::write(d.join("bot.py"), PY).unwrap();
+        std::fs::write(d.join("examplebot-cron.sh"), SH).unwrap();
+        let side = "export TRADE_MODE=\"off\"\nexport LIVE_TRADING_ENABLED=\"no\"\n";
+        std::fs::write(d.join("aaa-backtest-cron.sh"), side).unwrap();
+        std::fs::write(d.join("zzz-watch-cron.sh"), side).unwrap();
+        let y = generate(&d);
+        let _ = std::fs::remove_dir_all(&d);
+        let y = y.unwrap();
+        let c = super::super::config::RunConfig::from_yaml(&y, &|_| None).unwrap();
+        assert_eq!(c.trade_mode, "live", "{y}");
+        assert!(y.contains("mail_name: examplebot\n"), "{y}");
     }
 
     #[test]
