@@ -5,8 +5,15 @@
 //! `pnl-ledger.json`, `ttl-warned.json`, the decision log `decisions.jsonl`, the
 //! signal-mail dedupe `signal-notices.json`, the level alert's `btc-alert-state.json`, the
 //! deploy layer's `deploy-state.live.json` (written as `deploy-state.json`) and the last
-//! book audit `audit-state.json`. The run state is written beside the imported
-//! journal under the names [`crate::store`] uses. Every row is read into an [`Order`]; fields this crate does not
+//! book audit `audit-state.json`. Every other state file the runtime reads is copied as
+//! it is, after a check that it parses: the dry and off ladder states, the regime cache
+//! and history, the froth, zone and divergence state, the market verdict, the monthly
+//! backtest's expectation, the research ledger and indexes, the dashboard's manual fills,
+//! targets and caches, the fill-odds candle cache, and the daily audit and archive
+//! markers (their modification time is what counts). [`mapping_lines`] prints where each
+//! file goes and which known files are left out, and why. The run state is written where
+//! the run config reads it ([`Targets::from_config`]), else beside the imported journal
+//! under the names [`crate::store`] uses. Every row is read into an [`Order`]; fields this crate does not
 //! model are carried along unchanged. The import then checks itself: each row is written
 //! back out and compared with the source, where `null` and an absent field count as the
 //! same and `5` and `5.0` are the same number. Anything else that differs is reported.
@@ -148,7 +155,208 @@ pub struct Imported {
     pub btc_alert: Option<Value>,
     pub deploy: Option<serde_json::Map<String, Value>>,
     pub audit: Option<Value>,
+    /// Every other state file, copied byte for byte after it was checked to parse.
+    pub extra: Vec<Extra>,
+    /// Source files left out, with the reason.
+    pub skipped: Vec<(String, String)>,
     pub report: ImportReport,
+}
+
+/// Where a copied file goes.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum Slot {
+    LadderDry,
+    LadderOff,
+    Regime,
+    RegimeHistory,
+    Froth,
+    AuditMarker,
+    ArchiveMarker,
+    Watch,
+    Research,
+    Dashboard,
+    Candles,
+}
+
+impl Slot {
+    pub fn path(self, t: &Targets, name: &str) -> PathBuf {
+        match self {
+            Slot::LadderDry => t.ladder_dry.clone(),
+            Slot::LadderOff => t.ladder_off.clone(),
+            Slot::Regime => t.regime.clone(),
+            Slot::RegimeHistory => t.regime_history.clone(),
+            Slot::Froth => t.froth.clone(),
+            Slot::AuditMarker => t.audit_marker.clone(),
+            Slot::ArchiveMarker => t.archive_marker.clone(),
+            Slot::Watch => t.watch_dir.join(name),
+            Slot::Research => t.research_dir.join(name),
+            Slot::Dashboard => t.dashboard_dir.join(name),
+            Slot::Candles => t.candles_dir.join(name),
+        }
+    }
+}
+
+/// One state file copied as it is.
+#[derive(Debug, Clone, PartialEq)]
+pub struct Extra {
+    /// Relative to the source directory.
+    pub source: String,
+    /// The file name at the target.
+    pub name: String,
+    pub slot: Slot,
+    pub body: Body,
+}
+
+/// How a copied file is checked before it is taken.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+enum Check {
+    Json,
+    Text,
+    Marker,
+}
+
+/// The state files copied as they are: `(source path, slot, check)`. Each is read by
+/// this runtime under the same format.
+const COPIES: [(&str, Slot, Check); 19] = [
+    ("ladder-state.dry.json", Slot::LadderDry, Check::Json),
+    ("ladder-state.json", Slot::LadderOff, Check::Json),
+    ("regime-state.json", Slot::Regime, Check::Json),
+    ("regime-history.json", Slot::RegimeHistory, Check::Json),
+    ("froth-state.json", Slot::Froth, Check::Json),
+    ("audit-state.json.last", Slot::AuditMarker, Check::Marker),
+    (
+        "orders-archive.jsonl.last",
+        Slot::ArchiveMarker,
+        Check::Marker,
+    ),
+    ("zone-state.json", Slot::Watch, Check::Json),
+    ("divergence-state.json", Slot::Watch, Check::Json),
+    ("market-verdict.json", Slot::Watch, Check::Json),
+    ("backtest-expectation.json", Slot::Watch, Check::Json),
+    ("opportunity-ledger.json", Slot::Research, Check::Json),
+    ("value-index.json", Slot::Research, Check::Json),
+    ("unlock-index.json", Slot::Research, Check::Json),
+    ("theses.yaml", Slot::Research, Check::Text),
+    ("dashboard/manual-fills.json", Slot::Dashboard, Check::Json),
+    (
+        "dashboard/wallet-targets.json",
+        Slot::Dashboard,
+        Check::Json,
+    ),
+    (
+        "dashboard/.deploy-status.json",
+        Slot::Dashboard,
+        Check::Json,
+    ),
+    ("dashboard/.revx-cache.json", Slot::Dashboard, Check::Json),
+];
+
+/// Dashboard state also copied (the wallet watcher's).
+const DASH_EXTRA: [&str; 2] = [".wallets-alert-state.json", ".wallets-last-good.json"];
+
+/// Source files that are known and left out on purpose.
+const SKIPPED: [(&str, &str); 7] = [
+    ("revx-journal.jsonl", "not read by any job of the source"),
+    ("revx-state.json", "not read by any job of the source"),
+    (".run.lock", "the run lock; each runtime takes its own"),
+    (
+        "dashboard/.pairinfo-cache.json",
+        "a cache this runtime does not use",
+    ),
+    (
+        "dashboard/public",
+        "the collector's outputs, rewritten by every snapshot",
+    ),
+    (
+        "dashboard/.dex-trader-cache",
+        "another bot's cache, not part of this runtime",
+    ),
+    (
+        "deploy-state.dry.json",
+        "a dry-mode deploy state; the deploy layer runs live only",
+    ),
+];
+
+fn copy_one(dir: &Path, rel: &str, slot: Slot, check: Check) -> Result<Option<Extra>, String> {
+    let p = dir.join(rel);
+    if !p.exists() {
+        return Ok(None);
+    }
+    let name = Path::new(rel)
+        .file_name()
+        .map(|n| n.to_string_lossy().into_owned())
+        .unwrap_or_default();
+    let body = match check {
+        Check::Marker => Body::Marker(
+            std::fs::metadata(&p)
+                .and_then(|m| m.modified())
+                .map_err(|e| format!("{}: {e}", p.display()))?,
+        ),
+        Check::Json | Check::Text => {
+            let t = std::fs::read_to_string(&p).map_err(|e| format!("{}: {e}", p.display()))?;
+            if check == Check::Json {
+                serde_json::from_str::<Value>(&t).map_err(|e| format!("{}: {e}", p.display()))?;
+            }
+            Body::Text(t)
+        }
+    };
+    Ok(Some(Extra {
+        source: rel.to_string(),
+        name,
+        slot,
+        body,
+    }))
+}
+
+/// Every copied file present in `dir`, and the known files left out.
+/// The copied files, and the known files left out with the reason.
+type ExtraFiles = (Vec<Extra>, Vec<(String, String)>);
+
+fn read_extra(dir: &Path) -> Result<ExtraFiles, String> {
+    let mut extra = Vec::new();
+    for (rel, slot, check) in COPIES {
+        extra.extend(copy_one(dir, rel, slot, check)?);
+    }
+    for n in DASH_EXTRA {
+        extra.extend(copy_one(
+            dir,
+            &format!("dashboard/{n}"),
+            Slot::Dashboard,
+            Check::Json,
+        )?);
+    }
+    let cache = dir.join("replay").join("cache");
+    if let Ok(rd) = std::fs::read_dir(&cache) {
+        let mut names: Vec<String> = rd
+            .filter_map(|e| e.ok())
+            .filter(|e| e.file_type().is_ok_and(|t| t.is_file()))
+            .filter_map(|e| e.file_name().into_string().ok())
+            .filter(|n| n.ends_with(".json"))
+            .collect();
+        names.sort();
+        for n in names {
+            extra.extend(copy_one(
+                dir,
+                &format!("replay/cache/{n}"),
+                Slot::Candles,
+                Check::Json,
+            )?);
+        }
+    }
+    let mut skipped: Vec<(String, String)> = SKIPPED
+        .iter()
+        .filter(|(n, _)| dir.join(n).exists())
+        .map(|(n, w)| (n.to_string(), w.to_string()))
+        .collect();
+    if let Ok(rd) = std::fs::read_dir(dir) {
+        let mut baks: Vec<String> = rd
+            .filter_map(|e| e.ok()?.file_name().into_string().ok())
+            .filter(|n| n.contains(".json.bak"))
+            .collect();
+        baks.sort();
+        skipped.extend(baks.into_iter().map(|n| (n, "a backup copy".to_string())));
+    }
+    Ok((extra, skipped))
 }
 
 /// Read `dir`'s journal and archive. A missing journal is an error here: importing
@@ -175,6 +383,7 @@ pub fn read_dir(dir: &Path) -> Result<Imported, String> {
     } else {
         None
     };
+    let (extra, skipped) = read_extra(dir)?;
 
     let mut r = ImportReport {
         rows: journal.orders.len(),
@@ -243,6 +452,8 @@ pub fn read_dir(dir: &Path) -> Result<Imported, String> {
         btc_alert,
         deploy,
         audit,
+        extra,
+        skipped,
         report: r,
     })
 }
@@ -333,87 +544,336 @@ fn read_run_state(dir: &Path) -> Result<RunState, String> {
     Ok((ladder, pnl, ttl))
 }
 
-/// Write an import to `journal_path` and its archive. Refuses to replace a journal or
-/// archive that already holds rows unless `force`.
-pub fn write(imported: &Imported, journal_path: &Path, force: bool) -> Result<PathBuf, String> {
-    let existing = store::load_journal(journal_path)?;
-    if !existing.orders.is_empty() && !force {
-        return Err(format!(
-            "{} already holds {} row(s); pass --force to replace it",
-            journal_path.display(),
-            existing.orders.len()
-        ));
-    }
-    let apath = store::archive_path(journal_path);
-    let has_archive = std::fs::metadata(&apath).is_ok_and(|m| m.len() > 0);
-    if has_archive && !force {
-        return Err(format!(
-            "{} already exists; pass --force to replace it",
-            apath.display()
-        ));
-    }
-    let mut text = String::new();
-    for o in &imported.archive {
-        text.push_str(&store::archive_line(o));
-        text.push('\n');
-    }
-    let targets = [
-        (store::LADDER_FILE, imported.ladder.is_some()),
-        (store::PNL_FILE, imported.pnl.is_some()),
-        (store::TTL_FILE, imported.ttl.is_some()),
-        (DECISIONS_FILE, imported.decisions.is_some()),
-        (NOTICES_FILE, imported.notices.is_some()),
-        (BTC_ALERT_FILE, imported.btc_alert.is_some()),
-        (DEPLOY_FILE, imported.deploy.is_some()),
-        (AUDIT_FILE, imported.audit.is_some()),
-    ];
-    for (name, present) in targets {
-        let p = store::sibling(journal_path, name);
-        if present && !force && std::fs::metadata(&p).is_ok_and(|m| m.len() > 0) {
-            return Err(format!(
-                "{} already exists; pass --force to replace it",
-                p.display()
-            ));
+/// Where an import writes each kind of state.
+#[derive(Debug, Clone, PartialEq)]
+pub struct Targets {
+    pub journal: PathBuf,
+    pub archive: PathBuf,
+    /// The ladder state per trade mode: `live`, `dry`, `off`.
+    pub ladder_live: PathBuf,
+    pub ladder_dry: PathBuf,
+    pub ladder_off: PathBuf,
+    pub pnl: PathBuf,
+    pub ttl: PathBuf,
+    pub decisions: PathBuf,
+    pub notices: PathBuf,
+    pub btc_alert: PathBuf,
+    pub deploy: PathBuf,
+    pub audit: PathBuf,
+    pub audit_marker: PathBuf,
+    pub archive_marker: PathBuf,
+    pub regime: PathBuf,
+    pub regime_history: PathBuf,
+    pub froth: PathBuf,
+    /// The watchers' own state (`rungbot watch`: zone, divergence), the market verdict
+    /// the regime watch quotes and the monthly backtest's expectation: the state dir,
+    /// where `watch.state_dir` and `rungbot backtest monthly` look by default.
+    pub watch_dir: PathBuf,
+    /// The research ledger and indexes.
+    pub research_dir: PathBuf,
+    /// The dashboard collector's inputs and caches.
+    pub dashboard_dir: PathBuf,
+    /// Daily candles the fill-odds report reads.
+    pub candles_dir: PathBuf,
+}
+
+impl Targets {
+    /// Every file in the journal's directory, under the names a run config uses by
+    /// default.
+    pub fn beside(journal: &Path) -> Targets {
+        let dir = journal
+            .parent()
+            .map(Path::to_path_buf)
+            .unwrap_or_else(|| PathBuf::from("."));
+        let sib = |n: &str| store::sibling(journal, n);
+        let archive = store::archive_path(journal);
+        Targets {
+            journal: journal.to_path_buf(),
+            archive_marker: marker(&archive),
+            archive,
+            ladder_live: sib(store::LADDER_FILE),
+            ladder_dry: sib("ladder-state.dry.json"),
+            ladder_off: sib("ladder-state.off.json"),
+            pnl: sib(store::PNL_FILE),
+            ttl: sib(store::TTL_FILE),
+            decisions: sib(DECISIONS_FILE),
+            notices: sib(NOTICES_FILE),
+            btc_alert: sib(BTC_ALERT_FILE),
+            deploy: sib(DEPLOY_FILE),
+            audit_marker: marker(&sib(AUDIT_FILE)),
+            audit: sib(AUDIT_FILE),
+            regime: sib("regime-state.json"),
+            regime_history: sib("regime-history.json"),
+            froth: sib("froth-state.json"),
+            watch_dir: dir.clone(),
+            research_dir: dir.join("research"),
+            dashboard_dir: dir.join("dashboard"),
+            candles_dir: dir.join("replay").join("cache"),
         }
     }
+
+    /// The paths a run config reads: its single-file overrides count.
+    pub fn from_config(cfg: &crate::run::config::RunConfig) -> Targets {
+        let mut t = Targets::beside(&cfg.journal_path());
+        let per_mode = |mode: &str| {
+            let mut c = cfg.clone();
+            c.trade_mode = mode.into();
+            c.ladder_path()
+        };
+        t.ladder_live = per_mode("live");
+        t.ladder_dry = per_mode("dry");
+        t.ladder_off = per_mode("off");
+        t.pnl = cfg.pnl_path();
+        t.ttl = cfg.ttl_path();
+        t.decisions = cfg.decisions_path();
+        t.notices = cfg.notices_path();
+        t.btc_alert = cfg.btc_alert_path();
+        t.deploy = cfg.deploy_state_path();
+        t.audit = cfg.audit_state_path();
+        t.audit_marker = cfg.audit_marker_path();
+        t.regime = cfg.regime_path();
+        t.regime_history = cfg.regime_history_path();
+        t.froth = cfg.froth_path();
+        t.watch_dir = cfg.state_dir.clone();
+        t.research_dir = cfg.state_dir.join("research");
+        t.candles_dir = cfg.fillodds_cache_path();
+        if let Ok(d) = crate::dashboard::DashConfig::from_run(cfg) {
+            t.dashboard_dir = d.work_dir;
+        } else {
+            t.dashboard_dir = cfg.state_dir.join("dashboard");
+        }
+        t
+    }
+}
+
+fn marker(p: &Path) -> PathBuf {
+    let mut s = p.as_os_str().to_owned();
+    s.push(".last");
+    PathBuf::from(s)
+}
+
+/// What one target receives.
+#[derive(Debug, Clone, PartialEq)]
+pub enum Body {
+    Text(String),
+    /// A daily marker: an empty file whose modification time is the source's.
+    Marker(std::time::SystemTime),
+}
+
+/// One file an import writes.
+#[derive(Debug, Clone, PartialEq)]
+pub struct Step {
+    /// The source file, relative to the source directory.
+    pub source: String,
+    pub target: PathBuf,
+    pub body: Body,
+}
+
+/// A target against what is on disk.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum Status {
+    /// Nothing there yet (or an empty file, or a journal without rows).
+    New,
+    /// Already holds exactly this: re-importing is a no-op.
+    Same,
+    /// Holds something else: replaced only with `--force`.
+    Differs,
+}
+
+impl Step {
+    pub fn status(&self) -> Status {
+        let Ok(meta) = std::fs::metadata(&self.target) else {
+            return Status::New;
+        };
+        match &self.body {
+            Body::Marker(t) => match meta.modified() {
+                Ok(m) if secs(m).abs_diff(secs(*t)) <= 1 => Status::Same,
+                _ => Status::Differs,
+            },
+            Body::Text(text) => {
+                if meta.len() == 0 {
+                    return Status::New;
+                }
+                match std::fs::read_to_string(&self.target) {
+                    Ok(cur) if cur == *text => Status::Same,
+                    // A journal file without a row holds nothing to lose.
+                    Ok(_)
+                        if self.source == JOURNAL_FILE
+                            && store::load_journal(&self.target)
+                                .is_ok_and(|j| j.orders.is_empty()) =>
+                    {
+                        Status::New
+                    }
+                    _ => Status::Differs,
+                }
+            }
+        }
+    }
+}
+
+fn secs(t: std::time::SystemTime) -> u64 {
+    t.duration_since(std::time::UNIX_EPOCH)
+        .map(|d| d.as_secs())
+        .unwrap_or(0)
+}
+
+/// Every file of an import, in write order: the journal last, so a journal on disk
+/// means the rest is there too.
+pub fn plan(imported: &Imported, t: &Targets) -> Vec<Step> {
+    let mut steps = Vec::new();
+    let mut add = |source: &str, target: &Path, body: Body| {
+        steps.push(Step {
+            source: source.to_string(),
+            target: target.to_path_buf(),
+            body,
+        })
+    };
+    let has_archive = std::fs::metadata(&t.archive).is_ok_and(|m| m.len() > 0);
     if !imported.archive.is_empty() || has_archive {
-        store::write_atomic(&apath, &text)?;
+        let mut text = String::new();
+        for o in &imported.archive {
+            text.push_str(&store::archive_line(o));
+            text.push('\n');
+        }
+        add(ARCHIVE_FILE, &t.archive, Body::Text(text));
     }
     if let Some(l) = &imported.ladder {
-        store::save_ladder(&store::sibling(journal_path, store::LADDER_FILE), l)?;
+        add(
+            LADDER_SOURCE,
+            &t.ladder_live,
+            Body::Text(crate::pyfmt::dumps(l, Some(2))),
+        );
     }
     if let Some(p) = &imported.pnl {
-        store::save_pnl(&store::sibling(journal_path, store::PNL_FILE), p)?;
+        add(
+            PNL_SOURCE,
+            &t.pnl,
+            Body::Text(crate::pyfmt::dumps(p, Some(2))),
+        );
     }
-    if let Some(t) = &imported.ttl {
-        store::save_ttl_warned(&store::sibling(journal_path, store::TTL_FILE), t)?;
+    if let Some(x) = &imported.ttl {
+        add(
+            TTL_SOURCE,
+            &t.ttl,
+            Body::Text(crate::pyfmt::dumps(x, Some(2))),
+        );
     }
     if let Some(d) = &imported.decisions {
-        store::write_atomic(&store::sibling(journal_path, DECISIONS_FILE), d)?;
+        add(DECISIONS_FILE, &t.decisions, Body::Text(d.clone()));
     }
     if let Some(n) = &imported.notices {
-        store::write_atomic(
-            &store::sibling(journal_path, NOTICES_FILE),
-            &rungbot_notify::signal_notices::to_json(n),
-        )?;
+        add(
+            NOTICES_FILE,
+            &t.notices,
+            Body::Text(rungbot_notify::signal_notices::to_json(n)),
+        );
     }
     if let Some(b) = &imported.btc_alert {
-        store::write_atomic(
-            &store::sibling(journal_path, BTC_ALERT_FILE),
-            &crate::pyfmt::dumps(b, None),
-        )?;
+        add(
+            BTC_ALERT_FILE,
+            &t.btc_alert,
+            Body::Text(crate::pyfmt::dumps(b, None)),
+        );
     }
     if let Some(d) = &imported.deploy {
-        crate::deploy::save_state(&store::sibling(journal_path, DEPLOY_FILE), d)?;
+        add(
+            DEPLOY_SOURCE,
+            &t.deploy,
+            Body::Text(crate::pyfmt::dumps(d, Some(2))),
+        );
     }
     if let Some(a) = &imported.audit {
-        store::write_atomic(
-            &store::sibling(journal_path, AUDIT_FILE),
-            &crate::pyfmt::dumps(a, Some(1)),
-        )?;
+        add(
+            AUDIT_FILE,
+            &t.audit,
+            Body::Text(crate::pyfmt::dumps(a, Some(1))),
+        );
     }
-    store::save_journal(journal_path, &imported.journal)?;
-    Ok(apath)
+    for x in &imported.extra {
+        add(&x.source, &x.slot.path(t, &x.name), x.body.clone());
+    }
+    add(
+        JOURNAL_FILE,
+        &t.journal,
+        Body::Text(store::journal_text(&imported.journal)),
+    );
+    steps
+}
+
+/// The import as a table: each source file, where it goes and what happens there; then
+/// the source files it leaves out, and why.
+pub fn mapping_lines(imported: &Imported, t: &Targets) -> Vec<String> {
+    let mut out = vec!["mapping (source -> target: status):".to_string()];
+    for s in plan(imported, t) {
+        let st = match s.status() {
+            Status::New => "new",
+            Status::Same => "unchanged",
+            Status::Differs => "differs, replaced only with --force",
+        };
+        out.push(format!("  {} -> {}: {st}", s.source, s.target.display()));
+    }
+    for (name, why) in &imported.skipped {
+        out.push(format!("  {name}: not imported ({why})"));
+    }
+    out.push(
+        "  halt and sell-arm files: not copied; `import-cex DIR --config` carries their paths, \
+         so both runtimes obey the same files"
+            .to_string(),
+    );
+    out
+}
+
+/// Write an import. Refuses, before writing anything, when a target already holds
+/// something else, unless `force`; a target that already holds exactly what the import
+/// would write is left alone, so a second import of the same source is a no-op.
+/// Returns the steps written.
+pub fn write_to(imported: &Imported, t: &Targets, force: bool) -> Result<Vec<Step>, String> {
+    let steps = plan(imported, t);
+    if !force {
+        if let Some(s) = steps.iter().find(|s| s.status() == Status::Differs) {
+            let what = if s.source == JOURNAL_FILE {
+                format!(
+                    "{} already holds {} row(s)",
+                    s.target.display(),
+                    store::load_journal(&s.target).map_or(0, |j| j.orders.len())
+                )
+            } else {
+                format!("{} already exists", s.target.display())
+            };
+            return Err(format!("{what}; pass --force to replace it"));
+        }
+    }
+    let mut written = Vec::new();
+    for s in steps {
+        if s.status() == Status::Same {
+            continue;
+        }
+        match &s.body {
+            Body::Text(text) => store::write_atomic(&s.target, text)?,
+            Body::Marker(t) => {
+                if let Some(p) = s.target.parent().filter(|p| !p.as_os_str().is_empty()) {
+                    std::fs::create_dir_all(p).map_err(|e| format!("{}: {e}", p.display()))?;
+                }
+                let f = std::fs::OpenOptions::new()
+                    .create(true)
+                    .append(true)
+                    .open(&s.target)
+                    .map_err(|e| format!("{}: {e}", s.target.display()))?;
+                f.set_modified(*t)
+                    .map_err(|e| format!("{}: {e}", s.target.display()))?;
+            }
+        }
+        written.push(s);
+    }
+    Ok(written)
+}
+
+/// Write an import to `journal_path`, with every other file beside it (see
+/// [`Targets::beside`]). Returns the archive's path.
+pub fn write(imported: &Imported, journal_path: &Path, force: bool) -> Result<PathBuf, String> {
+    let t = Targets::beside(journal_path);
+    write_to(imported, &t, force)?;
+    Ok(t.archive)
 }
 
 /// The first way `ours` differs from `src`, ignoring null-vs-absent and int-vs-float.

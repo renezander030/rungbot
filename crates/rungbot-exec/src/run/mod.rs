@@ -200,11 +200,17 @@ pub struct Deps<'a> {
     pub err: &'a mut dyn Write,
 }
 
-/// `--dry-run` / `--verbose`.
+/// `--dry-run` / `--verbose`, and the shadow run.
 #[derive(Debug, Clone, Copy, Default)]
 pub struct Flags {
     pub dry_run: bool,
     pub verbose: bool,
+    /// With `dry_run`: run the whole live cycle (reconcile, housekeeping, execution, the
+    /// deploy layer and the audit) through [`crate::shadow::ShadowVenues`], so every
+    /// venue write is simulated and none is sent, and save the state as a live run
+    /// would. The config must point at a scratch copy of the state. Mails and pings are
+    /// printed, never sent.
+    pub shadow: bool,
 }
 
 macro_rules! say {
@@ -469,7 +475,39 @@ pub fn run_locked(cfg: &RunConfig, flags: Flags, deps: &mut Deps) -> Result<i32,
 /// One run, without the lock. Returns the exit code, or an error that stops the run
 /// before anything was decided (an unreadable state file).
 pub fn run_once(cfg: &RunConfig, flags: Flags, deps: &mut Deps) -> Result<i32, String> {
+    // A shadow run writes nothing to a venue, whatever the caller passed in.
+    let shadow =
+        (flags.dry_run && flags.shadow).then(|| crate::shadow::ShadowVenues::new(deps.venues));
+    let venues: &dyn VenueSource = match &shadow {
+        Some(s) => s,
+        None => deps.venues,
+    };
+    let code = run_inner(cfg, flags, venues, deps);
+    if let Some(s) = &shadow {
+        let intents = s.intents();
+        say!(
+            deps.out,
+            "SHADOW: {} venue write(s) simulated, none sent",
+            intents.len()
+        );
+        for i in &intents {
+            say!(deps.out, "{}", i.line());
+        }
+    }
+    code
+}
+
+fn run_inner(
+    cfg: &RunConfig,
+    flags: Flags,
+    venues: &dyn VenueSource,
+    deps: &mut Deps,
+) -> Result<i32, String> {
+    // `preview`: a plain dry run decides and prints, and executes and saves nothing.
+    // `dry_run`: nothing is sent (mails and pings print instead). A shadow run is a dry
+    // run that is not a preview.
     let dry_run = flags.dry_run;
+    let preview = flags.dry_run && !flags.shadow;
     let verbose = flags.verbose || dry_run;
     let mut errors: Vec<String> = Vec::new();
     let t0 = (deps.clock)();
@@ -612,7 +650,7 @@ pub fn run_once(cfg: &RunConfig, flags: Flags, deps: &mut Deps) -> Result<i32, S
 
     // 3. Execution. Never during a --dry-run preview. Only a live run reads the order
     // books; one it cannot read stops the run before an order could be placed twice.
-    let live_run = !dry_run && cfg.trade_mode == "live";
+    let live_run = !preview && cfg.trade_mode == "live";
     let mut stores = if live_run {
         Stores {
             journal: store::load_journal(&cfg.journal_path())?,
@@ -646,7 +684,7 @@ pub fn run_once(cfg: &RunConfig, flags: Flags, deps: &mut Deps) -> Result<i32, S
     } else {
         Persist::none()
     };
-    if !dry_run {
+    if !preview {
         let ctx = ExecCtx {
             now: run_now,
             halted,
@@ -655,7 +693,7 @@ pub fn run_once(cfg: &RunConfig, flags: Flags, deps: &mut Deps) -> Result<i32, S
             policy_on: pol_on,
         };
         let mut io = ExecIo {
-            venues: deps.venues,
+            venues,
             books: Books {
                 journal: &mut stores.journal,
                 ladder: &mut new_state,
@@ -701,11 +739,11 @@ pub fn run_once(cfg: &RunConfig, flags: Flags, deps: &mut Deps) -> Result<i32, S
 
     // 4. The deploy layer and the daily book audit. Not after a failed journal write:
     // the deploy layer places orders.
-    if !dry_run && cfg.trade_mode == "live" && persist.failed().is_none() {
+    if !preview && cfg.trade_mode == "live" && persist.failed().is_none() {
         let mut hctx = HookCtx {
             cfg,
             now: run_now,
-            venues: deps.venues,
+            venues,
             market: deps.market,
             clock: deps.clock,
             sleep: deps.sleep,
@@ -789,7 +827,7 @@ pub fn run_once(cfg: &RunConfig, flags: Flags, deps: &mut Deps) -> Result<i32, S
         sells.len(),
         &cfg.trade_mode,
     );
-    let logged = if dry_run {
+    let logged = if preview {
         Ok(())
     } else {
         decisions::append(&cfg.decisions_path(), &recs, cfg.decisions_max_mb)
@@ -816,7 +854,7 @@ pub fn run_once(cfg: &RunConfig, flags: Flags, deps: &mut Deps) -> Result<i32, S
         cfg.signal_remind_s,
     );
     let (mail_buys, mail_sells, suffix): (Vec<&Signal>, Vec<&Signal>, String) = {
-        let saved = if dry_run {
+        let saved = if preview {
             Ok(())
         } else {
             rungbot_notify::signal_notices::save(&npath, &nstate).map_err(|e| e.to_string())
@@ -886,7 +924,7 @@ pub fn run_once(cfg: &RunConfig, flags: Flags, deps: &mut Deps) -> Result<i32, S
     }
 
     // The BTC level alert: mail only, it never halts or cancels.
-    if let Some((bsubj, btext)) = check_btc_level(cfg, &reg, dry_run, run_now) {
+    if let Some((bsubj, btext)) = check_btc_level(cfg, &reg, preview, run_now) {
         if dry_run {
             say!(
                 deps.out,
@@ -915,7 +953,7 @@ pub fn run_once(cfg: &RunConfig, flags: Flags, deps: &mut Deps) -> Result<i32, S
     }
 
     // 7. Persist the ladder only on a real run with prices; archive the journal daily.
-    if !dry_run && !rows.is_empty() {
+    if !preview && !rows.is_empty() {
         let lpath = cfg.ladder_path();
         if let Err(e) = store::save_ladder(&lpath, &new_state) {
             say!(

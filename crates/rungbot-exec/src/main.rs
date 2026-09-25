@@ -30,7 +30,7 @@ rungbot-exec — opt-in live execution for rungbot.
 It places GTC limit orders from a plan, and reads back what the venues did.
 
 USAGE:
-  rungbot-exec run       [--config FILE] [--dry-run] [--verbose]
+  rungbot-exec run       [--config FILE] [--dry-run [--state-dir DIR]] [--verbose]
   rungbot-exec deploy    status | plan [USD] | tranche USD VENUE [--only A,B]
                          | market SHARE% VENUE SYM | cancel [VENUE]   [--config FILE]
   rungbot-exec churn     [--days N] [--json] [--config FILE]
@@ -44,7 +44,10 @@ USAGE:
   rungbot-exec reconcile
   rungbot-exec cancel    --pair PAIR [--venue V] [--live --i-understand]
   rungbot-exec archive   [--days N]
-  rungbot-exec import-cex DIR [--write [--force]] | --config
+  rungbot-exec shadow-diff REFERENCE.jsonl SHADOW.jsonl [--since TS] [--tolerance PCT]
+                         [--abs-tolerance USD] [--window S] [--rename OLD=NEW,...] [--json]
+  rungbot-exec shadow-diff --list
+  rungbot-exec import-cex DIR [--dry-run | --write [--force]] | --config
   rungbot-exec keys      check [--venue V]
 
 DEPLOY (the monthly-capital layer; the run calls it every cycle with deploy: live):
@@ -70,10 +73,24 @@ READ-ONLY REPORTS (the run config names the journal and state files):
   fillodds           the odds each resting buy rung fills, from the candle cache
   funding            the onramp top-up card: Gate's gap and what Revolut X holds for it
 
+SHADOW-DIFF (the side-by-side check before a cutover; see docs/migrate-from-python.md):
+  compares two decision logs run by run: the lines of each pair of runs by source,
+  kind, coin, side and text, the numbers in the text exactly (rungs, counts) or within
+  --tolerance (amounts and prices in percent, default 2; percentages in points), the
+  signal counts exactly. A difference a known, intentional divergence accounts for is
+  EXPLAINED with its reason (--list prints them); any other is UNEXPLAINED. Runs pair
+  within --window seconds (default 1200); --since skips older runs. Exit 0 clean,
+  1 on an unexplained difference, 2 on an unreadable log.
+
 RUN (the 30-minute cycle; see contrib/rungbot-run.example.yaml):
   --config FILE      the run's one config file (default ~/.config/rungbot/run.yaml,
                      or RUNGBOT_RUN_CONFIG)
   --dry-run          place nothing, save nothing, send nothing; print what it would send
+  --state-dir DIR    with --dry-run: the shadow run. The whole live cycle (reconcile,
+                     housekeeping, orders, the deploy layer, the audit) runs on the
+                     state copied into DIR and saves it there; venue reads are real,
+                     every venue write is simulated and listed, none is sent, and no
+                     mail or ping goes out. DIR must not be the config's state dir
   --verbose          print every coin, the new rungs and every result (implied by
                      --dry-run)
 
@@ -92,9 +109,12 @@ OPTIONS:
   --config FILE      the run config whose journal and lock to use (default as for run)
   --pair PAIR        limit status/cancel to one pair
   --days N           archive finished cancels older than N days (default 30)
-  --write            import-cex: write the journal and the run state (ladder state,
-                     P&L ledger, stale-order flags) beside it (default: a dry run)
-  --force            import-cex: replace a journal that already holds rows
+  --write            import-cex: write the journal and every other state file where the
+                     run config reads it (default: a dry run that prints the mapping)
+  --dry-run          import-cex: print the mapping, write nothing (the default)
+  --force            import-cex: replace targets that hold something else. A target
+                     that already holds exactly what the import writes is left alone,
+                     so importing the same source twice is a no-op
   --config           import-cex: print the run config the bot in DIR runs with (its
                      module defaults and its cron wrapper's exports) as YAML, and
                      write nothing. It holds personal values: keep it out of any repo
@@ -157,6 +177,12 @@ impl Args {
                         | "max-daily"
                         | "max-orders"
                         | "max-slippage"
+                        | "state-dir"
+                        | "since"
+                        | "tolerance"
+                        | "abs-tolerance"
+                        | "window"
+                        | "rename"
                 );
             let value = if takes {
                 it.next()
@@ -358,6 +384,7 @@ fn main() -> ExitCode {
 
     let r = match args.cmd.as_str() {
         "run" => return cmd_run(&args),
+        "shadow-diff" => return cmd_shadow_diff(&argv),
         "deploy" | "churn" | "fillodds" | "funding" => cmd_layer(&argv),
         "snapshot" => return cmd_snapshot(&argv),
         "status" => cmd_status(&args),
@@ -384,13 +411,24 @@ fn main() -> ExitCode {
 fn cmd_run(args: &Args) -> ExitCode {
     use rungbot_exec::run::{self, config::RunConfig, hooks, market::PublicMarket};
     let (path, _) = run_config_path(args);
-    let cfg = match RunConfig::load(&path) {
+    let mut cfg = match RunConfig::load(&path) {
         Ok(c) => c,
         Err(e) => {
             eprintln!("{e}");
             return ExitCode::from(1);
         }
     };
+    let shadow = args.get("state-dir").map(PathBuf::from);
+    if let Some(dir) = &shadow {
+        if let Err(e) = shadow_config(&mut cfg, dir, args.has("dry-run")) {
+            eprintln!("{e}");
+            return ExitCode::from(1);
+        }
+        println!(
+            "SHADOW run on {}: every venue write is simulated, nothing is sent",
+            dir.display()
+        );
+    }
     let notifier = serde_json::from_value::<rungbot_notify::Notifier>(if cfg.notify.is_null() {
         serde_json::json!({})
     } else {
@@ -425,6 +463,7 @@ fn cmd_run(args: &Args) -> ExitCode {
     let flags = run::Flags {
         dry_run: args.has("dry-run"),
         verbose: args.has("verbose"),
+        shadow: shadow.is_some(),
     };
     match run::run_locked(&cfg, flags, &mut deps) {
         Ok(0) => ExitCode::SUCCESS,
@@ -434,6 +473,124 @@ fn cmd_run(args: &Args) -> ExitCode {
             ExitCode::from(1)
         }
     }
+}
+
+/// `shadow-diff REFERENCE.jsonl SHADOW.jsonl`: exit 0 when every difference is
+/// explained, 1 when one is not, 2 when the logs cannot be read or the call is wrong.
+fn cmd_shadow_diff(argv: &[String]) -> ExitCode {
+    use rungbot_exec::shadow::diff;
+    let usage = "usage: rungbot-exec shadow-diff REFERENCE.jsonl SHADOW.jsonl [--since TS] \
+                 [--tolerance PCT] [--abs-tolerance USD] [--window S] [--rename OLD=NEW,...] \
+                 [--json] | --list";
+    let fail = |e: String| {
+        eprintln!("{e}");
+        ExitCode::from(2)
+    };
+    let mut files = Vec::new();
+    let mut opts = diff::Options::default();
+    let (mut json, mut list) = (false, false);
+    let mut it = argv.iter().skip(1);
+    while let Some(a) = it.next() {
+        let num = |v: Option<&String>, f: &str| -> Result<f64, String> {
+            let v = v.ok_or_else(|| format!("{f} needs a value"))?;
+            rungbot_exec::deploy::cli::parse_num(v, f)
+        };
+        let r: Result<(), String> = match a.as_str() {
+            "--json" => {
+                json = true;
+                Ok(())
+            }
+            "--list" => {
+                list = true;
+                Ok(())
+            }
+            "--since" => num(it.next(), a).map(|v| opts.since = Some(v)),
+            "--tolerance" => num(it.next(), a).map(|v| opts.tolerance.pct = v),
+            "--abs-tolerance" => num(it.next(), a).map(|v| opts.tolerance.abs = v),
+            "--window" => num(it.next(), a).map(|v| opts.tolerance.window_s = v),
+            "--rename" => match it.next() {
+                Some(v) => diff::parse_rename(v).map(|mut r| opts.rename.append(&mut r)),
+                None => Err("--rename needs a value".into()),
+            },
+            f if f.starts_with("--") => Err(format!("unknown flag {f}\n{usage}")),
+            f => {
+                files.push(f.to_string());
+                Ok(())
+            }
+        };
+        if let Err(e) = r {
+            return fail(e);
+        }
+    }
+    if list {
+        for l in diff::known_lines() {
+            println!("{l}");
+        }
+        return ExitCode::SUCCESS;
+    }
+    let [reference, ours] = files.as_slice() else {
+        return fail(usage.into());
+    };
+    let read = |p: &str| std::fs::read_to_string(p).map_err(|e| format!("{p}: {e}"));
+    let report = match read(reference)
+        .and_then(|a| read(ours).map(|b| (a, b)))
+        .and_then(|(a, b)| diff::compare(&a, &b, &opts))
+    {
+        Ok(r) => r,
+        Err(e) => return fail(e),
+    };
+    if json {
+        println!("{}", report.to_json());
+    } else {
+        for l in report.lines() {
+            println!("{l}");
+        }
+    }
+    if report.unexplained() > 0 {
+        ExitCode::from(1)
+    } else {
+        ExitCode::SUCCESS
+    }
+}
+
+/// `run --dry-run --state-dir DIR`: the shadow run. Every state file moves into `DIR`
+/// (a scratch copy the caller made), which must not be where the config keeps the real
+/// state, and the two environment overrides that could name a real file are dropped.
+fn shadow_config(
+    cfg: &mut rungbot_exec::run::config::RunConfig,
+    dir: &Path,
+    dry_run: bool,
+) -> Result<(), String> {
+    if !dry_run {
+        return Err("--state-dir runs a shadow and needs --dry-run".into());
+    }
+    if !dir.is_dir() {
+        return Err(format!("--state-dir {}: not a directory", dir.display()));
+    }
+    let canon = |p: &Path| std::fs::canonicalize(p).unwrap_or_else(|_| p.to_path_buf());
+    let scratch = canon(dir);
+    let real = [
+        cfg.journal_path(),
+        cfg.ladder_path(),
+        cfg.deploy_state_path(),
+        cfg.decisions_path(),
+    ];
+    for p in real {
+        let parent = p.parent().map(canon).unwrap_or_default();
+        if parent == scratch {
+            return Err(format!(
+                "--state-dir {} holds the config's own state ({}); copy it to a scratch \
+                 directory and point --state-dir there",
+                dir.display(),
+                p.display()
+            ));
+        }
+    }
+    cfg.rebase(&scratch);
+    for k in ["RUNGBOT_ORDER_ARCHIVE", "RUNGBOT_LOCK"] {
+        std::env::remove_var(k);
+    }
+    Ok(())
 }
 
 /// One dashboard cycle: `data.json`, `scenarios.json`, `wallets.json`, then the deploy.
@@ -1242,9 +1399,9 @@ fn cmd_archive(args: &Args) -> Result<(), String> {
 }
 
 fn cmd_import(args: &Args) -> Result<(), String> {
-    let dir = args
-        .get("sub")
-        .ok_or_else(|| "usage: rungbot-exec import-cex DIR [--write [--force]]".to_string())?;
+    let dir = args.get("sub").ok_or_else(|| {
+        "usage: rungbot-exec import-cex DIR [--dry-run | --write [--force]] | --config".to_string()
+    })?;
     if args.has("config") {
         print!(
             "{}",
@@ -1252,16 +1409,23 @@ fn cmd_import(args: &Args) -> Result<(), String> {
         );
         return Ok(());
     }
+    if args.has("dry-run") && args.has("write") {
+        return Err("import-cex: --dry-run and --write exclude each other".into());
+    }
     let imported = import::read_dir(Path::new(dir))?;
     for line in imported.report.lines() {
         println!("{line}");
     }
     let t = target(args)?;
-    let jpath = t.journal.clone();
+    let targets = import_targets(args, &t.journal)?;
+    println!();
+    for line in import::mapping_lines(&imported, &targets) {
+        println!("{line}");
+    }
     if !args.has("write") {
         println!(
             "\ndry run: nothing written. Add --write to write {}",
-            jpath.display()
+            t.journal.display()
         );
         return Ok(());
     }
@@ -1271,29 +1435,28 @@ fn cmd_import(args: &Args) -> Result<(), String> {
         );
     }
     let _lock = lock_journal(&t.lock, "rungbot-exec import-cex")?;
-    let apath = import::write(&imported, &jpath, args.has("force"))?;
-    println!(
-        "\nwrote {} ({} rows) and {} ({} rows)",
-        jpath.display(),
-        imported.journal.orders.len(),
-        apath.display(),
-        imported.archive.len()
-    );
-    for (name, present) in [
-        (store::LADDER_FILE, imported.ladder.is_some()),
-        (store::PNL_FILE, imported.pnl.is_some()),
-        (store::TTL_FILE, imported.ttl.is_some()),
-        (import::DECISIONS_FILE, imported.decisions.is_some()),
-        (import::NOTICES_FILE, imported.notices.is_some()),
-        (import::BTC_ALERT_FILE, imported.btc_alert.is_some()),
-        (import::DEPLOY_FILE, imported.deploy.is_some()),
-        (import::AUDIT_FILE, imported.audit.is_some()),
-    ] {
-        if present {
-            println!("wrote {}", store::sibling(&jpath, name).display());
-        }
+    let written = import::write_to(&imported, &targets, args.has("force"))?;
+    println!();
+    if written.is_empty() {
+        println!("nothing to write: every target already holds what the import would write");
+    }
+    for s in &written {
+        println!("wrote {}", s.target.display());
     }
     Ok(())
+}
+
+/// Where `import-cex` writes: the run config's paths when the journal is its journal,
+/// else every file beside the journal.
+fn import_targets(args: &Args, journal: &Path) -> Result<import::Targets, String> {
+    let (cpath, named) = run_config_path(args);
+    if named || cpath.is_file() {
+        let cfg = rungbot_exec::run::config::RunConfig::load(&cpath)?;
+        if cfg.journal_path() == journal {
+            return Ok(import::Targets::from_config(&cfg));
+        }
+    }
+    Ok(import::Targets::beside(journal))
 }
 
 #[cfg(test)]

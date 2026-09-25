@@ -18,6 +18,27 @@ systemctl --user enable --now rungbot-watch-regime.timer rungbot-watch-btc.timer
 | `daily` (froth, then zone) | daily, 05:20 UTC |
 | `rungbot-run` (`rungbot-exec run`) | every 30 minutes |
 | `rungbot-snapshot` (`rungbot-exec snapshot`) | every 5 minutes, at :02, :07, ... |
+| `rungbot-research-report` (`rungbot research report`) | Sundays, 07:00 |
+| `rungbot-backtest-monthly` (`rungbot backtest monthly --notify`) | the 20th, 04:00 UTC |
+
+The trading run already checks the regime label and the BTC level every cycle and
+mails on its own; `rungbot-watch-regime` and `rungbot-watch-btc` are for a setup that
+runs the keyless ladder alone. Enable one or the other, not both, or the alerts arrive
+twice.
+
+## One unit per job of a Python bot
+
+Moving from the Python bot these units replace (see `docs/migrate-from-python.md`),
+each of its timers has one counterpart here, on the same schedule:
+
+| Old job | Unit here |
+|---|---|
+| the 30-minute alert-and-trade run | `rungbot-run` |
+| the daily froth watch, then the zone watch | `rungbot-watch-daily` |
+| the daily live-vs-backtest divergence check | `rungbot-watch-divergence` |
+| the weekly opportunity-scan report | `rungbot-research-report` |
+| the monthly calibration backtest and its mail | `rungbot-backtest-monthly` |
+| the dashboard collector and deploy | `rungbot-snapshot` |
 
 The trading run reads `~/.config/rungbot/run.yaml`; start from
 `../rungbot-run.example.yaml`, which lists every knob with its default. Try it with

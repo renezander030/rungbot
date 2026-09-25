@@ -59,6 +59,10 @@ The window, sweep and monthly runs read the config's coins and ladder. The start
 ENVIRONMENT:
   RUNGBOT_BT_DAYS, RUNGBOT_BT_WINDOWS, RUNGBOT_BT_BAG, RUNGBOT_MAX_ORDER_USD,
   RUNGBOT_DRIFT_BAND_PCT, RUNGBOT_BT_PERCOIN=0, RUNGBOT_BT_PERCOIN_MIN_GAIN
+  DRY_RUN=1          monthly: print the verdict mail instead of sending it
+
+The monthly verdict goes out with --notify: by email (Resend, text only) when the
+config's notify block has one, and to its webhook and Telegram chat when set.
 ";
 
 fn other(e: impl std::fmt::Display) -> Failure {
@@ -323,7 +327,9 @@ fn cmd_monthly(args: &Args, cfg: &CliConfig) -> Result<(), Failure> {
         });
         write(&path, exp)?;
     }
-    if args.has("dry-run") || !args.has("notify") {
+    // `DRY_RUN=1` is the reference's own switch for the same preview.
+    let dry_env = std::env::var("DRY_RUN").as_deref() == Ok("1");
+    if args.has("dry-run") || dry_env || !args.has("notify") {
         print!("{}", report.dry_run_text());
         return Ok(());
     }
@@ -350,15 +356,29 @@ fn cmd_monthly(args: &Args, cfg: &CliConfig) -> Result<(), Failure> {
     }
     if sent {
         println!(
-            "Sent monthly backtest verdict across {}/{} windows.",
-            report.windows_ok,
-            opts.windows.len()
+            "{}",
+            monthly_sent_line(report.windows_ok, opts.windows.len())
         );
         Ok(())
     } else {
         Err(Failure::Other(
-            "Failed to send monthly backtest verdict.".into(),
+            monthly_failed_line(!cfg.notify.is_configured()).into(),
         ))
+    }
+}
+
+/// The line after the verdict went out, as the reference printed it.
+fn monthly_sent_line(ok: usize, windows: usize) -> String {
+    format!("Sent monthly backtest verdict across {ok}/{windows} windows.")
+}
+
+/// The line when nothing went out. With only the mail configured it is the
+/// reference's own; with a webhook or Telegram chat too it names the verdict.
+fn monthly_failed_line(email_only: bool) -> &'static str {
+    if email_only {
+        "Failed to send monthly backtest email."
+    } else {
+        "Failed to send monthly backtest verdict."
     }
 }
 
@@ -888,5 +908,66 @@ mod tests {
     #[test]
     fn the_utc_minute_matches_the_reference_stamp() {
         assert_eq!(utc_minute(1_788_000_000), "2026-08-29 10:40 UTC");
+    }
+
+    /// The monthly verdict mail, against the reference's own request (frozen from its
+    /// sender on synthetic addresses and key): the same Resend URL, method, timeout,
+    /// auth and content type, and the JSON body byte for byte, for every monthly case.
+    /// The subject and body are the reference's (its dry-run text); that this runtime
+    /// builds the same text is `rungbot-backtest`'s monthly golden.
+    #[test]
+    fn the_monthly_mail_is_the_reference_request_byte_for_byte() {
+        let p =
+            std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("tests/golden/monthly_mail.json");
+        let Ok(text) = std::fs::read_to_string(&p) else {
+            return; // not shipped in the published crate
+        };
+        let g: serde_json::Value = serde_json::from_str(&text).unwrap();
+        let s = |v: &serde_json::Value| v.as_str().unwrap().to_string();
+        let email = rungbot_notify::EmailConfig::new(s(&g["from"]), s(&g["to"]));
+        for c in g["cases"].as_array().unwrap() {
+            let msg = rungbot_notify::EmailMessage::text(s(&c["subject"]), s(&c["body"]));
+            let req = email.request(&msg, &s(&g["key"]));
+            let want = &c["request"];
+            let name = s(&c["name"]);
+            assert_eq!(req.url, s(&want["url"]), "{name}");
+            assert_eq!(req.body, s(&want["body"]), "{name}: body");
+            assert_eq!(req.timeout_s, want["timeout_s"].as_u64().unwrap(), "{name}");
+            let h = |k: &str| {
+                req.headers
+                    .iter()
+                    .find(|(n, _)| n.eq_ignore_ascii_case(k))
+                    .map(|(_, v)| v.clone())
+            };
+            assert_eq!(h("authorization"), Some(s(&want["authorization"])));
+            assert_eq!(h("content-type"), Some(s(&want["content_type"])));
+            assert!(h("user-agent").is_some_and(|u| !u.is_empty()));
+            assert_eq!(req.headers.len(), 3, "{name}: {:?}", req.headers);
+            // The script mails text only, and the preview prints what it would send.
+            assert!(!req.body.contains("\"html\""));
+            let report = rungbot_backtest::monthly::MonthlyReport {
+                subject: s(&c["subject"]),
+                body: s(&c["body"]),
+                expectation: None,
+                windows_ok: 0,
+            };
+            assert_eq!(
+                report.dry_run_text(),
+                format!(
+                    "--- Would send ---\nSubject: {}\n\n{}\n",
+                    s(&c["subject"]),
+                    s(&c["body"])
+                )
+            );
+        }
+        let n = g["windows"].as_array().unwrap().len();
+        let sent = &g["script"]["sent"];
+        assert_eq!(format!("{}\n", monthly_sent_line(0, n)), s(&sent["stdout"]));
+        let failed = &g["script"]["failed"];
+        assert_eq!(
+            format!("{}\n", monthly_failed_line(true)),
+            s(&failed["stderr"])
+        );
+        assert_eq!(failed["rc"], 1);
     }
 }
