@@ -366,6 +366,10 @@ impl Venue for Binance {
         self.round_qty(symbol, amount)
     }
 
+    fn qty_step(&self, symbol: &str) -> Result<f64, VenueError> {
+        Ok(self.filters(symbol)?.step)
+    }
+
     /// `floor(price / tick) * tick`, or `price` for a zero tick.
     fn round_price(&self, symbol: &str, price: f64) -> Result<f64, VenueError> {
         let tick = self.filters(symbol)?.tick;

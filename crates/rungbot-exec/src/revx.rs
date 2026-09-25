@@ -627,6 +627,15 @@ impl Venue for Revx {
         })
     }
 
+    fn qty_step(&self, pair: &str) -> Result<f64, VenueError> {
+        let p = self.pair_info(pair)?;
+        Ok(if p.base_step != 0.0 {
+            p.base_step
+        } else {
+            crate::venue::step_from_precision(p.amount_precision)
+        })
+    }
+
     /// `floor(x / step) * step`, or `x` unchanged for a zero step.
     fn round_amount(&self, pair: &str, amount: f64) -> Result<f64, VenueError> {
         let step = self.pair_info(pair)?.base_step;

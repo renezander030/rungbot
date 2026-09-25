@@ -1,0 +1,227 @@
+{
+ "routing": [
+  [
+   "AAA",
+   "revx",
+   "AAA/USD",
+   "USD"
+  ],
+  [
+   "BBB",
+   "revx",
+   "BBB/USD",
+   "USD"
+  ],
+  [
+   "CCC",
+   "gate",
+   "CCC_USDT",
+   "USDT"
+  ],
+  [
+   "DDD",
+   "gate",
+   "DDD_USDT",
+   "USDT"
+  ],
+  [
+   "EEE",
+   "binance",
+   "EEEUSDC",
+   "USDC"
+  ]
+ ],
+ "alloc": {
+  "AAA": 40,
+  "BBB": 20,
+  "CCC": 30,
+  "DDD": 10
+ },
+ "cases": [
+  {
+   "rx_stable": 1000.0,
+   "gate_stable": 200.0,
+   "usdc_free": 0.0,
+   "card": {
+    "gate_stable": 200.0,
+    "gate_target": 480.0,
+    "gate_share_pct": 40.0,
+    "gate_gap": 280.0,
+    "revx_stable": 1000.0,
+    "deposit_headroom": 0.0,
+    "reserved_on_revx": 280.0,
+    "revx_sendable": 0.0,
+    "in_flight": true,
+    "due": false,
+    "send_now": 0.0,
+    "revx_usdc_free": 0.0
+   },
+   "rx_balances": {
+    "USD": {
+     "free": 500.0,
+     "locked": 250.0
+    },
+    "USDC": {
+     "free": 250.0,
+     "locked": 0.0
+    }
+   },
+   "gate_balances": {
+    "USDT": {
+     "free": 100.0,
+     "locked": 100.0
+    }
+   },
+   "revx_stable_from": 1000.0,
+   "gate_stable_from": 200.0
+  },
+  {
+   "rx_stable": 1000.0,
+   "gate_stable": 200.0,
+   "usdc_free": 300.0,
+   "card": {
+    "gate_stable": 200.0,
+    "gate_target": 480.0,
+    "gate_share_pct": 40.0,
+    "gate_gap": 280.0,
+    "revx_stable": 1000.0,
+    "deposit_headroom": 0.0,
+    "reserved_on_revx": 280.0,
+    "revx_sendable": 300.0,
+    "in_flight": false,
+    "due": true,
+    "send_now": 280.0,
+    "revx_usdc_free": 300.0
+   },
+   "rx_balances": {
+    "USD": {
+     "free": 500.0,
+     "locked": 250.0
+    },
+    "USDC": {
+     "free": 250.0,
+     "locked": 0.0
+    }
+   },
+   "gate_balances": {
+    "USDT": {
+     "free": 100.0,
+     "locked": 100.0
+    }
+   },
+   "revx_stable_from": 1000.0,
+   "gate_stable_from": 200.0
+  },
+  {
+   "rx_stable": 500.0,
+   "gate_stable": 400.0,
+   "usdc_free": 10.0,
+   "card": {
+    "gate_stable": 400.0,
+    "gate_target": 360.0,
+    "gate_share_pct": 40.0,
+    "gate_gap": -40.0,
+    "revx_stable": 500.0,
+    "deposit_headroom": 225.0,
+    "reserved_on_revx": 0.0,
+    "revx_sendable": 10.0,
+    "in_flight": false,
+    "due": false,
+    "send_now": 0.0,
+    "revx_usdc_free": 10.0
+   },
+   "rx_balances": {
+    "USD": {
+     "free": 250.0,
+     "locked": 125.0
+    },
+    "USDC": {
+     "free": 125.0,
+     "locked": 0.0
+    }
+   },
+   "gate_balances": {
+    "USDT": {
+     "free": 200.0,
+     "locked": 200.0
+    }
+   },
+   "revx_stable_from": 500.0,
+   "gate_stable_from": 400.0
+  },
+  {
+   "rx_stable": 0.0,
+   "gate_stable": 0.0,
+   "usdc_free": 0.0,
+   "card": {
+    "gate_stable": 0.0,
+    "gate_target": 0.0,
+    "gate_share_pct": 40.0,
+    "gate_gap": 0.0,
+    "revx_stable": 0.0,
+    "deposit_headroom": 125.0,
+    "reserved_on_revx": 0.0,
+    "revx_sendable": 0.0,
+    "in_flight": false,
+    "due": false,
+    "send_now": 0.0,
+    "revx_usdc_free": 0.0
+   },
+   "rx_balances": {
+    "USD": {
+     "free": 0.0,
+     "locked": 0.0
+    },
+    "USDC": {
+     "free": 0.0,
+     "locked": 0.0
+    }
+   },
+   "gate_balances": {
+    "USDT": {
+     "free": 0.0,
+     "locked": 0.0
+    }
+   },
+   "revx_stable_from": 0.0,
+   "gate_stable_from": 0.0
+  },
+  {
+   "rx_stable": 900.0,
+   "gate_stable": 350.0,
+   "usdc_free": 80.0,
+   "card": {
+    "gate_stable": 350.0,
+    "gate_target": 500.0,
+    "gate_share_pct": 40.0,
+    "gate_gap": 150.0,
+    "revx_stable": 900.0,
+    "deposit_headroom": 0.0,
+    "reserved_on_revx": 150.0,
+    "revx_sendable": 80.0,
+    "in_flight": false,
+    "due": true,
+    "send_now": 80.0,
+    "revx_usdc_free": 80.0
+   },
+   "rx_balances": {
+    "USD": {
+     "free": 450.0,
+     "locked": 225.0
+    },
+    "USDC": {
+     "free": 225.0,
+     "locked": 0.0
+    }
+   },
+   "gate_balances": {
+    "USDT": {
+     "free": 175.0,
+     "locked": 175.0
+    }
+   },
+   "revx_stable_from": 900.0,
+   "gate_stable_from": 350.0
+  }
+ ]
+}

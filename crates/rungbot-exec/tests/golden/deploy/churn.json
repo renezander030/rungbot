@@ -1,0 +1,208 @@
+{
+ "rows": [
+  {
+   "client_id": "a",
+   "sym": "AAA",
+   "exch": "revx",
+   "kind": "deploy_buy",
+   "rung": 1,
+   "ts": 1799928000.0,
+   "status": "canceled",
+   "note": "rolled into new tranche"
+  },
+  {
+   "client_id": "b",
+   "sym": "AAA",
+   "exch": "revx",
+   "kind": "deploy_buy",
+   "rung": 1,
+   "ts": 1799946000.0,
+   "status": "canceled",
+   "note": "rolled into new tranche"
+  },
+  {
+   "client_id": "c",
+   "sym": "AAA",
+   "exch": "revx",
+   "kind": "deploy_buy",
+   "rung": 1,
+   "ts": 1799982000.0,
+   "status": "open",
+   "note": "-5%"
+  },
+  {
+   "client_id": "d",
+   "sym": "AAA",
+   "exch": "revx",
+   "kind": "deploy_buy",
+   "rung": 2,
+   "ts": 1799928000.0,
+   "status": "cancelled",
+   "note": "rolled into new tranche"
+  },
+  {
+   "client_id": "e",
+   "sym": "AAA",
+   "exch": "revx",
+   "kind": "deploy_buy",
+   "rung": 2,
+   "ts": 1799946300.0,
+   "status": "filled",
+   "note": "-5%",
+   "filled_ts": 1799991000.0
+  },
+  {
+   "client_id": "f",
+   "sym": "BBB",
+   "exch": "revx",
+   "kind": "deploy_buy",
+   "rung": 1,
+   "ts": 1798963200.0,
+   "status": "canceled",
+   "note": "rolled into new tranche"
+  },
+  {
+   "client_id": "g",
+   "sym": "BBB",
+   "exch": "revx",
+   "kind": "deploy_buy",
+   "rung": 1,
+   "ts": 1799049600.0,
+   "status": "open",
+   "note": "-5%"
+  },
+  {
+   "client_id": "h",
+   "sym": "CCC",
+   "exch": "gate",
+   "kind": "deploy_buy",
+   "rung": 1,
+   "ts": 1799994600.0,
+   "status": "canceled",
+   "note": "rolled into new tranche"
+  },
+  {
+   "client_id": "i",
+   "sym": "CCC",
+   "exch": "gate",
+   "kind": "deploy_buy",
+   "rung": 1,
+   "ts": 1799996400.0,
+   "status": "open",
+   "note": "-5%"
+  },
+  {
+   "client_id": "j",
+   "sym": "CCC",
+   "exch": "gate",
+   "kind": "deploy_buy",
+   "rung": 2,
+   "ts": 1799994600.0,
+   "status": "canceled",
+   "note": "manual --cancel"
+  },
+  {
+   "client_id": "k",
+   "sym": "CCC",
+   "exch": "gate",
+   "kind": "deploy_buy",
+   "rung": 2,
+   "ts": 1799998200.0,
+   "status": "filled",
+   "note": "-5%",
+   "status_ts": 1799998200.0
+  },
+  {
+   "client_id": "l",
+   "sym": "DDD",
+   "exch": "revx",
+   "kind": "deploy_buy",
+   "rung": 0,
+   "ts": 1799998200.0,
+   "status": "new",
+   "note": "-5%"
+  },
+  {
+   "client_id": "m",
+   "sym": "DDD",
+   "exch": "revx",
+   "kind": "deploy_buy",
+   "rung": 1,
+   "ts": 0,
+   "status": "canceled",
+   "note": "rolled into new tranche"
+  }
+ ],
+ "now": 1800000000.0,
+ "cases": [
+  {
+   "days": 7,
+   "metrics": {
+    "window_days": 7,
+    "roll_events": 3,
+    "roll_events_24h": 3,
+    "rungs_rolled": 4,
+    "rungs_placed": 9,
+    "fills": 2,
+    "cancels_per_fill": 2.0,
+    "rung_lifetime_h_median": 5.0,
+    "rung_lifetime_h_p25": 5.0,
+    "last_roll_ts": 1799996400.0,
+    "last_roll_exch": "gate"
+   },
+   "summary": "CHURN 7d: 3 rolls (4 rungs) / 2 fills, 2.0 cancels per fill, rung life median 5.0h; 3 rolls in 24h"
+  },
+  {
+   "days": 28,
+   "metrics": {
+    "window_days": 28,
+    "roll_events": 4,
+    "roll_events_24h": 3,
+    "rungs_rolled": 5,
+    "rungs_placed": 11,
+    "fills": 2,
+    "cancels_per_fill": 2.5,
+    "rung_lifetime_h_median": 5.1,
+    "rung_lifetime_h_p25": 5.0,
+    "last_roll_ts": 1799996400.0,
+    "last_roll_exch": "gate"
+   },
+   "summary": "CHURN 28d: 4 rolls (5 rungs) / 2 fills, 2.5 cancels per fill, rung life median 5.1h; 3 rolls in 24h"
+  },
+  {
+   "days": 1,
+   "metrics": {
+    "window_days": 1,
+    "roll_events": 3,
+    "roll_events_24h": 3,
+    "rungs_rolled": 4,
+    "rungs_placed": 9,
+    "fills": 2,
+    "cancels_per_fill": 2.0,
+    "rung_lifetime_h_median": 5.0,
+    "rung_lifetime_h_p25": 5.0,
+    "last_roll_ts": 1799996400.0,
+    "last_roll_exch": "gate"
+   },
+   "summary": "CHURN 1d: 3 rolls (4 rungs) / 2 fills, 2.0 cancels per fill, rung life median 5.0h; 3 rolls in 24h"
+  },
+  {
+   "days": 7,
+   "rows": [],
+   "metrics": {
+    "window_days": 7,
+    "roll_events": 0,
+    "roll_events_24h": 0,
+    "rungs_rolled": 0,
+    "rungs_placed": 0,
+    "fills": 0,
+    "cancels_per_fill": null,
+    "rung_lifetime_h_median": null,
+    "rung_lifetime_h_p25": null,
+    "last_roll_ts": null,
+    "last_roll_exch": null
+   },
+   "summary": "CHURN 7d: 0 rolls (0 rungs) / 0 fills; 0 rolls in 24h"
+  }
+ ]
+}

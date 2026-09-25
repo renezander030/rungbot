@@ -1,0 +1,512 @@
+{
+ "name": "inflight_accumulate_and_backstop",
+ "about": "a second departure while a top-up is in flight adds to the marker; the marker clears on the 48h backstop when Gate shows nothing; a binance deposit ladders with an equal split and says the allocation names no binance coin",
+ "config": {
+  "routing": [
+   [
+    "AAA",
+    "revx",
+    "AAA/USD",
+    "USD"
+   ],
+   [
+    "BBB",
+    "revx",
+    "BBB/USD",
+    "USD"
+   ],
+   [
+    "CCC",
+    "gate",
+    "CCC_USDT",
+    "USDT"
+   ],
+   [
+    "DDD",
+    "gate",
+    "DDD_USDT",
+    "USDT"
+   ],
+   [
+    "EEE",
+    "binance",
+    "EEEUSDC",
+    "USDC"
+   ]
+  ],
+  "revx_pairs": [
+   [
+    "AAA",
+    "AAA/USD"
+   ],
+   [
+    "BBB",
+    "BBB/USD"
+   ],
+   [
+    "FFF",
+    "FFF/USD"
+   ]
+  ],
+  "alloc": {
+   "AAA": 40,
+   "BBB": 20,
+   "CCC": 30,
+   "DDD": 10
+  }
+ },
+ "initial": {
+  "journal": {},
+  "venues": {
+   "revx": {
+    "prices": {
+     "AAA/USD": 10.0,
+     "BBB/USD": 2.5,
+     "FFF/USD": 1.0,
+     "USDC/USD": 1.0,
+     "USDC/EUR": 0.9
+    },
+    "info": {
+     "AAA/USD": {
+      "min_base": 0.01,
+      "min_quote": 5.0,
+      "step": 0.01,
+      "tick": 0.001
+     },
+     "BBB/USD": {
+      "min_base": 0.1,
+      "min_quote": 5.0,
+      "step": 0.1,
+      "tick": 0.0001
+     },
+     "FFF/USD": {
+      "min_base": 1.0,
+      "min_quote": 5.0,
+      "step": 1.0,
+      "tick": 0.0001
+     },
+     "USDC/USD": {
+      "min_base": 1.0,
+      "min_quote": 1.0,
+      "step": 0.01,
+      "tick": 0.0001
+     },
+     "USDC/EUR": {
+      "min_base": 1.0,
+      "min_quote": 1.0,
+      "step": 0.01,
+      "tick": 0.0001
+     }
+    },
+    "balances": {
+     "USD": {
+      "free": 300.0,
+      "locked": 0.0
+     },
+     "USDC": {
+      "free": 100.0,
+      "locked": 0.0
+     }
+    }
+   },
+   "gate": {
+    "prices": {
+     "CCC_USDT": 4.0,
+     "DDD_USDT": 0.5,
+     "USDC_USDT": 1.0
+    },
+    "info": {
+     "CCC_USDT": {
+      "min_base": 0.1,
+      "min_quote": 3.0,
+      "prec": 2,
+      "tick": 0.0001
+     },
+     "DDD_USDT": {
+      "min_base": 1.0,
+      "min_quote": 3.0,
+      "prec": 1,
+      "tick": 1e-05
+     },
+     "USDC_USDT": {
+      "min_base": 1.0,
+      "min_quote": 1.0,
+      "prec": 2,
+      "tick": 0.0001
+     }
+    },
+    "balances": {
+     "USDT": {
+      "free": 100.0,
+      "locked": 0.0
+     }
+    },
+    "deposits": null
+   },
+   "binance": {
+    "prices": {
+     "EEEUSDC": 20.0
+    },
+    "info": {
+     "EEEUSDC": {
+      "min_base": 0.001,
+      "min_quote": 5.0,
+      "step": 0.001,
+      "tick": 0.01
+     }
+    },
+    "balances": {
+     "USDC": {
+      "free": 50.0,
+      "locked": 0.0
+     }
+    }
+   }
+  },
+  "regime": {
+   "market": "chop",
+   "coins": {
+    "AAA": {
+     "running": true
+    },
+    "BBB": {
+     "running": false
+    }
+   }
+  },
+  "closes": {
+   "revx|AAA/USD": [
+    9.5,
+    9.5,
+    9.5,
+    9.5,
+    9.5,
+    9.3,
+    9.3,
+    9.3,
+    9.3,
+    9.3,
+    9.3,
+    9.3,
+    9.3,
+    9.3,
+    9.3,
+    9.3,
+    9.3,
+    9.3,
+    9.3,
+    9.3,
+    9.3,
+    9.3,
+    9.3,
+    9.3,
+    9.3,
+    9.3,
+    9.3,
+    9.3,
+    9.3,
+    9.3,
+    9.3,
+    9.3,
+    9.3,
+    9.3,
+    8.5
+   ],
+   "revx|BBB/USD": [
+    2.4,
+    2.4,
+    2.4,
+    2.4,
+    2.4,
+    2.4,
+    2.4,
+    2.4,
+    2.4,
+    2.4,
+    2.4,
+    2.4,
+    2.4,
+    2.4,
+    2.4,
+    2.4,
+    2.4,
+    2.4,
+    2.4,
+    2.4,
+    2.4,
+    2.4,
+    2.4,
+    2.4,
+    2.4,
+    2.4,
+    2.4,
+    2.4,
+    2.4,
+    2.4,
+    2.4,
+    2.4,
+    2.4,
+    2.4,
+    2.4
+   ]
+  },
+  "state": {
+   "ts": 1799998200.0,
+   "stable": {
+    "binance": 50.0,
+    "gate": 100.0,
+    "revx": 300.0
+   },
+   "part": {},
+   "offquote": {
+    "revx:USDC": 150.0
+   },
+   "inflight": {
+    "amount": 100.0,
+    "ts": 1799820000.0,
+    "since": 0,
+    "gate_stable_at": 100.0
+   }
+  }
+ },
+ "steps": [
+  {
+   "op": "check",
+   "now": 1800000000.0,
+   "venues": {
+    "binance": {
+     "balances": {
+      "USDC": {
+       "free": 250.0,
+       "locked": 0.0
+      }
+     }
+    }
+   },
+   "expect": {
+    "results": [
+     {
+      "mode": "live",
+      "hk": true,
+      "deploy": true,
+      "warn": "REVX: $50.00 USDC left the venue -> Gate top-up in flight; the reserve is paused until it lands on Gate"
+     },
+     {
+      "mode": "live",
+      "hk": true,
+      "deploy": true,
+      "done": "REVX: Gate top-up landed (Gate stable +$0.00) -> reserve tracking resumes"
+     },
+     {
+      "mode": "live",
+      "hk": true,
+      "deploy": true,
+      "warn": "DEPLOY_ALLOC_JSON names no binance coin \u2014 falling back to equal split for this venue"
+     },
+     {
+      "mode": "live",
+      "hk": true,
+      "deploy": true,
+      "committed": true,
+      "done": "DEPLOY tranche on binance: $200.00 fresh USDC -> 1 coins, regime CHOP; held 0 resting price level(s)"
+     },
+     {
+      "mode": "live",
+      "hk": true,
+      "deploy": true,
+      "sym": "EEE",
+      "side": "buy",
+      "committed": true,
+      "done": "DEPLOY EEE [spot $20]: $59.98 @ $19 (-5%); $79.99 @ $18 (-10%); $59.99 @ $16.4 (-18%)"
+     }
+    ],
+    "stdout": "",
+    "exit": null,
+    "raised": false,
+    "raised_text": null,
+    "calls": [
+     [
+      "binance",
+      "limit_buy",
+      "EEEUSDC",
+      3.157,
+      19.0,
+      "depEEE1800000000r1"
+     ],
+     [
+      "binance",
+      "limit_buy",
+      "EEEUSDC",
+      4.444,
+      18.0,
+      "depEEE1800000000r2"
+     ],
+     [
+      "binance",
+      "limit_buy",
+      "EEEUSDC",
+      3.658,
+      16.4,
+      "depEEE1800000000r3"
+     ]
+    ],
+    "journal": {
+     "depEEE1800000000r1": {
+      "client_id": "depEEE1800000000r1",
+      "sym": "EEE",
+      "exch": "binance",
+      "pair": "EEEUSDC",
+      "side": "buy",
+      "kind": "deploy_buy",
+      "status": "open",
+      "quote": 59.983000000000004,
+      "price": 19.0,
+      "base": 3.157,
+      "rung": 1,
+      "ts": 1800000000.0,
+      "note": "-5%",
+      "label": "chop",
+      "first_ts": 1800000000.0,
+      "order_id": "binance-1"
+     },
+     "depEEE1800000000r2": {
+      "client_id": "depEEE1800000000r2",
+      "sym": "EEE",
+      "exch": "binance",
+      "pair": "EEEUSDC",
+      "side": "buy",
+      "kind": "deploy_buy",
+      "status": "open",
+      "quote": 79.992,
+      "price": 18.0,
+      "base": 4.444,
+      "rung": 2,
+      "ts": 1800000000.0,
+      "note": "-10%",
+      "label": "chop",
+      "first_ts": 1800000000.0,
+      "order_id": "binance-2"
+     },
+     "depEEE1800000000r3": {
+      "client_id": "depEEE1800000000r3",
+      "sym": "EEE",
+      "exch": "binance",
+      "pair": "EEEUSDC",
+      "side": "buy",
+      "kind": "deploy_buy",
+      "status": "open",
+      "quote": 59.99119999999999,
+      "price": 16.4,
+      "base": 3.658,
+      "rung": 3,
+      "ts": 1800000000.0,
+      "note": "-18%",
+      "label": "chop",
+      "first_ts": 1800000000.0,
+      "order_id": "binance-3"
+     }
+    },
+    "state": {
+     "ts": 1800000000.0,
+     "stable": {
+      "binance": 250.0,
+      "gate": 100.0,
+      "revx": 300.0
+     },
+     "part": {},
+     "offquote": {
+      "revx:USDC": 100.0,
+      "binance:USDT": 0.0,
+      "gate:USDC": 0.0
+     }
+    }
+   }
+  },
+  {
+   "op": "check",
+   "now": 1800001800.0,
+   "expect": {
+    "results": [],
+    "stdout": "",
+    "exit": null,
+    "raised": false,
+    "raised_text": null,
+    "calls": [],
+    "journal": {
+     "depEEE1800000000r1": {
+      "client_id": "depEEE1800000000r1",
+      "sym": "EEE",
+      "exch": "binance",
+      "pair": "EEEUSDC",
+      "side": "buy",
+      "kind": "deploy_buy",
+      "status": "open",
+      "quote": 59.983000000000004,
+      "price": 19.0,
+      "base": 3.157,
+      "rung": 1,
+      "ts": 1800000000.0,
+      "note": "-5%",
+      "label": "chop",
+      "first_ts": 1800000000.0,
+      "order_id": "binance-1"
+     },
+     "depEEE1800000000r2": {
+      "client_id": "depEEE1800000000r2",
+      "sym": "EEE",
+      "exch": "binance",
+      "pair": "EEEUSDC",
+      "side": "buy",
+      "kind": "deploy_buy",
+      "status": "open",
+      "quote": 79.992,
+      "price": 18.0,
+      "base": 4.444,
+      "rung": 2,
+      "ts": 1800000000.0,
+      "note": "-10%",
+      "label": "chop",
+      "first_ts": 1800000000.0,
+      "order_id": "binance-2"
+     },
+     "depEEE1800000000r3": {
+      "client_id": "depEEE1800000000r3",
+      "sym": "EEE",
+      "exch": "binance",
+      "pair": "EEEUSDC",
+      "side": "buy",
+      "kind": "deploy_buy",
+      "status": "open",
+      "quote": 59.99119999999999,
+      "price": 16.4,
+      "base": 3.658,
+      "rung": 3,
+      "ts": 1800000000.0,
+      "note": "-18%",
+      "label": "chop",
+      "first_ts": 1800000000.0,
+      "order_id": "binance-3"
+     }
+    },
+    "state": {
+     "ts": 1800001800.0,
+     "stable": {
+      "binance": 250.0,
+      "gate": 100.0,
+      "revx": 300.0
+     },
+     "part": {
+      "depEEE1800000000r1": 0.0,
+      "depEEE1800000000r2": 0.0,
+      "depEEE1800000000r3": 0.0
+     },
+     "offquote": {
+      "revx:USDC": 100.0,
+      "binance:USDT": 0.0,
+      "gate:USDC": 0.0
+     }
+    }
+   }
+  }
+ ]
+}
