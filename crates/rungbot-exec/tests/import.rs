@@ -110,7 +110,7 @@ fn expected(out: &Path, rel: &str) -> PathBuf {
         "ladder-state.json" => out.join("ladder-state.off.json"),
         "deploy-state.live.json" => out.join("deploy-state.json"),
         r if r.starts_with("dashboard/") => out.join("dashboard").join(name),
-        r if r.starts_with("replay/cache/") => out.join("replay/cache").join(name),
+        r if r.starts_with("replay/cache/") => out.join("replay").join("cache").join(name),
         "opportunity-ledger.json" | "value-index.json" | "unlock-index.json" | "theses.yaml" => {
             out.join("research").join(name)
         }
