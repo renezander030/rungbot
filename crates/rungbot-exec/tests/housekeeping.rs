@@ -332,7 +332,14 @@ fn housekeeping_matches_the_reference_run_after_run() {
                 ttl: &mut ttl,
                 pnl: &mut pnl,
             };
-            results.extend(housekeeping::run(&st, &ctx, &bal, &mut books, &fakes));
+            results.extend(housekeeping::run(
+                &st,
+                &ctx,
+                &bal,
+                &mut books,
+                &fakes,
+                &mut housekeeping::Persist::none(),
+            ));
             let out = &run["out"];
             let got: Vec<Value> = results.iter().map(|r| r.to_json()).collect();
             check(

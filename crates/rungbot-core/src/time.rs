@@ -26,6 +26,28 @@ pub fn civil(epoch: f64) -> (i64, i64, i64, i64, i64, i64) {
     (year, m, d, h, mi, s)
 }
 
+/// Days since the epoch for a proleptic Gregorian date (Hinnant's days_from_civil).
+pub fn days_from_civil(y: i64, m: i64, d: i64) -> i64 {
+    let y = if m <= 2 { y - 1 } else { y };
+    let era = y.div_euclid(400);
+    let yoe = y.rem_euclid(400);
+    let mp = if m > 2 { m - 3 } else { m + 9 };
+    let doy = (153 * mp + 2) / 5 + d - 1;
+    let doe = yoe * 365 + yoe / 4 - yoe / 100 + doy;
+    era * 146_097 + doe - 719_468
+}
+
+/// The ISO week an epoch falls in, `YYYY-Www` (strftime's `%G-W%V`), in UTC.
+pub fn iso_week(epoch: f64) -> String {
+    let days = (epoch as i64).div_euclid(86_400);
+    // 1970-01-01 was a Thursday; ISO weekdays run Monday = 1 .. Sunday = 7.
+    let weekday = (days + 3).rem_euclid(7) + 1;
+    let thursday = days - (weekday - 4);
+    let (year, _, _, _, _, _) = civil(thursday as f64 * 86_400.0);
+    let week = (thursday - days_from_civil(year, 1, 1)) / 7 + 1;
+    format!("{year:04}-W{week:02}")
+}
+
 /// `YYYY-MM-DD` in UTC. The key the sell policy uses to evaluate its trail once a day.
 pub fn utc_day(epoch: f64) -> String {
     let (y, m, d, _, _, _) = civil(epoch);
@@ -62,6 +84,18 @@ pub fn iso8601_micros(epoch: f64) -> String {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn iso_week_matches_strftime() {
+        assert_eq!(iso_week(0.0), "1970-W01");
+        assert_eq!(iso_week(1735603200.0), "2025-W01");
+        assert_eq!(iso_week(1735689600.0), "2025-W01");
+        assert_eq!(iso_week(1704067200.0), "2024-W01");
+        assert_eq!(iso_week(1609459200.0), "2020-W53");
+        assert_eq!(iso_week(1758000000.0), "2025-W38");
+        assert_eq!(iso_week(1767139200.0), "2026-W01");
+        assert_eq!(iso_week(1703980800.0), "2023-W52");
+    }
 
     #[test]
     fn fractions_print_to_the_microsecond() {

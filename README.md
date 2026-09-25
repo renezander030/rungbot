@@ -237,15 +237,30 @@ deterministic id **before** the venue is called; only then is a request signed.
 asleep. `reconcile` reads each open order back and books what happened: a fill net of
 a base-coin fee, the filled part of an order that left the book, and a resize made in
 the venue's own app, which it re-attaches to instead of writing the rung off. One
-writer at a time holds the journal (`sync`, `reconcile`, `cancel`, `archive`,
+writer at a time holds the journal (`run`, `sync`, `reconcile`, `cancel`, `archive`,
 `import-cex --write`; a second waits up to `RUNGBOT_LOCK_WAIT` seconds, default 120),
 and a journal that exists but does not parse stops the run instead of reading as empty.
+Every subcommand finds the journal as `run` does (`--journal`, else the run config's)
+and takes the same lock on it (`run_lock`, else `RUNGBOT_LOCK`, else `<journal>.lock`).
 
 The journal is a plain JSON object keyed by client id; finished cancels older than 30
 days move to `orders-archive.jsonl` with `rungbot-exec archive`. `rungbot-exec
 import-cex DIR` reads an existing `orders-journal.json` in the same format, prints what
 it found and checks every row reads back as written; `--write` imports it, together
-with the ladder state, P&L ledger and stale-order flags it finds beside it.
+with the ladder state, P&L ledger, stale-order flags, decision log, signal-notice
+dedupe and level-alert state it finds beside it. `import-cex DIR --config` prints the
+run config that bot runs with as YAML (its values are yours: keep the output private),
+halt file and sell-arm file included, so the file you touch to stop the old bot stops
+this one.
+
+`rungbot-exec run` is one complete scheduled run from a single YAML file
+([`contrib/rungbot-run.example.yaml`](contrib/rungbot-run.example.yaml) lists every
+knob): regime label and RUN gate, dip-buy and sell signals, market orders behind every
+rail when `trade_mode: live` and `live_trading_enabled: yes`, the bull sell policy,
+housekeeping, the decision log `decisions.jsonl`, one mail per new signal and the BTC
+level alert. `--dry-run` computes and prints without placing, saving or mailing
+anything; a run that finds another holding the lock prints `SKIPPED` and exits 0.
+[`contrib/systemd`](contrib/systemd) runs it every 30 minutes.
 
 | Rail | Default | |
 |---|---|---|
