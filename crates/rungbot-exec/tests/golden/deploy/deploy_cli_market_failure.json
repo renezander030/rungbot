@@ -1,0 +1,450 @@
+{
+ "name": "cli_market_failure",
+ "about": "the market leg fails: the whole budget is laddered instead",
+ "config": {
+  "routing": [
+   [
+    "AAA",
+    "revx",
+    "AAA/USD",
+    "USD"
+   ],
+   [
+    "BBB",
+    "revx",
+    "BBB/USD",
+    "USD"
+   ],
+   [
+    "CCC",
+    "gate",
+    "CCC_USDT",
+    "USDT"
+   ],
+   [
+    "DDD",
+    "gate",
+    "DDD_USDT",
+    "USDT"
+   ],
+   [
+    "EEE",
+    "binance",
+    "EEEUSDC",
+    "USDC"
+   ]
+  ],
+  "revx_pairs": [
+   [
+    "AAA",
+    "AAA/USD"
+   ],
+   [
+    "BBB",
+    "BBB/USD"
+   ],
+   [
+    "FFF",
+    "FFF/USD"
+   ]
+  ],
+  "alloc": {
+   "AAA": 40,
+   "BBB": 20,
+   "CCC": 30,
+   "DDD": 10
+  }
+ },
+ "initial": {
+  "journal": {
+   "m1": {
+    "client_id": "m1",
+    "sym": "BBB",
+    "exch": "revx",
+    "pair": "BBB/USD",
+    "side": "buy",
+    "kind": "deploy_buy",
+    "status": "open",
+    "quote": 120.0,
+    "price": 2.4,
+    "base": 50.0,
+    "rung": 1,
+    "ts": 1799913600.0,
+    "note": "-5%",
+    "label": "chop",
+    "first_ts": 1799913600.0,
+    "order_id": "revx-90"
+   }
+  },
+  "venues": {
+   "revx": {
+    "prices": {
+     "AAA/USD": 10.0,
+     "BBB/USD": 2.5,
+     "FFF/USD": 1.0,
+     "USDC/USD": 1.0,
+     "USDC/EUR": 0.9
+    },
+    "info": {
+     "AAA/USD": {
+      "min_base": 0.01,
+      "min_quote": 5.0,
+      "step": 0.01,
+      "tick": 0.001
+     },
+     "BBB/USD": {
+      "min_base": 0.1,
+      "min_quote": 5.0,
+      "step": 0.1,
+      "tick": 0.0001
+     },
+     "FFF/USD": {
+      "min_base": 1.0,
+      "min_quote": 5.0,
+      "step": 1.0,
+      "tick": 0.0001
+     },
+     "USDC/USD": {
+      "min_base": 1.0,
+      "min_quote": 1.0,
+      "step": 0.01,
+      "tick": 0.0001
+     },
+     "USDC/EUR": {
+      "min_base": 1.0,
+      "min_quote": 1.0,
+      "step": 0.01,
+      "tick": 0.0001
+     }
+    },
+    "balances": {
+     "USD": {
+      "free": 300.0,
+      "locked": 0.0
+     }
+    },
+    "fail": [
+     {
+      "method": "market_buy",
+      "key": "depxBBB",
+      "msg": "market closed",
+      "times": -1
+     }
+    ],
+    "book": [
+     {
+      "order_id": "revx-90",
+      "client_id": "x",
+      "side": "buy",
+      "price": 2.4,
+      "qty": 50.0,
+      "status": "open",
+      "pair": "BBB/USD"
+     }
+    ]
+   },
+   "gate": {
+    "prices": {
+     "CCC_USDT": 4.0,
+     "DDD_USDT": 0.5,
+     "USDC_USDT": 1.0
+    },
+    "info": {
+     "CCC_USDT": {
+      "min_base": 0.1,
+      "min_quote": 3.0,
+      "prec": 2,
+      "tick": 0.0001
+     },
+     "DDD_USDT": {
+      "min_base": 1.0,
+      "min_quote": 3.0,
+      "prec": 1,
+      "tick": 1e-05
+     },
+     "USDC_USDT": {
+      "min_base": 1.0,
+      "min_quote": 1.0,
+      "prec": 2,
+      "tick": 0.0001
+     }
+    },
+    "balances": {
+     "USDT": {
+      "free": 200.0,
+      "locked": 0.0
+     }
+    },
+    "deposits": null
+   },
+   "binance": {
+    "prices": {
+     "EEEUSDC": 20.0
+    },
+    "info": {
+     "EEEUSDC": {
+      "min_base": 0.001,
+      "min_quote": 5.0,
+      "step": 0.001,
+      "tick": 0.01
+     }
+    },
+    "balances": {
+     "USDC": {
+      "free": 50.0,
+      "locked": 0.0
+     }
+    }
+   }
+  },
+  "regime": {
+   "market": "chop",
+   "coins": {
+    "AAA": {
+     "running": true
+    },
+    "BBB": {
+     "running": false
+    }
+   }
+  },
+  "closes": {
+   "revx|AAA/USD": [
+    9.5,
+    9.5,
+    9.5,
+    9.5,
+    9.5,
+    9.3,
+    9.3,
+    9.3,
+    9.3,
+    9.3,
+    9.3,
+    9.3,
+    9.3,
+    9.3,
+    9.3,
+    9.3,
+    9.3,
+    9.3,
+    9.3,
+    9.3,
+    9.3,
+    9.3,
+    9.3,
+    9.3,
+    9.3,
+    9.3,
+    9.3,
+    9.3,
+    9.3,
+    9.3,
+    9.3,
+    9.3,
+    9.3,
+    9.3,
+    8.5
+   ],
+   "revx|BBB/USD": [
+    2.4,
+    2.4,
+    2.4,
+    2.4,
+    2.4,
+    2.4,
+    2.4,
+    2.4,
+    2.4,
+    2.4,
+    2.4,
+    2.4,
+    2.4,
+    2.4,
+    2.4,
+    2.4,
+    2.4,
+    2.4,
+    2.4,
+    2.4,
+    2.4,
+    2.4,
+    2.4,
+    2.4,
+    2.4,
+    2.4,
+    2.4,
+    2.4,
+    2.4,
+    2.4,
+    2.4,
+    2.4,
+    2.4,
+    2.4,
+    2.4
+   ]
+  },
+  "state": {
+   "ts": 1799998200.0,
+   "stable": {
+    "binance": 50.0,
+    "gate": 238.0,
+    "revx": 483.0
+   },
+   "part": {},
+   "offquote": {}
+  }
+ },
+ "steps": [
+  {
+   "op": "market",
+   "now": 1800000000.0,
+   "args": {
+    "share": 25.0,
+    "venue": "revx",
+    "sym": "BBB"
+   },
+   "expect": {
+    "results": [],
+    "stdout": "market buy BBB $30.00 FAILED: market closed\nDEPLOY BBB [spot $2.5]: $35.86 @ $2.375 (-5%); $47.93 @ $2.25 (-10%); $35.88 @ $2.05 (-18%)\n",
+    "exit": null,
+    "raised": false,
+    "raised_text": null,
+    "calls": [
+     [
+      "revx",
+      "cancel",
+      "BBB/USD",
+      "revx-90"
+     ],
+     [
+      "revx",
+      "market_buy",
+      "BBB/USD",
+      30.0,
+      "depxBBB1800000000m"
+     ],
+     [
+      "revx",
+      "limit_buy",
+      "BBB/USD",
+      15.100000000000001,
+      2.375,
+      "depxBBB1800000000r1"
+     ],
+     [
+      "revx",
+      "limit_buy",
+      "BBB/USD",
+      21.3,
+      2.25,
+      "depxBBB1800000000r2"
+     ],
+     [
+      "revx",
+      "limit_buy",
+      "BBB/USD",
+      17.5,
+      2.0500000000000003,
+      "depxBBB1800000000r3"
+     ]
+    ],
+    "journal": {
+     "m1": {
+      "client_id": "m1",
+      "sym": "BBB",
+      "exch": "revx",
+      "pair": "BBB/USD",
+      "side": "buy",
+      "kind": "deploy_buy",
+      "status": "canceled",
+      "quote": 120.0,
+      "price": 2.4,
+      "base": 50.0,
+      "rung": 1,
+      "ts": 1799913600.0,
+      "note": "rolled into new tranche",
+      "label": "chop",
+      "first_ts": 1799913600.0,
+      "order_id": "revx-90"
+     },
+     "depxBBB1800000000m": {
+      "client_id": "depxBBB1800000000m",
+      "sym": "BBB",
+      "exch": "revx",
+      "pair": "BBB/USD",
+      "side": "buy",
+      "kind": "deploy_buy",
+      "status": "error",
+      "quote": 30.0,
+      "rung": 0,
+      "ts": 1800000000.0,
+      "note": "market 25% of $120.00 tranche",
+      "last_error": "market closed"
+     },
+     "depxBBB1800000000r1": {
+      "client_id": "depxBBB1800000000r1",
+      "sym": "BBB",
+      "exch": "revx",
+      "pair": "BBB/USD",
+      "side": "buy",
+      "kind": "deploy_buy",
+      "status": "open",
+      "quote": 35.862500000000004,
+      "price": 2.375,
+      "base": 15.100000000000001,
+      "rung": 1,
+      "ts": 1800000000.0,
+      "note": "-5%",
+      "first_ts": 1800000000.0,
+      "order_id": "revx-1"
+     },
+     "depxBBB1800000000r2": {
+      "client_id": "depxBBB1800000000r2",
+      "sym": "BBB",
+      "exch": "revx",
+      "pair": "BBB/USD",
+      "side": "buy",
+      "kind": "deploy_buy",
+      "status": "open",
+      "quote": 47.925000000000004,
+      "price": 2.25,
+      "base": 21.3,
+      "rung": 2,
+      "ts": 1800000000.0,
+      "note": "-10%",
+      "first_ts": 1800000000.0,
+      "order_id": "revx-2"
+     },
+     "depxBBB1800000000r3": {
+      "client_id": "depxBBB1800000000r3",
+      "sym": "BBB",
+      "exch": "revx",
+      "pair": "BBB/USD",
+      "side": "buy",
+      "kind": "deploy_buy",
+      "status": "open",
+      "quote": 35.87500000000001,
+      "price": 2.0500000000000003,
+      "base": 17.5,
+      "rung": 3,
+      "ts": 1800000000.0,
+      "note": "-18%",
+      "first_ts": 1800000000.0,
+      "order_id": "revx-3"
+     }
+    },
+    "state": {
+     "ts": 1799998200.0,
+     "stable": {
+      "binance": 50.0,
+      "gate": 238.0,
+      "revx": 483.0
+     },
+     "part": {},
+     "offquote": {}
+    }
+   }
+  }
+ ]
+}

@@ -1,0 +1,1874 @@
+{
+ "name": "first_tranche_and_roll",
+ "about": "cold start, a deposit on revx and gate (revx holds the Gate top-up back and stages it as USDC), a partial fill, then a second deposit rolls the zones: resting levels are held, a held level spot fell through re-anchors, a held level above a fresh rung is re-ordered, the partial's unspent part rolls",
+ "config": {
+  "routing": [
+   [
+    "AAA",
+    "revx",
+    "AAA/USD",
+    "USD"
+   ],
+   [
+    "BBB",
+    "revx",
+    "BBB/USD",
+    "USD"
+   ],
+   [
+    "CCC",
+    "gate",
+    "CCC_USDT",
+    "USDT"
+   ],
+   [
+    "DDD",
+    "gate",
+    "DDD_USDT",
+    "USDT"
+   ],
+   [
+    "EEE",
+    "binance",
+    "EEEUSDC",
+    "USDC"
+   ]
+  ],
+  "revx_pairs": [
+   [
+    "AAA",
+    "AAA/USD"
+   ],
+   [
+    "BBB",
+    "BBB/USD"
+   ],
+   [
+    "FFF",
+    "FFF/USD"
+   ]
+  ],
+  "alloc": {
+   "AAA": 40,
+   "BBB": 20,
+   "CCC": 30,
+   "DDD": 10
+  }
+ },
+ "initial": {
+  "journal": {},
+  "venues": {
+   "revx": {
+    "prices": {
+     "AAA/USD": 10.0,
+     "BBB/USD": 2.5,
+     "FFF/USD": 1.0,
+     "USDC/USD": 1.0,
+     "USDC/EUR": 0.9
+    },
+    "info": {
+     "AAA/USD": {
+      "min_base": 0.01,
+      "min_quote": 5.0,
+      "step": 0.01,
+      "tick": 0.001
+     },
+     "BBB/USD": {
+      "min_base": 0.1,
+      "min_quote": 5.0,
+      "step": 0.1,
+      "tick": 0.0001
+     },
+     "FFF/USD": {
+      "min_base": 1.0,
+      "min_quote": 5.0,
+      "step": 1.0,
+      "tick": 0.0001
+     },
+     "USDC/USD": {
+      "min_base": 1.0,
+      "min_quote": 1.0,
+      "step": 0.01,
+      "tick": 0.0001
+     },
+     "USDC/EUR": {
+      "min_base": 1.0,
+      "min_quote": 1.0,
+      "step": 0.01,
+      "tick": 0.0001
+     }
+    },
+    "balances": {
+     "USD": {
+      "free": 1000.0,
+      "locked": 0.0
+     }
+    }
+   },
+   "gate": {
+    "prices": {
+     "CCC_USDT": 4.0,
+     "DDD_USDT": 0.5,
+     "USDC_USDT": 1.0
+    },
+    "info": {
+     "CCC_USDT": {
+      "min_base": 0.1,
+      "min_quote": 3.0,
+      "prec": 2,
+      "tick": 0.0001
+     },
+     "DDD_USDT": {
+      "min_base": 1.0,
+      "min_quote": 3.0,
+      "prec": 1,
+      "tick": 1e-05
+     },
+     "USDC_USDT": {
+      "min_base": 1.0,
+      "min_quote": 1.0,
+      "prec": 2,
+      "tick": 0.0001
+     }
+    },
+    "balances": {
+     "USDT": {
+      "free": 500.0,
+      "locked": 0.0
+     }
+    },
+    "deposits": null
+   },
+   "binance": {
+    "prices": {
+     "EEEUSDC": 20.0
+    },
+    "info": {
+     "EEEUSDC": {
+      "min_base": 0.001,
+      "min_quote": 5.0,
+      "step": 0.001,
+      "tick": 0.01
+     }
+    },
+    "balances": {
+     "USDC": {
+      "free": 50.0,
+      "locked": 0.0
+     }
+    }
+   }
+  },
+  "regime": {
+   "market": "chop",
+   "coins": {
+    "AAA": {
+     "running": true
+    },
+    "BBB": {
+     "running": false
+    }
+   }
+  },
+  "closes": {
+   "revx|AAA/USD": [
+    9.5,
+    9.5,
+    9.5,
+    9.5,
+    9.5,
+    9.3,
+    9.3,
+    9.3,
+    9.3,
+    9.3,
+    9.3,
+    9.3,
+    9.3,
+    9.3,
+    9.3,
+    9.3,
+    9.3,
+    9.3,
+    9.3,
+    9.3,
+    9.3,
+    9.3,
+    9.3,
+    9.3,
+    9.3,
+    9.3,
+    9.3,
+    9.3,
+    9.3,
+    9.3,
+    9.3,
+    9.3,
+    9.3,
+    9.3,
+    8.5
+   ],
+   "revx|BBB/USD": [
+    2.4,
+    2.4,
+    2.4,
+    2.4,
+    2.4,
+    2.4,
+    2.4,
+    2.4,
+    2.4,
+    2.4,
+    2.4,
+    2.4,
+    2.4,
+    2.4,
+    2.4,
+    2.4,
+    2.4,
+    2.4,
+    2.4,
+    2.4,
+    2.4,
+    2.4,
+    2.4,
+    2.4,
+    2.4,
+    2.4,
+    2.4,
+    2.4,
+    2.4,
+    2.4,
+    2.4,
+    2.4,
+    2.4,
+    2.4,
+    2.4
+   ]
+  }
+ },
+ "steps": [
+  {
+   "op": "check",
+   "now": 1800000000.0,
+   "expect": {
+    "results": [
+     {
+      "mode": "live",
+      "hk": true,
+      "deploy": true,
+      "committed": true,
+      "done": "REVX onramp: staged $100.00 USDC for the pending Gate top-up (send it from the app; the bot keeps it in USDC)"
+     },
+     {
+      "mode": "live",
+      "hk": true,
+      "deploy": true,
+      "done": "DEPLOY baseline initialized: binance USDC $50.00 \u2014 deposits from now on auto-ladder into buy zones"
+     },
+     {
+      "mode": "live",
+      "hk": true,
+      "deploy": true,
+      "done": "DEPLOY baseline initialized: gate USDT $500.00 \u2014 deposits from now on auto-ladder into buy zones"
+     },
+     {
+      "mode": "live",
+      "hk": true,
+      "deploy": true,
+      "done": "DEPLOY baseline initialized: revx USD $900.00 \u2014 deposits from now on auto-ladder into buy zones"
+     }
+    ],
+    "stdout": "",
+    "exit": null,
+    "raised": false,
+    "raised_text": null,
+    "calls": [
+     [
+      "revx",
+      "market_buy",
+      "USDC/USD",
+      100.0,
+      null
+     ]
+    ],
+    "journal": {},
+    "state": {
+     "ts": 1800000000.0,
+     "stable": {
+      "binance": 50.0,
+      "gate": 500.0,
+      "revx": 900.0
+     },
+     "part": {},
+     "offquote": {
+      "binance:USDT": 0.0,
+      "gate:USDC": 0.0,
+      "revx:USDC": 100.0
+     }
+    }
+   }
+  },
+  {
+   "op": "check",
+   "now": 1800001800.0,
+   "venues": {
+    "revx": {
+     "balances": {
+      "USD": {
+       "free": 2000.0,
+       "locked": 0.0
+      }
+     }
+    },
+    "gate": {
+     "balances": {
+      "USDT": {
+       "free": 800.0,
+       "locked": 0.0
+      }
+     }
+    }
+   },
+   "expect": {
+    "results": [
+     {
+      "mode": "live",
+      "hk": true,
+      "deploy": true,
+      "committed": true,
+      "done": "REVX onramp: staged $260.00 USDC for the pending Gate top-up (send it from the app; the bot keeps it in USDC)"
+     },
+     {
+      "mode": "live",
+      "hk": true,
+      "deploy": true,
+      "committed": true,
+      "done": "DEPLOY tranche on gate: $300.00 fresh USDT -> 2 coins, regime CHOP; held 0 resting price level(s)"
+     },
+     {
+      "mode": "live",
+      "hk": true,
+      "deploy": true,
+      "sym": "CCC",
+      "side": "buy",
+      "committed": true,
+      "done": "DEPLOY CCC [spot $4]: $67.49 @ $3.8 (-5%); $90.00 @ $3.6 (-10%); $67.47 @ $3.28 (-18%)"
+     },
+     {
+      "mode": "live",
+      "hk": true,
+      "deploy": true,
+      "sym": "DDD",
+      "side": "buy",
+      "committed": true,
+      "done": "DEPLOY DDD [spot $0.5]: $22.47 @ $0.47499 (-5%); $29.97 @ $0.45 (-10%); $22.47 @ $0.41 (-18%)"
+     },
+     {
+      "mode": "live",
+      "hk": true,
+      "deploy": true,
+      "committed": true,
+      "done": "DEPLOY tranche on revx: $840.00 fresh USD -> 2 coins, regime CHOP; held 0 resting price level(s)"
+     },
+     {
+      "mode": "live",
+      "hk": true,
+      "deploy": true,
+      "sym": "AAA",
+      "side": "buy",
+      "committed": true,
+      "done": "DEPLOY AAA [spot $10]: $167.93 @ $9.273 (30d SMA (-7.3%)); $223.98 @ $8.585 (30d low+1% (-14.1%)); $167.94 @ $8.2 (-18%)"
+     },
+     {
+      "mode": "live",
+      "hk": true,
+      "deploy": true,
+      "sym": "BBB",
+      "side": "buy",
+      "committed": true,
+      "done": "DEPLOY BBB [spot $2.5]: $83.84 @ $2.375 (-5%); $111.83 @ $2.25 (-10%); $83.85 @ $2.05 (-18%)"
+     }
+    ],
+    "stdout": "",
+    "exit": null,
+    "raised": false,
+    "raised_text": null,
+    "calls": [
+     [
+      "revx",
+      "market_buy",
+      "USDC/USD",
+      260.0,
+      null
+     ],
+     [
+      "gate",
+      "limit_buy",
+      "CCC_USDT",
+      17.76,
+      3.8000000000000003,
+      "depCCC1800001800r1"
+     ],
+     [
+      "gate",
+      "limit_buy",
+      "CCC_USDT",
+      25.0,
+      3.6,
+      "depCCC1800001800r2"
+     ],
+     [
+      "gate",
+      "limit_buy",
+      "CCC_USDT",
+      20.57,
+      3.2800000000000002,
+      "depCCC1800001800r3"
+     ],
+     [
+      "gate",
+      "limit_buy",
+      "DDD_USDT",
+      47.3,
+      0.47499,
+      "depDDD1800001800r1"
+     ],
+     [
+      "gate",
+      "limit_buy",
+      "DDD_USDT",
+      66.6,
+      0.45,
+      "depDDD1800001800r2"
+     ],
+     [
+      "gate",
+      "limit_buy",
+      "DDD_USDT",
+      54.8,
+      0.41000000000000003,
+      "depDDD1800001800r3"
+     ],
+     [
+      "revx",
+      "limit_buy",
+      "AAA/USD",
+      18.11,
+      9.273,
+      "depxAAA1800001800r1"
+     ],
+     [
+      "revx",
+      "limit_buy",
+      "AAA/USD",
+      26.09,
+      8.585,
+      "depxAAA1800001800r2"
+     ],
+     [
+      "revx",
+      "limit_buy",
+      "AAA/USD",
+      20.48,
+      8.2,
+      "depxAAA1800001800r3"
+     ],
+     [
+      "revx",
+      "limit_buy",
+      "BBB/USD",
+      35.300000000000004,
+      2.375,
+      "depxBBB1800001800r1"
+     ],
+     [
+      "revx",
+      "limit_buy",
+      "BBB/USD",
+      49.7,
+      2.25,
+      "depxBBB1800001800r2"
+     ],
+     [
+      "revx",
+      "limit_buy",
+      "BBB/USD",
+      40.900000000000006,
+      2.0500000000000003,
+      "depxBBB1800001800r3"
+     ]
+    ],
+    "journal": {
+     "depCCC1800001800r1": {
+      "client_id": "depCCC1800001800r1",
+      "sym": "CCC",
+      "exch": "gate",
+      "pair": "CCC_USDT",
+      "side": "buy",
+      "kind": "deploy_buy",
+      "status": "open",
+      "quote": 67.48800000000001,
+      "price": 3.8000000000000003,
+      "base": 17.76,
+      "rung": 1,
+      "ts": 1800001800.0,
+      "note": "-5%",
+      "label": "chop",
+      "first_ts": 1800001800.0,
+      "order_id": "gate-1"
+     },
+     "depCCC1800001800r2": {
+      "client_id": "depCCC1800001800r2",
+      "sym": "CCC",
+      "exch": "gate",
+      "pair": "CCC_USDT",
+      "side": "buy",
+      "kind": "deploy_buy",
+      "status": "open",
+      "quote": 90.0,
+      "price": 3.6,
+      "base": 25.0,
+      "rung": 2,
+      "ts": 1800001800.0,
+      "note": "-10%",
+      "label": "chop",
+      "first_ts": 1800001800.0,
+      "order_id": "gate-2"
+     },
+     "depCCC1800001800r3": {
+      "client_id": "depCCC1800001800r3",
+      "sym": "CCC",
+      "exch": "gate",
+      "pair": "CCC_USDT",
+      "side": "buy",
+      "kind": "deploy_buy",
+      "status": "open",
+      "quote": 67.4696,
+      "price": 3.2800000000000002,
+      "base": 20.57,
+      "rung": 3,
+      "ts": 1800001800.0,
+      "note": "-18%",
+      "label": "chop",
+      "first_ts": 1800001800.0,
+      "order_id": "gate-3"
+     },
+     "depDDD1800001800r1": {
+      "client_id": "depDDD1800001800r1",
+      "sym": "DDD",
+      "exch": "gate",
+      "pair": "DDD_USDT",
+      "side": "buy",
+      "kind": "deploy_buy",
+      "status": "open",
+      "quote": 22.467026999999998,
+      "price": 0.47499,
+      "base": 47.3,
+      "rung": 1,
+      "ts": 1800001800.0,
+      "note": "-5%",
+      "label": "chop",
+      "first_ts": 1800001800.0,
+      "order_id": "gate-4"
+     },
+     "depDDD1800001800r2": {
+      "client_id": "depDDD1800001800r2",
+      "sym": "DDD",
+      "exch": "gate",
+      "pair": "DDD_USDT",
+      "side": "buy",
+      "kind": "deploy_buy",
+      "status": "open",
+      "quote": 29.97,
+      "price": 0.45,
+      "base": 66.6,
+      "rung": 2,
+      "ts": 1800001800.0,
+      "note": "-10%",
+      "label": "chop",
+      "first_ts": 1800001800.0,
+      "order_id": "gate-5"
+     },
+     "depDDD1800001800r3": {
+      "client_id": "depDDD1800001800r3",
+      "sym": "DDD",
+      "exch": "gate",
+      "pair": "DDD_USDT",
+      "side": "buy",
+      "kind": "deploy_buy",
+      "status": "open",
+      "quote": 22.468,
+      "price": 0.41000000000000003,
+      "base": 54.8,
+      "rung": 3,
+      "ts": 1800001800.0,
+      "note": "-18%",
+      "label": "chop",
+      "first_ts": 1800001800.0,
+      "order_id": "gate-6"
+     },
+     "depxAAA1800001800r1": {
+      "client_id": "depxAAA1800001800r1",
+      "sym": "AAA",
+      "exch": "revx",
+      "pair": "AAA/USD",
+      "side": "buy",
+      "kind": "deploy_buy",
+      "status": "open",
+      "quote": 167.93402999999998,
+      "price": 9.273,
+      "base": 18.11,
+      "rung": 1,
+      "ts": 1800001800.0,
+      "note": "30d SMA (-7.3%)",
+      "label": "chop",
+      "first_ts": 1800001800.0,
+      "order_id": "revx-3"
+     },
+     "depxAAA1800001800r2": {
+      "client_id": "depxAAA1800001800r2",
+      "sym": "AAA",
+      "exch": "revx",
+      "pair": "AAA/USD",
+      "side": "buy",
+      "kind": "deploy_buy",
+      "status": "open",
+      "quote": 223.98265000000004,
+      "price": 8.585,
+      "base": 26.09,
+      "rung": 2,
+      "ts": 1800001800.0,
+      "note": "30d low+1% (-14.1%)",
+      "label": "chop",
+      "first_ts": 1800001800.0,
+      "order_id": "revx-4"
+     },
+     "depxAAA1800001800r3": {
+      "client_id": "depxAAA1800001800r3",
+      "sym": "AAA",
+      "exch": "revx",
+      "pair": "AAA/USD",
+      "side": "buy",
+      "kind": "deploy_buy",
+      "status": "open",
+      "quote": 167.93599999999998,
+      "price": 8.2,
+      "base": 20.48,
+      "rung": 3,
+      "ts": 1800001800.0,
+      "note": "-18%",
+      "label": "chop",
+      "first_ts": 1800001800.0,
+      "order_id": "revx-5"
+     },
+     "depxBBB1800001800r1": {
+      "client_id": "depxBBB1800001800r1",
+      "sym": "BBB",
+      "exch": "revx",
+      "pair": "BBB/USD",
+      "side": "buy",
+      "kind": "deploy_buy",
+      "status": "open",
+      "quote": 83.8375,
+      "price": 2.375,
+      "base": 35.300000000000004,
+      "rung": 1,
+      "ts": 1800001800.0,
+      "note": "-5%",
+      "label": "chop",
+      "first_ts": 1800001800.0,
+      "order_id": "revx-6"
+     },
+     "depxBBB1800001800r2": {
+      "client_id": "depxBBB1800001800r2",
+      "sym": "BBB",
+      "exch": "revx",
+      "pair": "BBB/USD",
+      "side": "buy",
+      "kind": "deploy_buy",
+      "status": "open",
+      "quote": 111.825,
+      "price": 2.25,
+      "base": 49.7,
+      "rung": 2,
+      "ts": 1800001800.0,
+      "note": "-10%",
+      "label": "chop",
+      "first_ts": 1800001800.0,
+      "order_id": "revx-7"
+     },
+     "depxBBB1800001800r3": {
+      "client_id": "depxBBB1800001800r3",
+      "sym": "BBB",
+      "exch": "revx",
+      "pair": "BBB/USD",
+      "side": "buy",
+      "kind": "deploy_buy",
+      "status": "open",
+      "quote": 83.84500000000003,
+      "price": 2.0500000000000003,
+      "base": 40.900000000000006,
+      "rung": 3,
+      "ts": 1800001800.0,
+      "note": "-18%",
+      "label": "chop",
+      "first_ts": 1800001800.0,
+      "order_id": "revx-8"
+     }
+    },
+    "state": {
+     "ts": 1800001800.0,
+     "stable": {
+      "binance": 50.0,
+      "gate": 800.0,
+      "revx": 1740.0
+     },
+     "part": {},
+     "offquote": {
+      "binance:USDT": 0.0,
+      "gate:USDC": 0.0,
+      "revx:USDC": 360.0
+     }
+    }
+   }
+  },
+  {
+   "op": "check",
+   "now": 1800003600.0,
+   "journal_patch": {
+    "depxAAA1800001800r2": {
+     "part_base": 10.0,
+     "part_quote": 88.0
+    }
+   },
+   "venues": {
+    "revx": {
+     "status": {
+      "revx-3": {
+       "status": "cancelled",
+       "filled": false,
+       "base_qty": 12.0,
+       "quote": 105.6,
+       "avg_price": 8.8
+      }
+     }
+    }
+   },
+   "expect": {
+    "results": [
+     {
+      "mode": "live",
+      "hk": true,
+      "deploy": true,
+      "warn": "holding $0.00 free on revx for the pending Gate top-up \u2014 laddered $88.00 of $88.00 new capital"
+     },
+     {
+      "mode": "live",
+      "hk": true,
+      "deploy": true,
+      "committed": true,
+      "done": "DEPLOY tranche on revx: $88.00 fresh USD + $645.76 rolled from unfilled zones -> 2 coins, regime CHOP; held 6 resting price level(s)"
+     },
+     {
+      "mode": "live",
+      "hk": true,
+      "deploy": true,
+      "sym": "AAA",
+      "side": "buy",
+      "committed": true,
+      "done": "DEPLOY AAA [spot $10]: $146.70 @ $9.273 (30d SMA (-7.3%) (held)); $195.65 @ $8.585 (30d low+1% (-14.1%) (held)); $146.70 @ $8.2 (-18% (held))"
+     },
+     {
+      "mode": "live",
+      "hk": true,
+      "deploy": true,
+      "sym": "BBB",
+      "side": "buy",
+      "committed": true,
+      "done": "DEPLOY BBB [spot $2.5]: $73.15 @ $2.375 (-5% (held)); $97.65 @ $2.25 (-10% (held)); $73.19 @ $2.05 (-18% (held))"
+     }
+    ],
+    "stdout": "",
+    "exit": null,
+    "raised": false,
+    "raised_text": null,
+    "calls": [
+     [
+      "revx",
+      "cancel",
+      "AAA/USD",
+      "revx-3"
+     ],
+     [
+      "revx",
+      "cancel",
+      "AAA/USD",
+      "revx-4"
+     ],
+     [
+      "revx",
+      "cancel",
+      "AAA/USD",
+      "revx-5"
+     ],
+     [
+      "revx",
+      "cancel",
+      "BBB/USD",
+      "revx-6"
+     ],
+     [
+      "revx",
+      "cancel",
+      "BBB/USD",
+      "revx-7"
+     ],
+     [
+      "revx",
+      "cancel",
+      "BBB/USD",
+      "revx-8"
+     ],
+     [
+      "revx",
+      "limit_buy",
+      "AAA/USD",
+      15.82,
+      9.273,
+      "depxAAA1800003600r1"
+     ],
+     [
+      "revx",
+      "limit_buy",
+      "AAA/USD",
+      22.79,
+      8.585,
+      "depxAAA1800003600r2"
+     ],
+     [
+      "revx",
+      "limit_buy",
+      "AAA/USD",
+      17.89,
+      8.2,
+      "depxAAA1800003600r3"
+     ],
+     [
+      "revx",
+      "limit_buy",
+      "BBB/USD",
+      30.8,
+      2.375,
+      "depxBBB1800003600r1"
+     ],
+     [
+      "revx",
+      "limit_buy",
+      "BBB/USD",
+      43.400000000000006,
+      2.25,
+      "depxBBB1800003600r2"
+     ],
+     [
+      "revx",
+      "limit_buy",
+      "BBB/USD",
+      35.7,
+      2.0500000000000003,
+      "depxBBB1800003600r3"
+     ]
+    ],
+    "journal": {
+     "depCCC1800001800r1": {
+      "client_id": "depCCC1800001800r1",
+      "sym": "CCC",
+      "exch": "gate",
+      "pair": "CCC_USDT",
+      "side": "buy",
+      "kind": "deploy_buy",
+      "status": "open",
+      "quote": 67.48800000000001,
+      "price": 3.8000000000000003,
+      "base": 17.76,
+      "rung": 1,
+      "ts": 1800001800.0,
+      "note": "-5%",
+      "label": "chop",
+      "first_ts": 1800001800.0,
+      "order_id": "gate-1"
+     },
+     "depCCC1800001800r2": {
+      "client_id": "depCCC1800001800r2",
+      "sym": "CCC",
+      "exch": "gate",
+      "pair": "CCC_USDT",
+      "side": "buy",
+      "kind": "deploy_buy",
+      "status": "open",
+      "quote": 90.0,
+      "price": 3.6,
+      "base": 25.0,
+      "rung": 2,
+      "ts": 1800001800.0,
+      "note": "-10%",
+      "label": "chop",
+      "first_ts": 1800001800.0,
+      "order_id": "gate-2"
+     },
+     "depCCC1800001800r3": {
+      "client_id": "depCCC1800001800r3",
+      "sym": "CCC",
+      "exch": "gate",
+      "pair": "CCC_USDT",
+      "side": "buy",
+      "kind": "deploy_buy",
+      "status": "open",
+      "quote": 67.4696,
+      "price": 3.2800000000000002,
+      "base": 20.57,
+      "rung": 3,
+      "ts": 1800001800.0,
+      "note": "-18%",
+      "label": "chop",
+      "first_ts": 1800001800.0,
+      "order_id": "gate-3"
+     },
+     "depDDD1800001800r1": {
+      "client_id": "depDDD1800001800r1",
+      "sym": "DDD",
+      "exch": "gate",
+      "pair": "DDD_USDT",
+      "side": "buy",
+      "kind": "deploy_buy",
+      "status": "open",
+      "quote": 22.467026999999998,
+      "price": 0.47499,
+      "base": 47.3,
+      "rung": 1,
+      "ts": 1800001800.0,
+      "note": "-5%",
+      "label": "chop",
+      "first_ts": 1800001800.0,
+      "order_id": "gate-4"
+     },
+     "depDDD1800001800r2": {
+      "client_id": "depDDD1800001800r2",
+      "sym": "DDD",
+      "exch": "gate",
+      "pair": "DDD_USDT",
+      "side": "buy",
+      "kind": "deploy_buy",
+      "status": "open",
+      "quote": 29.97,
+      "price": 0.45,
+      "base": 66.6,
+      "rung": 2,
+      "ts": 1800001800.0,
+      "note": "-10%",
+      "label": "chop",
+      "first_ts": 1800001800.0,
+      "order_id": "gate-5"
+     },
+     "depDDD1800001800r3": {
+      "client_id": "depDDD1800001800r3",
+      "sym": "DDD",
+      "exch": "gate",
+      "pair": "DDD_USDT",
+      "side": "buy",
+      "kind": "deploy_buy",
+      "status": "open",
+      "quote": 22.468,
+      "price": 0.41000000000000003,
+      "base": 54.8,
+      "rung": 3,
+      "ts": 1800001800.0,
+      "note": "-18%",
+      "label": "chop",
+      "first_ts": 1800001800.0,
+      "order_id": "gate-6"
+     },
+     "depxAAA1800001800r1": {
+      "client_id": "depxAAA1800001800r1",
+      "sym": "AAA",
+      "exch": "revx",
+      "pair": "AAA/USD",
+      "side": "buy",
+      "kind": "deploy_buy",
+      "status": "canceled",
+      "quote": 167.93402999999998,
+      "price": 9.273,
+      "base": 18.11,
+      "rung": 1,
+      "ts": 1800001800.0,
+      "note": "rolled into new tranche",
+      "label": "chop",
+      "first_ts": 1800001800.0,
+      "order_id": "revx-3",
+      "filled_base": 12.0,
+      "filled_quote": 105.6,
+      "avg_price": 8.8,
+      "filled_ts": 1800003600.0,
+      "partial": true,
+      "book_pending": true
+     },
+     "depxAAA1800001800r2": {
+      "client_id": "depxAAA1800001800r2",
+      "sym": "AAA",
+      "exch": "revx",
+      "pair": "AAA/USD",
+      "side": "buy",
+      "kind": "deploy_buy",
+      "status": "canceled",
+      "quote": 223.98265000000004,
+      "price": 8.585,
+      "base": 26.09,
+      "rung": 2,
+      "ts": 1800001800.0,
+      "note": "rolled into new tranche",
+      "label": "chop",
+      "first_ts": 1800001800.0,
+      "order_id": "revx-4",
+      "part_base": 10.0,
+      "part_quote": 88.0
+     },
+     "depxAAA1800001800r3": {
+      "client_id": "depxAAA1800001800r3",
+      "sym": "AAA",
+      "exch": "revx",
+      "pair": "AAA/USD",
+      "side": "buy",
+      "kind": "deploy_buy",
+      "status": "canceled",
+      "quote": 167.93599999999998,
+      "price": 8.2,
+      "base": 20.48,
+      "rung": 3,
+      "ts": 1800001800.0,
+      "note": "rolled into new tranche",
+      "label": "chop",
+      "first_ts": 1800001800.0,
+      "order_id": "revx-5"
+     },
+     "depxBBB1800001800r1": {
+      "client_id": "depxBBB1800001800r1",
+      "sym": "BBB",
+      "exch": "revx",
+      "pair": "BBB/USD",
+      "side": "buy",
+      "kind": "deploy_buy",
+      "status": "canceled",
+      "quote": 83.8375,
+      "price": 2.375,
+      "base": 35.300000000000004,
+      "rung": 1,
+      "ts": 1800001800.0,
+      "note": "rolled into new tranche",
+      "label": "chop",
+      "first_ts": 1800001800.0,
+      "order_id": "revx-6"
+     },
+     "depxBBB1800001800r2": {
+      "client_id": "depxBBB1800001800r2",
+      "sym": "BBB",
+      "exch": "revx",
+      "pair": "BBB/USD",
+      "side": "buy",
+      "kind": "deploy_buy",
+      "status": "canceled",
+      "quote": 111.825,
+      "price": 2.25,
+      "base": 49.7,
+      "rung": 2,
+      "ts": 1800001800.0,
+      "note": "rolled into new tranche",
+      "label": "chop",
+      "first_ts": 1800001800.0,
+      "order_id": "revx-7"
+     },
+     "depxBBB1800001800r3": {
+      "client_id": "depxBBB1800001800r3",
+      "sym": "BBB",
+      "exch": "revx",
+      "pair": "BBB/USD",
+      "side": "buy",
+      "kind": "deploy_buy",
+      "status": "canceled",
+      "quote": 83.84500000000003,
+      "price": 2.0500000000000003,
+      "base": 40.900000000000006,
+      "rung": 3,
+      "ts": 1800001800.0,
+      "note": "rolled into new tranche",
+      "label": "chop",
+      "first_ts": 1800001800.0,
+      "order_id": "revx-8"
+     },
+     "depxAAA1800003600r1": {
+      "client_id": "depxAAA1800003600r1",
+      "sym": "AAA",
+      "exch": "revx",
+      "pair": "AAA/USD",
+      "side": "buy",
+      "kind": "deploy_buy",
+      "status": "open",
+      "quote": 146.69886,
+      "price": 9.273,
+      "base": 15.82,
+      "rung": 1,
+      "ts": 1800003600.0,
+      "note": "30d SMA (-7.3%) (held)",
+      "label": "chop",
+      "first_ts": 1800001800.0,
+      "order_id": "revx-9"
+     },
+     "depxAAA1800003600r2": {
+      "client_id": "depxAAA1800003600r2",
+      "sym": "AAA",
+      "exch": "revx",
+      "pair": "AAA/USD",
+      "side": "buy",
+      "kind": "deploy_buy",
+      "status": "open",
+      "quote": 195.65215,
+      "price": 8.585,
+      "base": 22.79,
+      "rung": 2,
+      "ts": 1800003600.0,
+      "note": "30d low+1% (-14.1%) (held)",
+      "label": "chop",
+      "first_ts": 1800001800.0,
+      "order_id": "revx-10"
+     },
+     "depxAAA1800003600r3": {
+      "client_id": "depxAAA1800003600r3",
+      "sym": "AAA",
+      "exch": "revx",
+      "pair": "AAA/USD",
+      "side": "buy",
+      "kind": "deploy_buy",
+      "status": "open",
+      "quote": 146.69799999999998,
+      "price": 8.2,
+      "base": 17.89,
+      "rung": 3,
+      "ts": 1800003600.0,
+      "note": "-18% (held)",
+      "label": "chop",
+      "first_ts": 1800001800.0,
+      "order_id": "revx-11"
+     },
+     "depxBBB1800003600r1": {
+      "client_id": "depxBBB1800003600r1",
+      "sym": "BBB",
+      "exch": "revx",
+      "pair": "BBB/USD",
+      "side": "buy",
+      "kind": "deploy_buy",
+      "status": "open",
+      "quote": 73.15,
+      "price": 2.375,
+      "base": 30.8,
+      "rung": 1,
+      "ts": 1800003600.0,
+      "note": "-5% (held)",
+      "label": "chop",
+      "first_ts": 1800001800.0,
+      "order_id": "revx-12"
+     },
+     "depxBBB1800003600r2": {
+      "client_id": "depxBBB1800003600r2",
+      "sym": "BBB",
+      "exch": "revx",
+      "pair": "BBB/USD",
+      "side": "buy",
+      "kind": "deploy_buy",
+      "status": "open",
+      "quote": 97.65,
+      "price": 2.25,
+      "base": 43.400000000000006,
+      "rung": 2,
+      "ts": 1800003600.0,
+      "note": "-10% (held)",
+      "label": "chop",
+      "first_ts": 1800001800.0,
+      "order_id": "revx-13"
+     },
+     "depxBBB1800003600r3": {
+      "client_id": "depxBBB1800003600r3",
+      "sym": "BBB",
+      "exch": "revx",
+      "pair": "BBB/USD",
+      "side": "buy",
+      "kind": "deploy_buy",
+      "status": "open",
+      "quote": 73.18500000000002,
+      "price": 2.0500000000000003,
+      "base": 35.7,
+      "rung": 3,
+      "ts": 1800003600.0,
+      "note": "-18% (held)",
+      "label": "chop",
+      "first_ts": 1800001800.0,
+      "order_id": "revx-14"
+     }
+    },
+    "state": {
+     "ts": 1800003600.0,
+     "stable": {
+      "binance": 50.0,
+      "gate": 799.9999999999999,
+      "revx": 1740.0
+     },
+     "part": {
+      "depCCC1800001800r1": 0.0,
+      "depCCC1800001800r2": 0.0,
+      "depCCC1800001800r3": 0.0,
+      "depDDD1800001800r1": 0.0,
+      "depDDD1800001800r2": 0.0,
+      "depDDD1800001800r3": 0.0,
+      "depxAAA1800001800r1": 0.0,
+      "depxAAA1800001800r2": 88.0,
+      "depxAAA1800001800r3": 0.0,
+      "depxBBB1800001800r1": 0.0,
+      "depxBBB1800001800r2": 0.0,
+      "depxBBB1800001800r3": 0.0
+     },
+     "offquote": {
+      "binance:USDT": 0.0,
+      "gate:USDC": 0.0,
+      "revx:USDC": 360.0
+     }
+    }
+   }
+  },
+  {
+   "op": "check",
+   "now": 1800005400.0,
+   "venues": {
+    "revx": {
+     "prices": {
+      "AAA/USD": 9.0,
+      "BBB/USD": 2.8
+     },
+     "balances": {
+      "USD": {
+       "free": 1400.0,
+       "locked": 1200.0
+      }
+     }
+    },
+    "gate": {
+     "balances": {
+      "USDT": {
+       "free": 300.0,
+       "locked": 500.0
+      }
+     }
+    }
+   },
+   "expect": {
+    "results": [
+     {
+      "mode": "live",
+      "hk": true,
+      "deploy": true,
+      "committed": true,
+      "done": "REVX onramp: staged $344.00 USDC for the pending Gate top-up (send it from the app; the bot keeps it in USDC)"
+     },
+     {
+      "mode": "live",
+      "hk": true,
+      "deploy": true,
+      "committed": true,
+      "done": "DEPLOY tranche on revx: $516.00 fresh USD + $733.03 rolled from unfilled zones -> 2 coins, regime CHOP; held 5 resting price level(s)"
+     },
+     {
+      "mode": "live",
+      "hk": true,
+      "deploy": true,
+      "sym": "AAA",
+      "side": "buy",
+      "committed": true,
+      "done": "DEPLOY AAA [spot $9]: $249.74 @ $8.585 (30d low+1% (-14.1%) (held)); $333.00 @ $8.456 (-5% (held $9.273 now at/above spot \u2014 re-anchored)); $249.77 @ $8.2 (-18% (held))"
+     },
+     {
+      "mode": "live",
+      "hk": true,
+      "deploy": true,
+      "sym": "BBB",
+      "side": "buy",
+      "committed": true,
+      "done": "DEPLOY BBB [spot $2.8]: $124.69 @ $2.375 (-5% (held)); $166.50 @ $2.25 (-10% (held)); $124.85 @ $2.05 (-18% (held))"
+     }
+    ],
+    "stdout": "",
+    "exit": null,
+    "raised": false,
+    "raised_text": null,
+    "calls": [
+     [
+      "revx",
+      "market_buy",
+      "USDC/USD",
+      344.0,
+      null
+     ],
+     [
+      "revx",
+      "cancel",
+      "AAA/USD",
+      "revx-9"
+     ],
+     [
+      "revx",
+      "cancel",
+      "AAA/USD",
+      "revx-10"
+     ],
+     [
+      "revx",
+      "cancel",
+      "AAA/USD",
+      "revx-11"
+     ],
+     [
+      "revx",
+      "cancel",
+      "BBB/USD",
+      "revx-12"
+     ],
+     [
+      "revx",
+      "cancel",
+      "BBB/USD",
+      "revx-13"
+     ],
+     [
+      "revx",
+      "cancel",
+      "BBB/USD",
+      "revx-14"
+     ],
+     [
+      "revx",
+      "limit_buy",
+      "AAA/USD",
+      29.09,
+      8.585,
+      "depxAAA1800005400r1"
+     ],
+     [
+      "revx",
+      "limit_buy",
+      "AAA/USD",
+      39.38,
+      8.456,
+      "depxAAA1800005400r2"
+     ],
+     [
+      "revx",
+      "limit_buy",
+      "AAA/USD",
+      30.46,
+      8.2,
+      "depxAAA1800005400r3"
+     ],
+     [
+      "revx",
+      "limit_buy",
+      "BBB/USD",
+      52.5,
+      2.375,
+      "depxBBB1800005400r1"
+     ],
+     [
+      "revx",
+      "limit_buy",
+      "BBB/USD",
+      74.0,
+      2.25,
+      "depxBBB1800005400r2"
+     ],
+     [
+      "revx",
+      "limit_buy",
+      "BBB/USD",
+      60.900000000000006,
+      2.0500000000000003,
+      "depxBBB1800005400r3"
+     ]
+    ],
+    "journal": {
+     "depCCC1800001800r1": {
+      "client_id": "depCCC1800001800r1",
+      "sym": "CCC",
+      "exch": "gate",
+      "pair": "CCC_USDT",
+      "side": "buy",
+      "kind": "deploy_buy",
+      "status": "open",
+      "quote": 67.48800000000001,
+      "price": 3.8000000000000003,
+      "base": 17.76,
+      "rung": 1,
+      "ts": 1800001800.0,
+      "note": "-5%",
+      "label": "chop",
+      "first_ts": 1800001800.0,
+      "order_id": "gate-1"
+     },
+     "depCCC1800001800r2": {
+      "client_id": "depCCC1800001800r2",
+      "sym": "CCC",
+      "exch": "gate",
+      "pair": "CCC_USDT",
+      "side": "buy",
+      "kind": "deploy_buy",
+      "status": "open",
+      "quote": 90.0,
+      "price": 3.6,
+      "base": 25.0,
+      "rung": 2,
+      "ts": 1800001800.0,
+      "note": "-10%",
+      "label": "chop",
+      "first_ts": 1800001800.0,
+      "order_id": "gate-2"
+     },
+     "depCCC1800001800r3": {
+      "client_id": "depCCC1800001800r3",
+      "sym": "CCC",
+      "exch": "gate",
+      "pair": "CCC_USDT",
+      "side": "buy",
+      "kind": "deploy_buy",
+      "status": "open",
+      "quote": 67.4696,
+      "price": 3.2800000000000002,
+      "base": 20.57,
+      "rung": 3,
+      "ts": 1800001800.0,
+      "note": "-18%",
+      "label": "chop",
+      "first_ts": 1800001800.0,
+      "order_id": "gate-3"
+     },
+     "depDDD1800001800r1": {
+      "client_id": "depDDD1800001800r1",
+      "sym": "DDD",
+      "exch": "gate",
+      "pair": "DDD_USDT",
+      "side": "buy",
+      "kind": "deploy_buy",
+      "status": "open",
+      "quote": 22.467026999999998,
+      "price": 0.47499,
+      "base": 47.3,
+      "rung": 1,
+      "ts": 1800001800.0,
+      "note": "-5%",
+      "label": "chop",
+      "first_ts": 1800001800.0,
+      "order_id": "gate-4"
+     },
+     "depDDD1800001800r2": {
+      "client_id": "depDDD1800001800r2",
+      "sym": "DDD",
+      "exch": "gate",
+      "pair": "DDD_USDT",
+      "side": "buy",
+      "kind": "deploy_buy",
+      "status": "open",
+      "quote": 29.97,
+      "price": 0.45,
+      "base": 66.6,
+      "rung": 2,
+      "ts": 1800001800.0,
+      "note": "-10%",
+      "label": "chop",
+      "first_ts": 1800001800.0,
+      "order_id": "gate-5"
+     },
+     "depDDD1800001800r3": {
+      "client_id": "depDDD1800001800r3",
+      "sym": "DDD",
+      "exch": "gate",
+      "pair": "DDD_USDT",
+      "side": "buy",
+      "kind": "deploy_buy",
+      "status": "open",
+      "quote": 22.468,
+      "price": 0.41000000000000003,
+      "base": 54.8,
+      "rung": 3,
+      "ts": 1800001800.0,
+      "note": "-18%",
+      "label": "chop",
+      "first_ts": 1800001800.0,
+      "order_id": "gate-6"
+     },
+     "depxAAA1800001800r1": {
+      "client_id": "depxAAA1800001800r1",
+      "sym": "AAA",
+      "exch": "revx",
+      "pair": "AAA/USD",
+      "side": "buy",
+      "kind": "deploy_buy",
+      "status": "canceled",
+      "quote": 167.93402999999998,
+      "price": 9.273,
+      "base": 18.11,
+      "rung": 1,
+      "ts": 1800001800.0,
+      "note": "rolled into new tranche",
+      "label": "chop",
+      "first_ts": 1800001800.0,
+      "order_id": "revx-3",
+      "filled_base": 12.0,
+      "filled_quote": 105.6,
+      "avg_price": 8.8,
+      "filled_ts": 1800003600.0,
+      "partial": true,
+      "book_pending": true
+     },
+     "depxAAA1800001800r2": {
+      "client_id": "depxAAA1800001800r2",
+      "sym": "AAA",
+      "exch": "revx",
+      "pair": "AAA/USD",
+      "side": "buy",
+      "kind": "deploy_buy",
+      "status": "canceled",
+      "quote": 223.98265000000004,
+      "price": 8.585,
+      "base": 26.09,
+      "rung": 2,
+      "ts": 1800001800.0,
+      "note": "rolled into new tranche",
+      "label": "chop",
+      "first_ts": 1800001800.0,
+      "order_id": "revx-4",
+      "part_base": 10.0,
+      "part_quote": 88.0
+     },
+     "depxAAA1800001800r3": {
+      "client_id": "depxAAA1800001800r3",
+      "sym": "AAA",
+      "exch": "revx",
+      "pair": "AAA/USD",
+      "side": "buy",
+      "kind": "deploy_buy",
+      "status": "canceled",
+      "quote": 167.93599999999998,
+      "price": 8.2,
+      "base": 20.48,
+      "rung": 3,
+      "ts": 1800001800.0,
+      "note": "rolled into new tranche",
+      "label": "chop",
+      "first_ts": 1800001800.0,
+      "order_id": "revx-5"
+     },
+     "depxBBB1800001800r1": {
+      "client_id": "depxBBB1800001800r1",
+      "sym": "BBB",
+      "exch": "revx",
+      "pair": "BBB/USD",
+      "side": "buy",
+      "kind": "deploy_buy",
+      "status": "canceled",
+      "quote": 83.8375,
+      "price": 2.375,
+      "base": 35.300000000000004,
+      "rung": 1,
+      "ts": 1800001800.0,
+      "note": "rolled into new tranche",
+      "label": "chop",
+      "first_ts": 1800001800.0,
+      "order_id": "revx-6"
+     },
+     "depxBBB1800001800r2": {
+      "client_id": "depxBBB1800001800r2",
+      "sym": "BBB",
+      "exch": "revx",
+      "pair": "BBB/USD",
+      "side": "buy",
+      "kind": "deploy_buy",
+      "status": "canceled",
+      "quote": 111.825,
+      "price": 2.25,
+      "base": 49.7,
+      "rung": 2,
+      "ts": 1800001800.0,
+      "note": "rolled into new tranche",
+      "label": "chop",
+      "first_ts": 1800001800.0,
+      "order_id": "revx-7"
+     },
+     "depxBBB1800001800r3": {
+      "client_id": "depxBBB1800001800r3",
+      "sym": "BBB",
+      "exch": "revx",
+      "pair": "BBB/USD",
+      "side": "buy",
+      "kind": "deploy_buy",
+      "status": "canceled",
+      "quote": 83.84500000000003,
+      "price": 2.0500000000000003,
+      "base": 40.900000000000006,
+      "rung": 3,
+      "ts": 1800001800.0,
+      "note": "rolled into new tranche",
+      "label": "chop",
+      "first_ts": 1800001800.0,
+      "order_id": "revx-8"
+     },
+     "depxAAA1800003600r1": {
+      "client_id": "depxAAA1800003600r1",
+      "sym": "AAA",
+      "exch": "revx",
+      "pair": "AAA/USD",
+      "side": "buy",
+      "kind": "deploy_buy",
+      "status": "canceled",
+      "quote": 146.69886,
+      "price": 9.273,
+      "base": 15.82,
+      "rung": 1,
+      "ts": 1800003600.0,
+      "note": "rolled into new tranche",
+      "label": "chop",
+      "first_ts": 1800001800.0,
+      "order_id": "revx-9"
+     },
+     "depxAAA1800003600r2": {
+      "client_id": "depxAAA1800003600r2",
+      "sym": "AAA",
+      "exch": "revx",
+      "pair": "AAA/USD",
+      "side": "buy",
+      "kind": "deploy_buy",
+      "status": "canceled",
+      "quote": 195.65215,
+      "price": 8.585,
+      "base": 22.79,
+      "rung": 2,
+      "ts": 1800003600.0,
+      "note": "rolled into new tranche",
+      "label": "chop",
+      "first_ts": 1800001800.0,
+      "order_id": "revx-10"
+     },
+     "depxAAA1800003600r3": {
+      "client_id": "depxAAA1800003600r3",
+      "sym": "AAA",
+      "exch": "revx",
+      "pair": "AAA/USD",
+      "side": "buy",
+      "kind": "deploy_buy",
+      "status": "canceled",
+      "quote": 146.69799999999998,
+      "price": 8.2,
+      "base": 17.89,
+      "rung": 3,
+      "ts": 1800003600.0,
+      "note": "rolled into new tranche",
+      "label": "chop",
+      "first_ts": 1800001800.0,
+      "order_id": "revx-11"
+     },
+     "depxBBB1800003600r1": {
+      "client_id": "depxBBB1800003600r1",
+      "sym": "BBB",
+      "exch": "revx",
+      "pair": "BBB/USD",
+      "side": "buy",
+      "kind": "deploy_buy",
+      "status": "canceled",
+      "quote": 73.15,
+      "price": 2.375,
+      "base": 30.8,
+      "rung": 1,
+      "ts": 1800003600.0,
+      "note": "rolled into new tranche",
+      "label": "chop",
+      "first_ts": 1800001800.0,
+      "order_id": "revx-12"
+     },
+     "depxBBB1800003600r2": {
+      "client_id": "depxBBB1800003600r2",
+      "sym": "BBB",
+      "exch": "revx",
+      "pair": "BBB/USD",
+      "side": "buy",
+      "kind": "deploy_buy",
+      "status": "canceled",
+      "quote": 97.65,
+      "price": 2.25,
+      "base": 43.400000000000006,
+      "rung": 2,
+      "ts": 1800003600.0,
+      "note": "rolled into new tranche",
+      "label": "chop",
+      "first_ts": 1800001800.0,
+      "order_id": "revx-13"
+     },
+     "depxBBB1800003600r3": {
+      "client_id": "depxBBB1800003600r3",
+      "sym": "BBB",
+      "exch": "revx",
+      "pair": "BBB/USD",
+      "side": "buy",
+      "kind": "deploy_buy",
+      "status": "canceled",
+      "quote": 73.18500000000002,
+      "price": 2.0500000000000003,
+      "base": 35.7,
+      "rung": 3,
+      "ts": 1800003600.0,
+      "note": "rolled into new tranche",
+      "label": "chop",
+      "first_ts": 1800001800.0,
+      "order_id": "revx-14"
+     },
+     "depxAAA1800005400r1": {
+      "client_id": "depxAAA1800005400r1",
+      "sym": "AAA",
+      "exch": "revx",
+      "pair": "AAA/USD",
+      "side": "buy",
+      "kind": "deploy_buy",
+      "status": "open",
+      "quote": 249.73765000000003,
+      "price": 8.585,
+      "base": 29.09,
+      "rung": 1,
+      "ts": 1800005400.0,
+      "note": "30d low+1% (-14.1%) (held)",
+      "label": "chop",
+      "first_ts": 1800001800.0,
+      "order_id": "revx-16"
+     },
+     "depxAAA1800005400r2": {
+      "client_id": "depxAAA1800005400r2",
+      "sym": "AAA",
+      "exch": "revx",
+      "pair": "AAA/USD",
+      "side": "buy",
+      "kind": "deploy_buy",
+      "status": "open",
+      "quote": 332.99728,
+      "price": 8.456,
+      "base": 39.38,
+      "rung": 2,
+      "ts": 1800005400.0,
+      "note": "-5% (held $9.273 now at/above spot \u2014 re-anchored)",
+      "label": "chop",
+      "first_ts": 1800005400.0,
+      "order_id": "revx-17"
+     },
+     "depxAAA1800005400r3": {
+      "client_id": "depxAAA1800005400r3",
+      "sym": "AAA",
+      "exch": "revx",
+      "pair": "AAA/USD",
+      "side": "buy",
+      "kind": "deploy_buy",
+      "status": "open",
+      "quote": 249.772,
+      "price": 8.2,
+      "base": 30.46,
+      "rung": 3,
+      "ts": 1800005400.0,
+      "note": "-18% (held)",
+      "label": "chop",
+      "first_ts": 1800001800.0,
+      "order_id": "revx-18"
+     },
+     "depxBBB1800005400r1": {
+      "client_id": "depxBBB1800005400r1",
+      "sym": "BBB",
+      "exch": "revx",
+      "pair": "BBB/USD",
+      "side": "buy",
+      "kind": "deploy_buy",
+      "status": "open",
+      "quote": 124.6875,
+      "price": 2.375,
+      "base": 52.5,
+      "rung": 1,
+      "ts": 1800005400.0,
+      "note": "-5% (held)",
+      "label": "chop",
+      "first_ts": 1800001800.0,
+      "order_id": "revx-19"
+     },
+     "depxBBB1800005400r2": {
+      "client_id": "depxBBB1800005400r2",
+      "sym": "BBB",
+      "exch": "revx",
+      "pair": "BBB/USD",
+      "side": "buy",
+      "kind": "deploy_buy",
+      "status": "open",
+      "quote": 166.5,
+      "price": 2.25,
+      "base": 74.0,
+      "rung": 2,
+      "ts": 1800005400.0,
+      "note": "-10% (held)",
+      "label": "chop",
+      "first_ts": 1800001800.0,
+      "order_id": "revx-20"
+     },
+     "depxBBB1800005400r3": {
+      "client_id": "depxBBB1800005400r3",
+      "sym": "BBB",
+      "exch": "revx",
+      "pair": "BBB/USD",
+      "side": "buy",
+      "kind": "deploy_buy",
+      "status": "open",
+      "quote": 124.84500000000003,
+      "price": 2.0500000000000003,
+      "base": 60.900000000000006,
+      "rung": 3,
+      "ts": 1800005400.0,
+      "note": "-18% (held)",
+      "label": "chop",
+      "first_ts": 1800001800.0,
+      "order_id": "revx-21"
+     }
+    },
+    "state": {
+     "ts": 1800005400.0,
+     "stable": {
+      "binance": 50.0,
+      "gate": 799.9999999999999,
+      "revx": 2256.0
+     },
+     "part": {
+      "depCCC1800001800r1": 0.0,
+      "depCCC1800001800r2": 0.0,
+      "depCCC1800001800r3": 0.0,
+      "depDDD1800001800r1": 0.0,
+      "depDDD1800001800r2": 0.0,
+      "depDDD1800001800r3": 0.0,
+      "depxAAA1800003600r1": 0.0,
+      "depxAAA1800003600r2": 0.0,
+      "depxAAA1800003600r3": 0.0,
+      "depxBBB1800003600r1": 0.0,
+      "depxBBB1800003600r2": 0.0,
+      "depxBBB1800003600r3": 0.0
+     },
+     "offquote": {
+      "binance:USDT": 0.0,
+      "gate:USDC": 0.0,
+      "revx:USDC": 704.0
+     }
+    }
+   }
+  }
+ ]
+}

@@ -95,23 +95,29 @@ run_lock_wait: 300              # seconds to wait for another run, then SKIPPED 
 mail_name: rungbot              # the error mail's subject: `<name> ERROR (n)`
 log_hint: journalctl --user -u rungbot-run   # where the error mail says to look
 
-# --- Deploy (carried out by the deploy layer) --------------------------------------
-deploy: off                     # off | dry | live                            (off)
-deploy_min_usd: 25
-deploy_max_tranche_usd: 1000
-deploy_max_depth_pct: 20
-deploy_pin_prices: yes
-deploy_sweep_idle: yes
-deploy_bull_sweep: no
-deploy_bull_sweep_days: 14
-deploy_bull_sweep_max_age: 120
-deploy_alloc:                   # weights of new cash per coin
-  AAA: 3
-  BBB: 1
-deploy_zones:                   # buy-zone depths and weights, percent
-  AAA:
-    depths: "5,10,20"
+# --- Deploy: fresh capital on a venue becomes resting limit-buy zones ---------------
+# Each live run compares every venue's quote stable (free + locked) with the last
+# baseline; growth the journal does not explain is new capital and is laddered below
+# spot. See `rungbot-exec deploy` for the manual commands.
+deploy: off                     # live runs the layer; anything else leaves it off (off)
+deploy_min_usd: 25              # smallest tranche, sweep, withhold or conversion      (25)
+deploy_max_tranche_usd: 1000    # most laddered per venue per run; the rest drips     (1000)
+deploy_max_depth_pct: 20        # no rung rests deeper under spot; 0 = no cap           (20)
+deploy_pin_prices: yes          # a re-ladder keeps the price of zones still resting  (yes)
+deploy_sweep_idle: yes          # re-ladder cash a venue freed by cancelling a zone   (yes)
+deploy_bull_sweep: no           # buy zones resting too long at market in a young bull (no)
+deploy_bull_sweep_days: 14      # ... once a zone has rested this many days             (14)
+deploy_bull_sweep_max_age: 120  # ... while the bull is at most this many days old    (120)
+deploy_alloc:                   # weights of new cash per coin, normalised per venue;
+  AAA: 3                        # also the second venue's share for the onramp top-up
+  BBB: 1                        # ({}: equal split within each venue)
+deploy_zones:                   # per-coin zone override: depths and weights, percent
+  AAA:                          # (default: the regime's 5/10/18, 8/15/25 or 3/7/12
+    depths: "5,10,20"           #  with weights 30/40/30)
     weights: "30,40,30"
+revx_pairs:                     # coins listed on the onramp venue but routed elsewhere;
+  AAA: AAA/USD                  # the layer ladders these there while nothing routes to it
+fillodds_low: 0.30              # `rungbot-exec fillodds`: odds under this are sidelined
 
 # --- Coins -------------------------------------------------------------------------
 watchlist:                      # symbol: price-feed id (required, at least one)
@@ -139,6 +145,9 @@ state_dir: ~/.local/state/rungbot
 # regime_state: ~/.local/state/rungbot/regime-state.json
 # froth_state: ~/.local/state/rungbot/froth-state.json
 # run_lock: ~/.local/state/rungbot/orders-journal.lock
+# deploy_state: ~/.local/state/rungbot/deploy-state.json
+# audit_state: ~/.local/state/rungbot/audit-state.json   (the daily marker: + .last)
+# fillodds_cache: ~/.local/state/rungbot/replay/cache   (binance_{SYM}USDT.json, ...)
 
 # --- Where the mails go --------------------------------------------------------------
 notify:
