@@ -1,0 +1,9 @@
+[Unit]
+Description=rungbot monthly backtest, on the 20th
+
+[Timer]
+OnCalendar=*-*-20 04:00:00 UTC
+Persistent=true
+
+[Install]
+WantedBy=timers.target

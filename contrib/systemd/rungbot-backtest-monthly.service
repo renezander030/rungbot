@@ -1,0 +1,26 @@
+# The monthly calibration backtest: replay the ladder over several windows, write the
+# expectation the divergence watch reads, and mail the verdict. Research only; it
+# never trades.
+#
+# Install (as your user):
+#   cp rungbot-backtest-monthly.{service,timer} ~/.config/systemd/user/
+#   systemctl --user daemon-reload
+#   systemctl --user enable --now rungbot-backtest-monthly.timer
+#
+# The start book (--book) is JSON: held coins and free stable per venue; see
+# `rungbot backtest --help`. Keep it next to the config, not in a repository.
+
+[Unit]
+Description=rungbot monthly backtest verdict
+Wants=network-online.target
+After=network-online.target
+
+[Service]
+Type=oneshot
+# The Resend key for the verdict mail, e.g. RESEND_API_KEY=...
+EnvironmentFile=-%h/.config/rungbot/env
+ExecStart=%h/.cargo/bin/rungbot backtest monthly --config %h/.config/rungbot/watchlist.yaml \
+    --book %h/.config/rungbot/backtest-book.json --notify
+TimeoutStartSec=1h
+# A failed run should reach you: point OnFailure at a unit that notifies.
+# OnFailure=notify-failure@%n.service
