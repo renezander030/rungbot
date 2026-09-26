@@ -1,3 +1,7 @@
+<p align="center">
+  <img src="assets/logo.png" alt="rungbot" width="640">
+</p>
+
 # rungbot
 
 A dip-buy / take-profit **ladder** for spot crypto, on Binance, Gate.io and Revolut X.
