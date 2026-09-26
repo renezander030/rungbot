@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="assets/logo.png" alt="rungbot" width="640">
+  <img src="assets/rungbot-logo.png" alt="rungbot" width="640">
 </p>
 
 # rungbot
