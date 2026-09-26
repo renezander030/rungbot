@@ -3,7 +3,7 @@ members = ["crates/rungbot-core", "crates/rungbot-notify", "crates/rungbot-resea
 resolver = "2"
 
 [workspace.package]
-version = "0.5.6"
+version = "0.5.7"
 edition = "2021"
 rust-version = "1.85"
 license = "MIT"

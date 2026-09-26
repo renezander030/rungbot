@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="assets/rungbot-logo.png" alt="rungbot" width="640">
+  <img src="https://raw.githubusercontent.com/renezander030/rungbot/master/assets/rungbot-logo.png" alt="rungbot" width="640">
 </p>
 
 # rungbot
