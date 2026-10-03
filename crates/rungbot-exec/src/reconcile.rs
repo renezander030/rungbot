@@ -12,7 +12,9 @@
 //! * **Cancelled by the venue** with a note that is not ours: before writing the rung
 //!   off, [`adopt_replacement`] looks for the order a venue-side resize leaves behind
 //!   and re-attaches the row to it.
-//! * A failed poll stores `last_error` and moves on; the next good poll clears it.
+//! * A poll that fails on the way (a timeout, a dropped connection) is asked once more
+//!   in the same pass, see [`read_status`]. A failure that survives that, or a refused
+//!   request, stores `last_error` and moves on; the next good poll clears it.
 //!
 //! Rows [`settle_cancel`] booked after one of our own cancels are handed out first.
 //!
@@ -20,6 +22,7 @@
 
 use std::collections::{BTreeMap, BTreeSet};
 
+use crate::http::VenueError;
 use crate::journal::{is_our_cancel, is_venue_cancelled_status, truthy_f, Journal, Order};
 use crate::venue::{ParsedOrder, Venue};
 
@@ -129,6 +132,20 @@ pub fn adopt_replacement(
     Some(out)
 }
 
+/// One order's status from its venue. A read that failed on the way (a timeout, a
+/// dropped connection) is asked once more before it counts: one slow reply is not an
+/// outage. A refused request (any HTTP status) is final the first time.
+pub fn read_status(
+    venue: &dyn Venue,
+    pair: &str,
+    order_id: &str,
+) -> Result<ParsedOrder, VenueError> {
+    match venue.order_status(pair, order_id) {
+        Err(e) if e.is_network_failure() => venue.order_status(pair, order_id),
+        r => r,
+    }
+}
+
 /// Poll every open journaled order and book what happened. See the module docs.
 pub fn reconcile(j: &mut Journal, venues: &dyn VenueSource, now: f64) -> Reconciled {
     let mut out = Reconciled::default();
@@ -155,7 +172,7 @@ pub fn reconcile(j: &mut Journal, venues: &dyn VenueSource, now: f64) -> Reconci
             continue;
         }
         let polled = venues.venue(&o.exch).and_then(|v| {
-            v.order_status(&o.pair, &order_id)
+            read_status(v, &o.pair, &order_id)
                 .map(|st| (v, st))
                 .map_err(|e| e.to_string())
         });
@@ -252,7 +269,7 @@ pub fn settle_cancel(j: &mut Journal, venue: &dyn Venue, cid: &str, now: f64) ->
     let Some(order_id) = o.order_id.clone().filter(|id| !id.is_empty()) else {
         return Settled::NotPlaced;
     };
-    let st = match venue.order_status(&o.pair, &order_id) {
+    let st = match read_status(venue, &o.pair, &order_id) {
         Ok(st) => st,
         Err(e) => {
             o.settle_error = Some(e.to_string());
@@ -265,4 +282,170 @@ pub fn settle_cancel(j: &mut Journal, venue: &dyn Venue, cid: &str, now: f64) ->
     book_partial(o, &st, now);
     o.book_pending = Some(true);
     Settled::Booked(Box::new(o.clone()))
+}
+
+#[cfg(test)]
+mod tests {
+    use std::cell::RefCell;
+    use std::collections::{BTreeMap, VecDeque};
+
+    use serde_json::Value;
+
+    use super::*;
+    use crate::venue::{Balance, Limits};
+
+    const TIMEOUT: &str = "GET /api/1.0/orders/o1 -> None <urlopen error the timeout of the \
+                           request was reached>";
+
+    /// A venue whose status reads answer from a script, one entry per call; writes panic.
+    struct Scripted {
+        answers: RefCell<VecDeque<Result<ParsedOrder, VenueError>>>,
+        reads: RefCell<usize>,
+    }
+
+    impl Scripted {
+        fn new(answers: Vec<Result<ParsedOrder, VenueError>>) -> Scripted {
+            Scripted {
+                answers: RefCell::new(answers.into()),
+                reads: RefCell::new(0),
+            }
+        }
+    }
+
+    fn timeout() -> Result<ParsedOrder, VenueError> {
+        Err(VenueError::new("revx", None, TIMEOUT))
+    }
+
+    fn resting() -> Result<ParsedOrder, VenueError> {
+        Ok(ParsedOrder {
+            order_id: "o1".into(),
+            status: "new".into(),
+            ..Default::default()
+        })
+    }
+
+    impl Venue for Scripted {
+        fn name(&self) -> &'static str {
+            "revx"
+        }
+        fn parse_order(&self, _: &Value) -> Result<ParsedOrder, VenueError> {
+            panic!("reconcile reads parsed statuses")
+        }
+        fn order_status(&self, _: &str, _: &str) -> Result<ParsedOrder, VenueError> {
+            *self.reads.borrow_mut() += 1;
+            self.answers
+                .borrow_mut()
+                .pop_front()
+                .expect("a read past the script")
+        }
+        fn open_orders(&self, _: &str) -> Result<Vec<ParsedOrder>, VenueError> {
+            Ok(vec![])
+        }
+        fn cancel(&self, _: &str, _: &str) -> Result<ParsedOrder, VenueError> {
+            panic!("write: cancel")
+        }
+        fn balances(&self) -> Result<BTreeMap<String, f64>, VenueError> {
+            Ok(BTreeMap::new())
+        }
+        fn balances_full(&self) -> Result<BTreeMap<String, Balance>, VenueError> {
+            Ok(BTreeMap::new())
+        }
+        fn price(&self, _: &str) -> Result<f64, VenueError> {
+            Ok(1.0)
+        }
+        fn limits(&self, _: &str) -> Result<Limits, VenueError> {
+            Ok(Limits::default())
+        }
+        fn round_amount(&self, _: &str, a: f64) -> Result<f64, VenueError> {
+            Ok(a)
+        }
+        fn round_price(&self, _: &str, p: f64) -> Result<f64, VenueError> {
+            Ok(p)
+        }
+        fn market_buy(&self, _: &str, _: f64, _: Option<&str>) -> Result<Value, VenueError> {
+            panic!("write: market_buy")
+        }
+        fn market_sell(&self, _: &str, _: f64, _: Option<&str>) -> Result<Value, VenueError> {
+            panic!("write: market_sell")
+        }
+        fn limit_buy(&self, _: &str, _: f64, _: f64, _: Option<&str>) -> Result<Value, VenueError> {
+            panic!("write: limit_buy")
+        }
+        fn limit_sell(
+            &self,
+            _: &str,
+            _: f64,
+            _: f64,
+            _: Option<&str>,
+        ) -> Result<Value, VenueError> {
+            panic!("write: limit_sell")
+        }
+    }
+
+    struct Only<'a>(&'a Scripted);
+
+    impl VenueSource for Only<'_> {
+        fn venue(&self, _: &str) -> Result<&dyn Venue, String> {
+            Ok(self.0)
+        }
+    }
+
+    fn journal() -> Journal {
+        let mut o = Order::new("c1");
+        o.exch = "revx".into();
+        o.pair = "AAA/USD".into();
+        o.side = "buy".into();
+        o.status = "new".into();
+        o.order_id = Some("o1".into());
+        let mut j = Journal::default();
+        j.record(o);
+        j
+    }
+
+    #[test]
+    fn a_single_timeout_is_asked_again_and_leaves_no_poll_error() {
+        let v = Scripted::new(vec![timeout(), resting()]);
+        let mut j = journal();
+        reconcile(&mut j, &Only(&v), 1.0);
+        assert_eq!(*v.reads.borrow(), 2);
+        let o = &j.orders["c1"];
+        assert_eq!(o.last_error, None);
+        assert_eq!(o.status, "new");
+    }
+
+    #[test]
+    fn a_second_timeout_is_stored_as_the_poll_error() {
+        let v = Scripted::new(vec![timeout(), timeout()]);
+        let mut j = journal();
+        let r = reconcile(&mut j, &Only(&v), 1.0);
+        assert_eq!(*v.reads.borrow(), 2);
+        assert!(r.changed);
+        assert_eq!(j.orders["c1"].last_error.as_deref(), Some(TIMEOUT));
+    }
+
+    #[test]
+    fn a_refused_request_is_not_asked_again() {
+        let refused = "GET /api/v4/spot/orders/o1 -> 417 ";
+        let v = Scripted::new(vec![Err(VenueError::new("gate", Some(417), refused))]);
+        let mut j = journal();
+        reconcile(&mut j, &Only(&v), 1.0);
+        assert_eq!(*v.reads.borrow(), 1);
+        assert_eq!(j.orders["c1"].last_error.as_deref(), Some(refused));
+    }
+
+    #[test]
+    fn the_offline_switch_is_not_asked_again() {
+        let off = "RUNGBOT_OFFLINE is set: no venue calls";
+        let v = Scripted::new(vec![Err(VenueError::new("revx", None, off))]);
+        assert!(read_status(&v, "AAA/USD", "o1").is_err());
+        assert_eq!(*v.reads.borrow(), 1);
+    }
+
+    #[test]
+    fn the_read_after_our_cancel_is_asked_again_too() {
+        let v = Scripted::new(vec![timeout(), resting()]);
+        let mut j = journal();
+        assert_eq!(settle_cancel(&mut j, &v, "c1", 1.0), Settled::NothingFilled);
+        assert_eq!(*v.reads.borrow(), 2);
+    }
 }
