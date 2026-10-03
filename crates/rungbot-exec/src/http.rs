@@ -144,6 +144,12 @@ impl VenueError {
         self.message.starts_with("RUNGBOT_OFFLINE is set")
     }
 
+    /// Did the call fail on the way (a timeout, a refused or dropped connection) instead
+    /// of coming back refused? Nothing was answered, so a read may safely ask again.
+    pub fn is_network_failure(&self) -> bool {
+        self.status.is_none() && self.message.contains("<urlopen error ")
+    }
+
     /// The venue refused the key from this address. On Gate a key without an IP
     /// allowlist is disabled after 90 days, silently, and that is what this looks like.
     pub fn is_ip_refusal(&self) -> bool {
