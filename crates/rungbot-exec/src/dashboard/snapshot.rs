@@ -513,13 +513,17 @@ fn sell_json(c: &sellcheck::SellCheck) -> Json {
 }
 
 /// The journal's venue for a row: its own, else revx for a deploy-zone id, else the
-/// legacy book before the reroute, else today's routing.
+/// `exch` the journal placed it on, else the legacy book before the reroute, else
+/// today's routing.
 fn venue_of(cfg: &RunConfig, d: &DashConfig, o: &Json) -> Json {
     if let Some(v) = o.get("venue").filter(|v| v.truthy()) {
         return v.clone();
     }
     if matches!(o.get("client_id"), Some(Json::Str(c)) if c.starts_with("depx")) {
         return "revx".into();
+    }
+    if let Some(v) = o.get("exch").filter(|v| v.truthy()) {
+        return v.clone();
     }
     let sym = o.get("sym").and_then(Json::as_str).unwrap_or("");
     let ts = o
@@ -1060,5 +1064,42 @@ mod tests {
         assert_eq!(splitlines("a\nb\r\nc\rd"), vec!["a", "b", "c", "d"]);
         assert_eq!(splitlines("a\n"), vec!["a"]);
         assert_eq!(splitlines(""), Vec::<&str>::new());
+    }
+
+    /// A book that routes AKT to revx today, as rio's does.
+    fn akt_routed_to_revx() -> (RunConfig, DashConfig) {
+        let cfg = RunConfig {
+            routing: vec![(
+                "AKT".into(),
+                crate::run::config::CoinRoute {
+                    exch: "revx".into(),
+                    pair: "AKT/USD".into(),
+                    quote: "USD".into(),
+                },
+            )],
+            ..Default::default()
+        };
+        let d = DashConfig::from_run_env(&cfg, &|_| None).unwrap();
+        (cfg, d)
+    }
+
+    #[test]
+    fn venue_of_shows_the_venue_the_journal_placed_the_order_on() {
+        let (cfg, d) = akt_routed_to_revx();
+        // The AKT limit sell that rests on Gate while AKT buys route to revx.
+        let sell = obj(vec![
+            ("client_id", "csAKTs989864r1u95071".into()),
+            ("sym", "AKT".into()),
+            ("exch", "gate".into()),
+            ("ts", 1791127803.0.into()),
+        ]);
+        assert_eq!(venue_of(&cfg, &d, &sell), Json::Str("gate".into()));
+    }
+
+    #[test]
+    fn venue_of_uses_todays_routing_for_a_row_without_a_venue() {
+        let (cfg, d) = akt_routed_to_revx();
+        let row = obj(vec![("sym", "AKT".into()), ("ts", 1791127803.0.into())]);
+        assert_eq!(venue_of(&cfg, &d, &row), Json::Str("revx".into()));
     }
 }
