@@ -1,0 +1,14 @@
+[Unit]
+Description=rungbot deposits: start a run as soon as new cash lands on a venue
+Wants=network-online.target
+After=network-online.target
+
+[Service]
+Type=oneshot
+# Venue keys (read-only calls only).
+EnvironmentFile=-%h/.config/rungbot/env
+# One balance read per routed venue. Free EUR, USD, USDC or USDT that rose by
+# deploy_min_usd or more starts the run now instead of at the next :00/:30; the run's
+# own refresh then updates the dashboard. A check that meets a running run stands aside.
+ExecStart=%h/.cargo/bin/rungbot-exec deposits --config %h/.config/rungbot/run.yaml --on-inflow "systemctl --user start --no-block rungbot-run.service"
+TimeoutStartSec=2min
