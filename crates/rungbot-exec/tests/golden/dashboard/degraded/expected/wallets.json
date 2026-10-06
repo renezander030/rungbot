@@ -141,6 +141,7 @@
   "staked_pct": 19.187358905784155,
   "staked_pct_all": 19.187358905784155,
   "cex_value": 0,
+  "cex_stables": 0,
   "all_holdings": 27687.5000154321,
   "confirmed_bull": false,
   "rule": {

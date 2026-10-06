@@ -669,9 +669,14 @@ pub fn run(cfg: &RunConfig, d: &DashConfig, io: &mut Io) -> Result<(), String> {
                 .unwrap_or(Json::Null),
         };
         let entry_f = entry.truthy().then(|| entry.to_float()).flatten();
-        let gate_amt = gate_full.get(sym).map_or(0.0, |b| b.free);
-        let revx_amt = rx(sym, "available")?;
+        // Held is the whole bag on both venues, coins resting in a sell order included,
+        // so value and P&L read what the account holds. The sell check still gets only
+        // what is free to sell now.
+        let gate_bal = gate_full.get(sym);
+        let gate_amt = gate_bal.map_or(0.0, |b| b.free + b.locked);
+        let revx_amt = rx(sym, "total")?;
         let held = pysum([gate_amt, revx_amt]);
+        let sellable = pysum([gate_bal.map_or(0.0, |b| b.free), rx(sym, "available")?]);
         let price_t = price.filter(|p| *p != 0.0);
         let value = match price_t {
             Some(p) if held != 0.0 => held * p,
@@ -711,7 +716,7 @@ pub fn run(cfg: &RunConfig, d: &DashConfig, io: &mut Io) -> Result<(), String> {
             Some(v) => sell_json(&sellcheck::check(
                 v,
                 route.map(|r| r.pair.as_str()).unwrap_or(""),
-                Some(held),
+                Some(sellable),
                 price,
             )),
             None => obj(vec![
@@ -1088,10 +1093,10 @@ mod tests {
         let (cfg, d) = akt_routed_to_revx();
         // The AKT limit sell that rests on Gate while AKT buys route to revx.
         let sell = obj(vec![
-            ("client_id", "csAKTs989864r1u95071".into()),
+            ("client_id", "csAKTs100000r1u00001".into()),
             ("sym", "AKT".into()),
             ("exch", "gate".into()),
-            ("ts", 1791127803.0.into()),
+            ("ts", 1800000000.0.into()),
         ]);
         assert_eq!(venue_of(&cfg, &d, &sell), Json::Str("gate".into()));
     }
@@ -1099,7 +1104,7 @@ mod tests {
     #[test]
     fn venue_of_uses_todays_routing_for_a_row_without_a_venue() {
         let (cfg, d) = akt_routed_to_revx();
-        let row = obj(vec![("sym", "AKT".into()), ("ts", 1791127803.0.into())]);
+        let row = obj(vec![("sym", "AKT".into()), ("ts", 1800000000.0.into())]);
         assert_eq!(venue_of(&cfg, &d, &row), Json::Str("revx".into()));
     }
 }

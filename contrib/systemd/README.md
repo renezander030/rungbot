@@ -17,7 +17,7 @@ systemctl --user enable --now rungbot-watch-regime.timer rungbot-watch-btc.timer
 | `divergence` | daily, 05:00 UTC |
 | `daily` (froth, then zone) | daily, 05:20 UTC |
 | `rungbot-run` (`rungbot-exec run`) | every 30 minutes |
-| `rungbot-snapshot` (`rungbot-exec snapshot`) | every 5 minutes, at :02, :07, ... |
+| `rungbot-snapshot` (`rungbot-exec snapshot`) | every 5 minutes, at :02, :07, ..., and right after each `rungbot-run` |
 | `rungbot-research-report` (`rungbot research report`) | Sundays, 07:00 |
 | `rungbot-backtest-monthly` (`rungbot backtest monthly --notify`) | the 20th, 04:00 UTC |
 

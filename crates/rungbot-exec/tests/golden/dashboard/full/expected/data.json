@@ -29,10 +29,10 @@
     }
   },
   "portfolio": {
-    "total_value": 1915.965,
+    "total_value": 1943.2649999999999,
     "stable_bag": 1412.728021978022,
     "stable_locked": 89.5,
-    "unrealized_pnl": 746.365,
+    "unrealized_pnl": 761.665,
     "realized_proceeds": 127.15
   },
   "coins": [
@@ -44,10 +44,10 @@
       "venues": [
         "gate"
       ],
-      "held": 3000.0,
+      "held": 3200.0,
       "price": 0.12,
       "chg24h": 7.25,
-      "value": 360.0,
+      "value": 384.0,
       "entry": 0.05,
       "pnl": 140.0,
       "sell_target": 0.057499999999999996,
@@ -144,10 +144,10 @@
       "venues": [
         "revx"
       ],
-      "held": 400.5,
+      "held": 410.5,
       "price": 0.33,
       "chg24h": 0.0,
-      "value": 132.165,
+      "value": 135.465,
       "entry": 0.2,
       "pnl": 64.99999999999999,
       "sell_target": 0.22999999999999998,
