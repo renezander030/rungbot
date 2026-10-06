@@ -111,7 +111,7 @@ pub fn book_json(cfg: &RunConfig, read: &Read) -> Option<Value> {
 }
 
 /// Write a JSON file atomically, readable by its owner only (it lists every balance).
-fn write_private(path: &Path, v: &Value) -> Result<(), String> {
+pub(crate) fn write_private(path: &Path, v: &Value) -> Result<(), String> {
     let body = serde_json::to_string_pretty(v).map_err(|e| e.to_string())? + "\n";
     crate::store::write_atomic(path, &body)?;
     #[cfg(unix)]

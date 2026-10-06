@@ -281,6 +281,15 @@ routed venue, which the watchers read through `watch.balances`; with `--book FIL
 also writes the start book `rungbot backtest monthly --book` replays (held per coin,
 free stable per venue, coins per venue), only when every venue was read.
 
+`rungbot-exec deposits` starts a run as soon as new cash lands. Neither venue pushes
+balance changes, so it reads every routed venue's balances once (read-only) and
+compares each free EUR, USD, USDC and USDT amount with the previous check, kept in
+`deposits-state.json` in `state_dir`. An asset that rose by `deploy_min_usd` or more
+prints an `INFLOW` line, and `--on-inflow CMD` then runs CMD, for example a start of
+`rungbot-run.service`; `contrib/systemd/rungbot-deposits.timer` runs the check every
+minute. The first check of a venue only records it, and a check that meets a run
+holding the run lock reads nothing.
+
 Use `dashboard.wallet_unbond_not_before` to defer a wallet's unbonding prompt until a
 UTC date, for example `PHA: "2029-10-05"`. While waiting, the dashboard shows the date
 and a previously fired alert re-arms, even if public reads fail. On and after the
