@@ -11,5 +11,8 @@ Type=oneshot
 EnvironmentFile=-%h/.config/rungbot/env
 # Publish public_dir after each refresh with dashboard.deploy_command.
 Environment=DASHBOARD_DEPLOY=1
+# The balance bridge first: balances.json for the watchers and the monthly backtest's
+# start book. The leading - lets the dashboard refresh even when a venue read fails.
+ExecStart=-%h/.cargo/bin/rungbot-exec balances --config %h/.config/rungbot/run.yaml --book %h/.config/rungbot/backtest-book.json
 ExecStart=%h/.cargo/bin/rungbot-exec snapshot --config %h/.config/rungbot/run.yaml
 TimeoutStartSec=10min
