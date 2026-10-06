@@ -12,3 +12,7 @@ ExecStart=%h/.cargo/bin/rungbot-exec run --config %h/.config/rungbot/run.yaml
 # A run that finds another one holding the lock waits run_lock_wait seconds, then
 # logs SKIPPED and exits 0; this bound only stops a run that hangs outright.
 TimeoutStartSec=20min
+# Refresh the dashboard as soon as a run ends, so orders it placed or cancelled show
+# within a minute rather than at the next snapshot tick. Non-blocking; a snapshot that
+# is already running absorbs the start. Drop this line if rungbot-snapshot is not installed.
+ExecStartPost=-/usr/bin/systemctl --user start --no-block rungbot-snapshot.service
