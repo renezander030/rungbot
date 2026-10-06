@@ -118,6 +118,8 @@ pub struct WalletKnobs {
     pub lead_pct: f64,
     pub rearm_pct: f64,
     pub trail_only: Vec<String>,
+    /// Earliest UTC date per symbol; price and bull checks still apply afterward.
+    pub unbond_not_before: Vec<(String, String)>,
     pub timeout_s: f64,
 }
 
@@ -242,6 +244,7 @@ impl DashConfig {
                 lead_pct: 30.0,
                 rearm_pct: 10.0,
                 trail_only: Vec::new(),
+                unbond_not_before: Vec::new(),
                 timeout_s: 180.0,
             },
         };
@@ -353,6 +356,19 @@ impl DashConfig {
                 "wallet_rearm_pct" => d.wallets.rearm_pct = number(v, key)?,
                 "wallet_trail_only" => {
                     d.wallets.trail_only = words(v).iter().map(|s| s.to_uppercase()).collect()
+                }
+                "wallet_unbond_not_before" => {
+                    let mut out = Vec::new();
+                    for (sym, value) in map(v, key)? {
+                        let date = text(value, key)?;
+                        if !date.is_ascii() || rungbot_core::scenarios::parse_day(&date).is_none() {
+                            return Err(format!(
+                                "dashboard.{key}.{sym}: expected a valid UTC date YYYY-MM-DD"
+                            ));
+                        }
+                        out.push((sym.to_uppercase(), date));
+                    }
+                    d.wallets.unbond_not_before = out;
                 }
                 "wallet_timeout_s" => d.wallets.timeout_s = number(v, key)?,
                 "wallets" => {

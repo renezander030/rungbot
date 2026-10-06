@@ -6,7 +6,9 @@
 //! first sell tranche (`wallet_tranche_x` times the bot's cost, or a manual target),
 //! sized to the coin's unbonding time. Coins the sell policy only trails also need a
 //! confirmed bull. One alert per crossing; it re-arms once price falls back
-//! `wallet_rearm_pct` under the trigger.
+//! `wallet_rearm_pct` under the trigger. A configured `wallet_unbond_not_before`
+//! date defers a coin's prompt and re-arms its old fired state while waiting; the
+//! date alone never triggers an alert.
 
 use rungbot_core::watch::json::{obj, Json};
 use rungbot_core::watch::pyfmt::{comma, fixed, g, round};
@@ -305,6 +307,34 @@ pub fn run(_cfg: &RunConfig, d: &DashConfig, io: &mut Io) -> Result<(), String> 
         && regime.get("confirmed").is_some_and(Json::truthy);
     let targets = read_json_or(&w.targets, Json::obj());
     let mut errors: Vec<String> = Vec::new();
+    let today = rungbot_core::utc_day(started);
+    let deferred: Vec<_> = w
+        .unbond_not_before
+        .iter()
+        .filter(|(_, date)| today < *date)
+        .collect();
+    let mut state = read_json_or(&d.wallet_state_path(), Json::obj());
+    let mut rearmed = false;
+    for (sym, _) in &deferred {
+        if state
+            .get(sym)
+            .and_then(|s| s.get("fired"))
+            .is_some_and(Json::truthy)
+        {
+            state.set(
+                sym,
+                obj(vec![
+                    ("fired", Json::Bool(false)),
+                    ("ts", Json::Int(started.trunc() as i64)),
+                ]),
+            );
+            rearmed = true;
+        }
+    }
+    // Preserve the re-arm even when public reads fail or the collector times out.
+    if rearmed {
+        crate::store::write_atomic(&d.wallet_state_path(), &state.dumps(None))?;
+    }
 
     let ids: Vec<&str> = w
         .list
@@ -323,7 +353,6 @@ pub fn run(_cfg: &RunConfig, d: &DashConfig, io: &mut Io) -> Result<(), String> 
         }
     };
 
-    let mut state = read_json_or(&d.wallet_state_path(), Json::obj());
     let mut last_good = read_json_or(&d.wallet_last_good_path(), Json::obj());
     let (mut alerts, mut rows) = (Vec::new(), Vec::new());
     for (sym, spec) in &w.list {
@@ -401,6 +430,8 @@ pub fn run(_cfg: &RunConfig, d: &DashConfig, io: &mut Io) -> Result<(), String> 
                 "liquid (no lock)"
             }
             .into();
+        } else if let Some((_, date)) = deferred.iter().find(|(s, _)| s == sym) {
+            status = format!("staking; unbond alerts from {date}");
         } else if let (Some(trig), Some(p)) = (trigger.filter(|t| *t != 0.0), price_n) {
             let p = p.f();
             let hit = p >= trig && (!trail_only || confirmed_bull);
@@ -521,6 +552,24 @@ pub fn run(_cfg: &RunConfig, d: &DashConfig, io: &mut Io) -> Result<(), String> 
     trail.sort();
     trail.dedup();
     let n_rows = rows.len();
+    let mut rule = obj(vec![
+        ("tranche_x", Json::Float(w.tranche_x)),
+        ("lead_pct_per_21d", Json::Float(w.lead_pct)),
+        (
+            "trail_only",
+            Json::Arr(trail.into_iter().map(Json::Str).collect()),
+        ),
+    ]);
+    if !w.unbond_not_before.is_empty() {
+        rule.set(
+            "unbond_not_before",
+            obj(w
+                .unbond_not_before
+                .iter()
+                .map(|(sym, date)| (sym.as_str(), Json::Str(date.clone())))
+                .collect()),
+        );
+    }
     let out = obj(vec![
         (
             "generated",
@@ -534,17 +583,7 @@ pub fn run(_cfg: &RunConfig, d: &DashConfig, io: &mut Io) -> Result<(), String> 
         ("cex_value", cex.json()),
         ("all_holdings", all.json()),
         ("confirmed_bull", Json::Bool(confirmed_bull)),
-        (
-            "rule",
-            obj(vec![
-                ("tranche_x", Json::Float(w.tranche_x)),
-                ("lead_pct_per_21d", Json::Float(w.lead_pct)),
-                (
-                    "trail_only",
-                    Json::Arr(trail.into_iter().map(Json::Str).collect()),
-                ),
-            ]),
-        ),
+        ("rule", rule),
         (
             "errors",
             Json::Arr(errors.iter().cloned().map(Json::Str).collect()),
