@@ -1,0 +1,10 @@
+[Unit]
+Description=rungbot deposits, every minute
+
+[Timer]
+# Second 30 of each minute, clear of the run's :00/:30 start.
+OnCalendar=*:*:30
+AccuracySec=1s
+
+[Install]
+WantedBy=timers.target

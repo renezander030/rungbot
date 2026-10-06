@@ -25,6 +25,7 @@ pub mod binance;
 pub mod clients;
 pub mod dashboard;
 pub mod deploy;
+pub mod deposits;
 pub mod gate;
 pub mod guard;
 pub mod housekeeping;

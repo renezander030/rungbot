@@ -50,6 +50,7 @@ USAGE:
   rungbot-exec import-cex DIR [--dry-run | --write [--force]] | --config
   rungbot-exec keys      check [--venue V]
   rungbot-exec balances  [--config FILE] [--book FILE]
+  rungbot-exec deposits  [--config FILE] [--on-inflow CMD]
 
 DEPLOY (the monthly-capital layer; the run calls it every cycle with deploy: live):
   status             baselines, each venue's quote balance, the open zones
@@ -75,6 +76,14 @@ BALANCES (the balance bridge; read-only on every routed venue):
   --book FILE it also writes the monthly backtest's start book (held per coin, free
   stable per venue, coins per venue), only when every venue was read. Exit 1 when a
   venue could not be read.
+
+DEPOSITS (the deposit check; read-only on every routed venue, about once a minute):
+  compares each venue's free EUR, USD, USDC and USDT with the previous check
+  (deposits-state.json in state_dir) and prints one INFLOW line per asset that rose
+  by deploy_min_usd or more. With --on-inflow CMD it then runs CMD through the shell,
+  e.g. systemctl --user start --no-block rungbot-run.service. The first check of a
+  venue only records it; a check that meets a run holding the run lock reads nothing.
+  Exit 1 when the state file cannot be read or written, or CMD fails.
 
 READ-ONLY REPORTS (the run config names the journal and state files):
   churn              how often the zones were rolled, per fill, and rung lifetimes
@@ -404,6 +413,7 @@ fn main() -> ExitCode {
         "import-cex" => cmd_import(&args),
         "keys" => cmd_keys(&args),
         "balances" => return cmd_balances(&argv),
+        "deposits" => return cmd_deposits(&argv),
         other => Err(format!("unknown command {other:?}\n\n{USAGE}")),
     };
     match r {
@@ -933,6 +943,50 @@ fn cmd_balances(argv: &[String]) -> ExitCode {
             eprintln!("{e}");
             ExitCode::from(1)
         }
+    }
+}
+
+fn cmd_deposits(argv: &[String]) -> ExitCode {
+    use rungbot_exec::deposits::{self, Outcome};
+    use rungbot_exec::run::config::RunConfig;
+    let cfg = match RunConfig::load(&layer_config_path(argv)) {
+        Ok(c) => c,
+        Err(e) => {
+            eprintln!("{e}");
+            return ExitCode::from(1);
+        }
+    };
+    let clients = Clients::new();
+    let ts = now();
+    let stamp = rungbot_exec::dashboard::iso_seconds(ts);
+    let (inflows, failed) = match deposits::check(&cfg, |v| clients.get(v), ts) {
+        Ok(Outcome::Checked { inflows, failed }) => (inflows, failed),
+        Ok(Outcome::Skipped(why)) => {
+            println!("{stamp} SKIPPED deposits: {why}");
+            return ExitCode::SUCCESS;
+        }
+        Err(e) => {
+            eprintln!("{stamp} deposits: {e}");
+            return ExitCode::from(1);
+        }
+    };
+    for (venue, e) in &failed {
+        eprintln!("{stamp} deposits: {venue} not read, its last amounts kept: {e}");
+    }
+    for i in &inflows {
+        println!("{stamp} {}", i.line());
+    }
+    match flag_value(argv, "--on-inflow") {
+        Some(cmd) if !inflows.is_empty() => {
+            println!("{stamp} deposits: running {cmd}");
+            if rungbot_exec::dashboard::shell_deploy(cmd, &mut std::io::stdout()) {
+                ExitCode::SUCCESS
+            } else {
+                eprintln!("{stamp} deposits: --on-inflow failed: {cmd}");
+                ExitCode::from(1)
+            }
+        }
+        _ => ExitCode::SUCCESS,
     }
 }
 
