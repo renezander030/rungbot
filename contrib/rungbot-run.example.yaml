@@ -192,6 +192,8 @@ dashboard:
   wallet_lead_pct: 30           # WALLET_LEAD_PCT: lead band per 21 days unbonding (30)
   wallet_rearm_pct: 10          # the alert re-arms this far under the trigger  (10)
   wallet_trail_only: BBB        # also need a confirmed bull before unbonding (none)
+  # wallet_unbond_not_before:    # earliest UTC date; price/bull checks still apply
+  #   BBB: "2029-10-05"          # no prompt before this; old fired state re-arms
   wallet_timeout_s: 180         # the wallet reads give up after this        (180)
   wallets:                      # public addresses only; no keys
     AAA:
