@@ -49,6 +49,7 @@ USAGE:
   rungbot-exec shadow-diff --list
   rungbot-exec import-cex DIR [--dry-run | --write [--force]] | --config
   rungbot-exec keys      check [--venue V]
+  rungbot-exec balances  [--config FILE] [--book FILE]
 
 DEPLOY (the monthly-capital layer; the run calls it every cycle with deploy: live):
   status             baselines, each venue's quote balance, the open zones
@@ -67,6 +68,13 @@ block in contrib/rungbot-run.example.yaml):
   runs dashboard.deploy_command when DASHBOARD_DEPLOY=1 (or dashboard.deploy: yes).
   Exit 1 when data.json could not be built, or on the 3rd deploy failure in a row
   (and every 12th after), so the unit's failure hook reports it.
+
+BALANCES (the balance bridge; read-only on every routed venue):
+  writes balances.json into state_dir for the watchers (watch.balances): every
+  asset's free and locked amount per venue, or the venue's read error. With
+  --book FILE it also writes the monthly backtest's start book (held per coin, free
+  stable per venue, coins per venue), only when every venue was read. Exit 1 when a
+  venue could not be read.
 
 READ-ONLY REPORTS (the run config names the journal and state files):
   churn              how often the zones were rolled, per fill, and rung lifetimes
@@ -395,6 +403,7 @@ fn main() -> ExitCode {
         "archive" => cmd_archive(&args),
         "import-cex" => cmd_import(&args),
         "keys" => cmd_keys(&args),
+        "balances" => return cmd_balances(&argv),
         other => Err(format!("unknown command {other:?}\n\n{USAGE}")),
     };
     match r {
@@ -897,6 +906,33 @@ fn venue_name(args: &Args) -> Result<&str, String> {
             "--venue {v:?}: expected one of {}",
             VENUES.join(", ")
         ))
+    }
+}
+
+fn cmd_balances(argv: &[String]) -> ExitCode {
+    use rungbot_exec::balances;
+    use rungbot_exec::run::config::RunConfig;
+    let cfg = match RunConfig::load(&layer_config_path(argv)) {
+        Ok(c) => c,
+        Err(e) => {
+            eprintln!("{e}");
+            return ExitCode::from(1);
+        }
+    };
+    let clients = Clients::new();
+    let read = balances::read(&cfg, |v| clients.get(v));
+    let book = flag_value(argv, "--book").map(PathBuf::from);
+    match balances::write(&cfg, &read, book.as_deref(), now()) {
+        Ok(lines) => {
+            for l in lines {
+                println!("{l}");
+            }
+            ExitCode::SUCCESS
+        }
+        Err(e) => {
+            eprintln!("{e}");
+            ExitCode::from(1)
+        }
     }
 }
 

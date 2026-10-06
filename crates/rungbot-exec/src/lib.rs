@@ -20,6 +20,7 @@
 #![forbid(unsafe_code)]
 #![deny(clippy::all)]
 
+pub mod balances;
 pub mod binance;
 pub mod clients;
 pub mod dashboard;

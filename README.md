@@ -275,6 +275,12 @@ cycle top) and `wallets.json` (self-custody balances and staking from public cha
 APIs, with an alert when it is time to start unbonding). With `DASHBOARD_DEPLOY=1` it
 then runs `dashboard.deploy_command`; the third failed deploy in a row exits 1.
 
+`rungbot-exec balances` is the read-only balance bridge for the keyless layers. It
+writes `balances.json` into `state_dir`, every asset's free and locked amount per
+routed venue, which the watchers read through `watch.balances`; with `--book FILE` it
+also writes the start book `rungbot backtest monthly --book` replays (held per coin,
+free stable per venue, coins per venue), only when every venue was read.
+
 Use `dashboard.wallet_unbond_not_before` to defer a wallet's unbonding prompt until a
 UTC date, for example `PHA: "2029-10-05"`. While waiting, the dashboard shows the date
 and a previously fired alert re-arms, even if public reads fail. On and after the
