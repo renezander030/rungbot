@@ -530,14 +530,20 @@ pub fn run(_cfg: &RunConfig, d: &DashConfig, io: &mut Io) -> Result<(), String> 
             })
             .collect::<Result<Vec<_>, String>>()?,
     );
-    let cex = snap
-        .get("portfolio")
-        .filter(|p| p.truthy())
-        .and_then(|p| p.get("total_value"))
-        .filter(|v| v.truthy())
-        .and_then(Num::of)
-        .unwrap_or(Num::Int(0));
-    let all = cex.plus(value);
+    // All holdings is the whole account: the coins on the bot venues (cex_value, the
+    // board's CEX value), their stables with cash in resting buys (cex_stables, the
+    // board's Stables CEX) and the wallets.
+    let book = |k: &str| {
+        snap.get("portfolio")
+            .filter(|p| p.truthy())
+            .and_then(|p| p.get(k))
+            .filter(|v| v.truthy())
+            .and_then(Num::of)
+            .unwrap_or(Num::Int(0))
+    };
+    let cex = book("total_value");
+    let cex_stables = book("stable_bag");
+    let all = cex.plus(cex_stables).plus(value);
     let staked_pct = if value.f() != 0.0 {
         staked_val.f() / value.f() * 100.0
     } else {
@@ -581,6 +587,7 @@ pub fn run(_cfg: &RunConfig, d: &DashConfig, io: &mut Io) -> Result<(), String> 
         ("staked_pct", Json::Float(staked_pct)),
         ("staked_pct_all", Json::Float(staked_pct_all)),
         ("cex_value", cex.json()),
+        ("cex_stables", cex_stables.json()),
         ("all_holdings", all.json()),
         ("confirmed_bull", Json::Bool(confirmed_bull)),
         ("rule", rule),
