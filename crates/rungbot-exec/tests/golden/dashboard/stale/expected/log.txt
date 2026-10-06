@@ -18,4 +18,4 @@ scenarios.json: 5 scenarios, nw0 $2,267, 94 KB
   synthetic top    proxied ['DDD'] | hold peak 2.49x end 1.85x | ladder end 1.68x | live peak 1.52x end 1.43x kept 0.95
   synthetic late   proxied ['DDD'] | hold peak 9.72x end 5.71x | ladder end 3.03x | live peak 3.5x end 2.7x kept 0.77
   synthetic none: skipped
-wrote <public>/wallets.json | 6 wallets | $357,722.67 | staked 76% | of all 76% | alerts 1 | errors 0
+wrote <public>/wallets.json | 6 wallets | $357,722.67 | staked 76% | of all 75% | alerts 1 | errors 0

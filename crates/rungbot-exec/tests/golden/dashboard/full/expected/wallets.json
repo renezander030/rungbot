@@ -162,9 +162,10 @@
   "total_value": 357722.6703757027,
   "staked_value": 270598.2222455422,
   "staked_pct": 75.64469480263665,
-  "staked_pct_all": 75.24169975866388,
-  "cex_value": 1915.965,
-  "all_holdings": 359638.63537570275,
+  "staked_pct_all": 74.94162620944284,
+  "cex_value": 1943.2649999999999,
+  "cex_stables": 1412.728021978022,
+  "all_holdings": 361078.66339768074,
   "confirmed_bull": true,
   "rule": {
     "tranche_x": 4.0,
