@@ -783,3 +783,236 @@ fn deploy_is_skipped_unless_switched_on() {
     assert_eq!(d.scenarios.windows.len(), 8);
     assert!(d.scenarios.windows.iter().all(|w| w.days > 0));
 }
+
+// The approved PHA horizon uses the real collector with scripted public responses.
+struct HorizonFixture {
+    dir: PathBuf,
+    cfg: RunConfig,
+    dash: DashConfig,
+    responses: serde_json::Value,
+    snapshot: serde_json::Value,
+}
+
+impl HorizonFixture {
+    fn new(name: &str) -> Self {
+        let dir =
+            std::env::temp_dir().join(format!("rungbot-horizon-{name}-{}", std::process::id()));
+        std::fs::create_dir_all(dir.join("public")).unwrap();
+        std::fs::create_dir_all(dir.join("work")).unwrap();
+        let inp = load(&gold().join("full/inputs.json"));
+        let common = load(&gold().join("common.json"));
+        let text = config_yaml(&inp, &common, &dir)
+            + "  wallet_unbond_not_before:\n    pha: '2029-10-05'\n";
+        let cfg = RunConfig::from_yaml(&text, &|_| None).unwrap();
+        let mut dash = DashConfig::from_run_env(&cfg, &|_| None).unwrap();
+        for (sym, _) in &mut dash.wallets.list {
+            if sym == "VVV" {
+                *sym = "PHA".into();
+            }
+        }
+        dash.coingecko.push(("PHA".into(), "vvv-coin".into()));
+        dash.wallets.trail_only.push("PHA".into());
+        let mut snapshot: serde_json::Value = serde_json::from_str(
+            &std::fs::read_to_string(gold().join("full/expected/data.json")).unwrap(),
+        )
+        .unwrap();
+        for coin in snapshot["coins"].as_array_mut().unwrap() {
+            if coin["sym"] == "VVV" {
+                coin["sym"] = "PHA".into();
+                coin["entry"] = 1.into();
+            }
+        }
+        std::fs::write(dash.wallets.targets.clone(), "{\"WWW\":2.2}").unwrap();
+        Self {
+            dir,
+            cfg,
+            dash,
+            responses: serde_json::to_value(inp.get("http").unwrap()).unwrap(),
+            snapshot,
+        }
+    }
+
+    fn collect(
+        &mut self,
+        now: f64,
+        price: f64,
+        label: &str,
+        confirmed: bool,
+        missing: bool,
+    ) -> (Json, Json, Vec<String>) {
+        self.snapshot["regime"]["label"] = label.into();
+        self.snapshot["regime"]["confirmed"] = confirmed.into();
+        std::fs::write(self.dash.data_path(), self.snapshot.to_string()).unwrap();
+        let mut responses = self.responses.clone();
+        for (key, spec) in responses.as_object_mut().unwrap() {
+            if key.starts_with("https://api.coingecko.com/api/v3/simple/price?") {
+                spec["body"]["vvv-coin"]["usd"] = price.into();
+            }
+        }
+        if missing {
+            responses
+                .as_object_mut()
+                .unwrap()
+                .retain(|key, _| !key.contains("rpc-one") && !key.contains("rpc-two"));
+        }
+        let venues = Venues {
+            gate: None,
+            revx: FakeVenue {
+                name: "revx",
+                bal: None,
+                err: String::new(),
+                pairs: BTreeMap::new(),
+            },
+        };
+        let market = Tickers(BTreeMap::new());
+        let pings = Pings::default();
+        let (mut out, mut err) = (Vec::new(), Vec::new());
+        let mut io = Io {
+            venues: &venues,
+            market: &market,
+            regime: &|_| panic!("wallets read the saved regime"),
+            http: Http::new(
+                Rc::new(MapTransport {
+                    map: serde_json::from_value(responses).unwrap(),
+                    calls: RefCell::new(Vec::new()),
+                }),
+                Rc::new(move || now),
+            ),
+            revx_auth: &|_, _| panic!("wallets do not sign requests"),
+            outbox: &pings,
+            clock: &|| now,
+            sleep: &|_| {},
+            deploy: &|_, _| panic!("no deploy in tests"),
+            out: &mut out,
+            err: &mut err,
+        };
+        dashboard::wallets::run(&self.cfg, &self.dash, &mut io).unwrap();
+        let sent = pings.0.borrow().clone();
+        (
+            load(&self.dash.wallets_path()),
+            load(&self.dash.wallet_state_path()),
+            sent,
+        )
+    }
+
+    fn fired(&self) {
+        std::fs::write(
+            self.dash.wallet_state_path(),
+            "{\"PHA\":{\"fired\":true,\"ts\":1}}",
+        )
+        .unwrap();
+    }
+}
+
+impl Drop for HorizonFixture {
+    fn drop(&mut self) {
+        let _ = std::fs::remove_dir_all(&self.dir);
+    }
+}
+
+fn pha_status(data: &Json) -> String {
+    s(data
+        .get("wallets")
+        .unwrap()
+        .items()
+        .iter()
+        .find(|r| r.get("sym").map(s).as_deref() == Some("PHA"))
+        .unwrap()
+        .get("status")
+        .unwrap())
+}
+
+fn horizon() -> f64 {
+    rungbot_core::scenarios::parse_day("2029-10-05").unwrap() as f64 * 86_400.0
+}
+
+#[test]
+fn pha_waits_through_the_last_second_and_rearms_before_the_first_eligible_alert() {
+    let mut fixture = HorizonFixture::new("crossing");
+    fixture.fired();
+    let (data, state, alerts) = fixture.collect(horizon() - 1.0, 10.0, "bull", true, false);
+    assert_eq!(pha_status(&data), "staking; unbond alerts from 2029-10-05");
+    assert_eq!(
+        state.get("PHA").unwrap().get("fired"),
+        Some(&Json::Bool(false))
+    );
+    assert!(!alerts.iter().any(|a| a.contains("PHA:")));
+    // Other coins still fire, even while the PHA horizon is closed.
+    for sym in ["AAA", "WWW", "CCC"] {
+        assert!(alerts.iter().any(|a| a.contains(&format!("{sym}:"))));
+    }
+    let (data, state, alerts) = fixture.collect(horizon(), 3.0, "bull", true, false);
+    assert_eq!(pha_status(&data), "UNBOND NOW");
+    assert_eq!(
+        state.get("PHA").unwrap().get("fired"),
+        Some(&Json::Bool(true))
+    );
+    assert_eq!(alerts.iter().filter(|a| a.contains("PHA:")).count(), 1);
+    let (_, _, alerts) = fixture.collect(horizon() + 1.0, 3.0, "bull", true, false);
+    assert!(!alerts.iter().any(|a| a.contains("PHA:")));
+    let (_, state, _) = fixture.collect(horizon() + 2.0, 1.0, "bull", true, false);
+    assert_eq!(
+        state.get("PHA").unwrap().get("fired"),
+        Some(&Json::Bool(false))
+    );
+    let (_, _, alerts) = fixture.collect(horizon() + 3.0, 3.0, "bull", true, false);
+    assert_eq!(alerts.iter().filter(|a| a.contains("PHA:")).count(), 1);
+}
+
+#[test]
+fn the_date_never_replaces_the_price_band_and_confirmed_bull_checks() {
+    let mut fixture = HorizonFixture::new("conditions");
+    for now in [horizon(), horizon() + 86_400.0] {
+        for (price, label, confirmed, expected) in [
+            (1.0, "bull", true, "watching"),
+            (3.0, "bull", false, "in band, waits for confirmed bull"),
+            (3.0, "bear", true, "in band, waits for confirmed bull"),
+        ] {
+            let (data, _, alerts) = fixture.collect(now, price, label, confirmed, false);
+            assert_eq!(pha_status(&data), expected);
+            assert!(!alerts.iter().any(|a| a.contains("PHA:")));
+        }
+    }
+}
+
+#[test]
+fn deferred_alerts_rearm_even_without_a_successful_chain_read_or_rung() {
+    let mut fixture = HorizonFixture::new("missing");
+    fixture.fired();
+    let (_, state, alerts) = fixture.collect(horizon() - 1.0, 10.0, "bull", true, true);
+    assert_eq!(
+        state.get("PHA").unwrap().get("fired"),
+        Some(&Json::Bool(false))
+    );
+    assert!(!alerts.iter().any(|a| a.contains("PHA:")));
+    fixture.collect(horizon() - 1.0, 10.0, "bull", true, false);
+    fixture.fired();
+    for coin in fixture.snapshot["coins"].as_array_mut().unwrap() {
+        if coin["sym"] == "PHA" {
+            coin["entry"] = serde_json::Value::Null;
+        }
+    }
+    let (data, state, alerts) = fixture.collect(horizon() - 1.0, 10.0, "bull", true, true);
+    assert_eq!(pha_status(&data), "staking; unbond alerts from 2029-10-05");
+    assert_eq!(
+        state.get("PHA").unwrap().get("fired"),
+        Some(&Json::Bool(false))
+    );
+    assert!(!alerts.iter().any(|a| a.contains("PHA:")));
+}
+
+#[test]
+fn unbond_horizons_reject_invalid_dates_instead_of_silently_disabling_the_gate() {
+    let inp = load(&gold().join("full/inputs.json"));
+    let common = load(&gold().join("common.json"));
+    let base = config_yaml(&inp, &common, Path::new("unused-horizon-config"));
+    for date in ["2029-02-30", "2029-10-5", "tomorrow", "２０２９-10-05"] {
+        let cfg = RunConfig::from_yaml(
+            &format!("{base}  wallet_unbond_not_before:\n    PHA: '{date}'\n"),
+            &|_| None,
+        )
+        .unwrap();
+        let error = DashConfig::from_run_env(&cfg, &|_| None).unwrap_err();
+        assert!(error.contains("valid UTC date YYYY-MM-DD"), "{error}");
+    }
+}

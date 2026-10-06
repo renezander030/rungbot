@@ -275,6 +275,12 @@ cycle top) and `wallets.json` (self-custody balances and staking from public cha
 APIs, with an alert when it is time to start unbonding). With `DASHBOARD_DEPLOY=1` it
 then runs `dashboard.deploy_command`; the third failed deploy in a row exits 1.
 
+Use `dashboard.wallet_unbond_not_before` to defer a wallet's unbonding prompt until a
+UTC date, for example `PHA: "2029-10-05"`. While waiting, the dashboard shows the date
+and a previously fired alert re-arms, even if public reads fail. On and after the
+date, the existing price-band and confirmed-bull checks still apply; the date alone
+does not trigger a notification. Wallets without a configured date keep their rules.
+
 | Rail | Default | |
 |---|---|---|
 | mode | off | `--live` |
