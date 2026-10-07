@@ -80,10 +80,13 @@ BALANCES (the balance bridge; read-only on every routed venue):
 DEPOSITS (the deposit check; read-only on every routed venue, about once a minute):
   compares each venue's free EUR, USD, USDC and USDT with the previous check
   (deposits-state.json in state_dir) and prints one INFLOW line per asset that rose
-  by deploy_min_usd or more. With --on-inflow CMD it then runs CMD through the shell,
-  e.g. systemctl --user start --no-block rungbot-run.service. The first check of a
-  venue only records it; a check that meets a run holding the run lock reads nothing.
-  Exit 1 when the state file cannot be read or written, or CMD fails.
+  by deploy_min_usd or more, for money from outside the bot only: after the journal
+  or the decision log changed (a run moved cash) or a coin's total fell on the venue
+  (a sell filled), the check records the new amounts instead. With --on-inflow CMD
+  it then runs CMD through the shell, e.g. systemctl --user start --no-block
+  rungbot-run.service. The first check of a venue only records it; a check that
+  meets a run holding the run lock reads nothing. Exit 1 when the state file cannot
+  be read or written, or CMD fails.
 
 READ-ONLY REPORTS (the run config names the journal and state files):
   churn              how often the zones were rolled, per fill, and rung lifetimes

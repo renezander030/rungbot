@@ -13,10 +13,10 @@ categories = ["finance", "command-line-utilities"]
 documentation = "https://docs.rs/rungbot"
 
 [dependencies]
-rungbot-core = { path = "../rungbot-core", version = "0.5.13" }
-rungbot-notify = { path = "../rungbot-notify", version = "0.5.13" }
-rungbot-research = { path = "../rungbot-research", version = "0.5.13" }
-rungbot-backtest = { path = "../rungbot-backtest", version = "0.5.13" }
+rungbot-core = { path = "../rungbot-core", version = "0.5.14" }
+rungbot-notify = { path = "../rungbot-notify", version = "0.5.14" }
+rungbot-research = { path = "../rungbot-research", version = "0.5.14" }
+rungbot-backtest = { path = "../rungbot-backtest", version = "0.5.14" }
 serde = { workspace = true }
 # float_roundtrip: state files written by other tools must read back to the same bits.
 serde_json = { workspace = true, features = ["float_roundtrip"] }
