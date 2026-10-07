@@ -287,8 +287,10 @@ compares each free EUR, USD, USDC and USDT amount with the previous check, kept 
 `deposits-state.json` in `state_dir`. An asset that rose by `deploy_min_usd` or more
 prints an `INFLOW` line, and `--on-inflow CMD` then runs CMD, for example a start of
 `rungbot-run.service`; `contrib/systemd/rungbot-deposits.timer` runs the check every
-minute. The first check of a venue only records it, and a check that meets a run
-holding the run lock reads nothing.
+minute. Only money from outside the bot counts: after a run moved cash (the journal
+or the decision log changed) or a sell filled (a coin's total fell on the venue),
+the check records the new amounts instead. The first check of a venue only records
+it, and a check that meets a run holding the run lock reads nothing.
 
 Use `dashboard.wallet_unbond_not_before` to defer a wallet's unbonding prompt until a
 UTC date, for example `PHA: "2029-10-05"`. While waiting, the dashboard shows the date
