@@ -88,9 +88,12 @@ Rust 1.85+. No system dependencies.
 | `rungbot kpi` | where each coin sits in its own cycle |
 | `rungbot research` | what is deeply dislocated and still earns fees |
 | `rungbot backtest` | the ladder replayed over history: window, sweep, monthly verdict, studies |
+| `rungbot check` | the config, state and notify credentials in one pass; `--online` reads every price |
 | `rungbot init` · `rungbot tickers` | starter config · just the prices |
 
-All except `init` take `--json`. `--config PATH` works everywhere; `--state PATH` on `plan`.
+All except `init` take `--json`. `--config PATH` works everywhere; `--state PATH` on `plan`
+and `check`. A flag no command knows is refused with the one it most likely meant
+(`unknown flag --sav (did you mean --save?)`), and `--help` works on every command.
 
 ## Config
 
@@ -120,7 +123,9 @@ coins:
 ```
 
 Every setting has an env override (`RUNGBOT_FIRST_PCT`, …). A value that does not parse
-is a hard error. Inline `{a: 1}` flow YAML is not supported; the error says so.
+is a hard error. A key no setting reads (`breaker_pc`, `enrty`) is named on stderr with
+the key it most likely meant, and `rungbot check` lists every one. Inline `{a: 1}` flow
+YAML is not supported; the error says so.
 
 All four venues are public and unauthenticated. Revolut X returns its whole book in one
 request, so any number of Revolut coins costs one call.
@@ -180,7 +185,8 @@ Resend key and the note token are read from the environment, never from the conf
 
 **`--notify`** posts to a webhook or Telegram, deduplicated to one message per new signal
 and one reminder a day. The bot token comes from `RUNGBOT_TELEGRAM_TOKEN`, never the
-config. Every run also records why each coin did nothing; `--save` appends
+config. `notify.telegram.quiet_hours: "22-07"` sends every message in those UTC hours
+silently: it still arrives, the phone makes no sound. Every run also records why each coin did nothing; `--save` appends
 `decisions.jsonl` beside the state file.
 
 ## Watchers
@@ -237,6 +243,9 @@ rungbot-exec reconcile      # books fills, part-fills and venue cancels
 
 The ladder decides with no key loaded; the rails refuse; the journal writes a
 deterministic id **before** the venue is called; only then is a request signed.
+`sync` places from a fresh plan only: one generated more than `--max-plan-age` minutes
+ago (default 60) is refused, and the slippage rail compares the plan's price with the
+venue's price at the moment of placing.
 `sync` places **GTC limit orders only** — a resting order fills while the machine is
 asleep. `reconcile` reads each open order back and books what happened: a fill net of
 a base-coin fee, the filled part of an order that left the book, and a resize made in
@@ -265,6 +274,15 @@ housekeeping, the decision log `decisions.jsonl`, one mail per new signal and th
 level alert. `--dry-run` computes and prints without placing, saving or mailing
 anything; a run that finds another holding the lock prints `SKIPPED` and exits 0.
 [`contrib/systemd`](contrib/systemd) runs it every 30 minutes.
+
+`rungbot-exec health` answers "is the scheduled run still running?" without calling a
+venue: the last completed run from the decision log, whether the journal reads, the
+trade mode, the halt file and the balances snapshot's age. It exits 1 when the last
+run is older than `--max-age` minutes (default 90) or the journal does not read, and
+takes `--json`. For an alarm that also fires when the host itself is down, set
+`heartbeat_url` in the run config (or `RUNGBOT_HEARTBEAT_URL`): every completed run
+then GETs it, so a dead-man's switch such as healthchecks.io or Uptime Kuma alerts
+when the pings stop. Dry and shadow runs do not ping.
 
 `rungbot-exec snapshot` is the read-only dashboard collector, on the same file's
 `dashboard:` block. It writes `data.json` (balances, P&L, the order log, the onramp
@@ -304,7 +322,9 @@ does not trigger a notification. Wallets without a configured date keep their ru
 | acknowledgement | none | `--i-understand`, every run |
 | halt file | `~/.config/rungbot/HALT` | present ⇒ nothing is placed |
 | per order / per day | 50 / 200 across 10 | `--max-order` `--max-daily` `--max-orders` |
-| slippage | 2% | `--max-slippage` |
+| slippage | 2% against the venue's price now | `--max-slippage` |
+| per week | off | `--max-weekly` (7 rolling days) |
+| plan age | 60 min | `--max-plan-age` (`0` = off) |
 
 The client id derives from intent — symbol, side, rung, 30-minute window — so a crash
 between the venue accepting an order and the state being saved cannot place it twice.

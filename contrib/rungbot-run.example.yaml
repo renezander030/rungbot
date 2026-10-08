@@ -94,6 +94,8 @@ order_archive_days: 30          # closed orders move to the archive after this (
 run_lock_wait: 300              # seconds to wait for another run, then SKIPPED (300)
 mail_name: rungbot              # the error mail's subject: `<name> ERROR (n)`
 log_hint: journalctl --user -u rungbot-run   # where the error mail says to look
+heartbeat_url: ""               # GET after each completed run, for a dead-man's switch
+                                # (or RUNGBOT_HEARTBEAT_URL)                  (off)
 
 # --- Deploy: fresh capital on a venue becomes resting limit-buy zones ---------------
 # Each live run compares every venue's quote stable (free + locked) with the last
@@ -224,3 +226,4 @@ notify:
   telegram:
     chat_id: "123456"
     token_env: RUNGBOT_TELEGRAM_TOKEN
+    # quiet_hours: "22-07"      # UTC hours a message arrives without a sound

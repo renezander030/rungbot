@@ -28,6 +28,8 @@ pub mod deploy;
 pub mod deposits;
 pub mod gate;
 pub mod guard;
+pub mod health;
+pub mod heartbeat;
 pub mod housekeeping;
 pub mod http;
 pub mod ids;
@@ -57,3 +59,6 @@ pub use revx::{Revx, RevxCredentials};
 pub use venue::{Balance, Limits, ParsedOrder, Venue};
 
 pub const VERSION: &str = env!("CARGO_PKG_VERSION");
+
+/// The User-Agent of requests that are not venue calls.
+pub const USER_AGENT: &str = concat!("rungbot-exec/", env!("CARGO_PKG_VERSION"));

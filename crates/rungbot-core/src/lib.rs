@@ -41,6 +41,7 @@ pub mod fmt;
 pub mod housekeeping;
 pub mod indicators;
 pub mod ladder;
+pub mod names;
 pub mod notices;
 pub mod pymath;
 pub mod pyrandom;

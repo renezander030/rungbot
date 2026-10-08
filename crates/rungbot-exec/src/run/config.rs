@@ -126,6 +126,8 @@ pub struct RunConfig {
     pub mail_name: String,
     /// Where the error mail says the log is.
     pub log_hint: String,
+    /// A dead-man's-switch URL pinged after each completed run; empty = off.
+    pub heartbeat_url: String,
 
     // ---- deploy (read by the deploy layer)
     pub deploy: String,
@@ -273,6 +275,7 @@ impl Default for RunConfig {
             run_lock_wait: 300.0,
             mail_name: "rungbot".into(),
             log_hint: "journalctl -u rungbot-run".into(),
+            heartbeat_url: String::new(),
             deploy: "off".into(),
             deploy_min_usd: 25.0,
             deploy_max_tranche_usd: 1000.0,
@@ -565,6 +568,7 @@ impl RunConfig {
             "run_lock_wait" => self.run_lock_wait = v.num(key)?,
             "mail_name" => self.mail_name = v.word(key)?,
             "log_hint" => self.log_hint = v.word(key)?,
+            "heartbeat_url" => self.heartbeat_url = v.word(key)?,
             "deploy" => self.deploy = v.word(key)?.to_lowercase(),
             "deploy_min_usd" => self.deploy_min_usd = v.num(key)?,
             "deploy_max_tranche_usd" => self.deploy_max_tranche_usd = v.num(key)?,
