@@ -36,6 +36,7 @@ USAGE:
   rungbot-exec churn     [--days N] [--json] [--config FILE]
   rungbot-exec fillodds  [--horizons 30,90] [--json] [--config FILE]
   rungbot-exec funding   [--config FILE]
+  rungbot-exec health    [--config FILE] [--max-age MIN] [--json]
   rungbot-exec snapshot  [--config FILE] [--only data,scenarios,wallets] [--no-deploy]
   rungbot-exec status    [--pair PAIR --venue V]
   rungbot-exec plan      --from PLAN.json --budget N --pair-map SYM=PAIR,...
@@ -62,6 +63,14 @@ DEPLOY (the monthly-capital layer; the run calls it every cycle with deploy: liv
   cancel [VENUE]     cancel every resting deploy zone (works while halted)
   tranche, market and cancel take the run lock; tranche and market refuse while
   live_trading_enabled is off or the halt file exists.
+
+HEALTH (read-only; calls no venue):
+  the last completed run from the decision log, the journal, the trade mode, the
+  halt file and the balances snapshot's age. Exit 1 when the last run is older than
+  --max-age minutes (default 90) or the journal does not read, so a timer or a
+  monitor can alert on a run that stopped. With `heartbeat_url` in the run config
+  (or RUNGBOT_HEARTBEAT_URL), each completed run also GETs that URL, for a
+  dead-man's switch such as healthchecks.io; dry and shadow runs do not.
 
 SNAPSHOT (the dashboard collector; read-only on every venue, see the `dashboard:`
 block in contrib/rungbot-run.example.yaml):
@@ -141,7 +150,10 @@ OPTIONS:
   --max-order N      per-order cap in quote currency (default 50)
   --max-daily N      daily notional cap (default 200)
   --max-orders N     daily order count cap (default 10)
-  --max-slippage N   refuse if the venue moved this far from the decision (default 2)
+  --max-slippage N   refuse if the venue's price now is this far from the plan's (default 2)
+  --max-weekly N     notional cap over the last 7 days (default 0: off)
+  --max-plan-age MIN sync refuses a plan generated longer ago than this (default 60;
+                     0 turns the check off); plan only warns
 
 Commands that write the journal (sync, reconcile, cancel, archive, import-cex
 --write) take the run lock; a second one waits, then gives up naming the holder.
@@ -197,6 +209,9 @@ impl Args {
                         | "max-daily"
                         | "max-orders"
                         | "max-slippage"
+                        | "max-weekly"
+                        | "max-plan-age"
+                        | "max-age"
                         | "state-dir"
                         | "since"
                         | "tolerance"
@@ -230,6 +245,44 @@ impl Args {
             None => Ok(default),
         }
     }
+}
+
+/// The flags each command reads. `shadow-diff` checks its own.
+fn known_flags(cmd: &str) -> Option<&'static [&'static str]> {
+    const PLACE: &[&str] = &[
+        "from",
+        "budget",
+        "pair-map",
+        "venue",
+        "live",
+        "i-understand",
+        "journal",
+        "config",
+        "max-order",
+        "max-daily",
+        "max-orders",
+        "max-weekly",
+        "max-slippage",
+        "max-plan-age",
+    ];
+    Some(match cmd {
+        "run" => &["config", "dry-run", "state-dir", "verbose"],
+        "health" => &["config", "max-age", "json"],
+        "status" => &["pair", "venue", "journal", "config"],
+        "plan" | "sync" => PLACE,
+        "reconcile" => &["journal", "config"],
+        "cancel" => &["pair", "venue", "live", "i-understand", "journal", "config"],
+        "archive" => &["days", "journal", "config"],
+        "import-cex" => &["dry-run", "write", "force", "config", "journal"],
+        "keys" => &["venue"],
+        "snapshot" => &["config", "only", "no-deploy"],
+        "balances" => &["config", "book"],
+        "deposits" => &["config", "on-inflow"],
+        "deploy" | "churn" | "fillodds" | "funding" => {
+            &["config", "only", "days", "json", "horizons"]
+        }
+        _ => return None,
+    })
 }
 
 fn config_dir() -> PathBuf {
@@ -402,8 +455,25 @@ fn main() -> ExitCode {
         }
     };
 
+    if args.has("help") {
+        print!("{USAGE}");
+        return ExitCode::SUCCESS;
+    }
+    if let Some(known) = known_flags(&args.cmd) {
+        let given = args
+            .flags
+            .keys()
+            .map(String::as_str)
+            .filter(|k| *k != "sub");
+        if let Some(e) = rungbot_core::names::unknown_flag(given, known) {
+            eprintln!("{e}\n\nsee: rungbot-exec --help");
+            return ExitCode::from(1);
+        }
+    }
+
     let r = match args.cmd.as_str() {
         "run" => return cmd_run(&args),
+        "health" => return cmd_health(&args),
         "shadow-diff" => return cmd_shadow_diff(&argv),
         "deploy" | "churn" | "fillodds" | "funding" => cmd_layer(&argv),
         "snapshot" => return cmd_snapshot(&argv),
@@ -487,13 +557,64 @@ fn cmd_run(args: &Args) -> ExitCode {
         verbose: args.has("verbose"),
         shadow: shadow.is_some(),
     };
-    match run::run_locked(&cfg, flags, &mut deps) {
+    let result = run::run_locked(&cfg, flags, &mut deps);
+    if matches!(result, Ok(0)) && !flags.dry_run && !flags.shadow {
+        let env = std::env::var("RUNGBOT_HEARTBEAT_URL").ok();
+        if let Some(url) = rungbot_exec::heartbeat::url(&cfg.heartbeat_url, env) {
+            if let Err(e) = rungbot_exec::heartbeat::ping(&rungbot_exec::http::Minreq, &url) {
+                eprintln!("{e}");
+            }
+        }
+    }
+    match result {
         Ok(0) => ExitCode::SUCCESS,
         Ok(code) => ExitCode::from(code as u8),
         Err(e) => {
             eprintln!("{e}");
             ExitCode::from(1)
         }
+    }
+}
+
+/// `health`: exit 0 when every check passed, 1 when one failed.
+fn cmd_health(args: &Args) -> ExitCode {
+    use rungbot_exec::health::{self, Level};
+    use rungbot_exec::run::config::RunConfig;
+    let (path, _) = run_config_path(args);
+    let cfg = match RunConfig::load(&path) {
+        Ok(c) => c,
+        Err(e) => {
+            eprintln!("{e}");
+            return ExitCode::from(1);
+        }
+    };
+    let max_age = match args.num("max-age", 90.0) {
+        Ok(v) => v,
+        Err(e) => {
+            eprintln!("{e}");
+            return ExitCode::from(1);
+        }
+    };
+    let checks = health::report(&cfg, now(), max_age);
+    if args.has("json") {
+        println!(
+            "{}",
+            serde_json::to_string_pretty(&health::to_json(&checks)).unwrap_or_default()
+        );
+    } else {
+        for c in &checks {
+            let tag = match c.level {
+                Level::Ok => "ok  ",
+                Level::Warn => "WARN",
+                Level::Fail => "FAIL",
+            };
+            println!("{tag} {}", c.message);
+        }
+    }
+    if checks.iter().any(|c| c.level == Level::Fail) {
+        ExitCode::from(1)
+    } else {
+        ExitCode::SUCCESS
     }
 }
 
@@ -1123,8 +1244,87 @@ fn caps_from(args: &Args) -> Result<Caps, String> {
     })
 }
 
+/// Epoch seconds of a plan's `generated` stamp (`2026-09-21T06:47:31+00:00`, UTC).
+fn plan_generated(plan: &serde_json::Value) -> Option<f64> {
+    let g = plan.get("generated")?.as_str()?;
+    let b = g.as_bytes();
+    if b.len() < 19 || b[4] != b'-' || b[7] != b'-' || b[10] != b'T' {
+        return None;
+    }
+    let n = |r: std::ops::Range<usize>| g.get(r)?.parse::<i64>().ok();
+    let rest = &g[19..];
+    let digits: String = rest
+        .strip_prefix('.')
+        .map(|f| f.chars().take_while(char::is_ascii_digit).collect())
+        .unwrap_or_default();
+    let frac = format!("0.{digits}").parse::<f64>().ok();
+    let offset = match g[19..].find(['+', '-']) {
+        Some(i) => {
+            let o = &g[19 + i..];
+            let sign = if o.starts_with('-') { -1 } else { 1 };
+            let h = o.get(1..3)?.parse::<i64>().ok()?;
+            let m = o.get(4..6)?.parse::<i64>().ok()?;
+            sign * (h * 3600 + m * 60)
+        }
+        None => 0,
+    };
+    let days = rungbot_core::time::days_from_civil(n(0..4)?, n(5..7)?, n(8..10)?);
+    let secs = days * 86_400 + n(11..13)? * 3600 + n(14..16)? * 60 + n(17..19)? - offset;
+    Some(secs as f64 + frac.unwrap_or(0.0))
+}
+
+/// Refuse a plan older than `max_age_min` minutes: its prices are no longer the market.
+fn check_plan_age(plan: &serde_json::Value, now: f64, max_age_min: f64) -> Result<(), String> {
+    if max_age_min <= 0.0 {
+        return Ok(());
+    }
+    let Some(at) = plan_generated(plan) else {
+        return Err(
+            "the plan carries no readable `generated` time; make it with \
+                    `rungbot plan --json`, or pass --max-plan-age 0 to place it anyway"
+                .into(),
+        );
+    };
+    let age_min = (now - at) / 60.0;
+    if age_min > max_age_min {
+        return Err(format!(
+            "the plan is {age_min:.0} min old, over --max-plan-age {max_age_min}; \
+             run `rungbot plan --json` again"
+        ));
+    }
+    Ok(())
+}
+
+/// What the rails judge for one planned order, at the venue's price right now.
+fn intent_for(p: &Planned, venue_price: Result<f64, String>) -> Result<Intent, String> {
+    let venue_price =
+        venue_price.map_err(|e| format!("cannot read the venue price for {}: {e}", p.pair))?;
+    Ok(Intent {
+        sym: p.sym.clone(),
+        quote: p.quote,
+        decided_price: p.price,
+        venue_price,
+    })
+}
+
+/// `--max-weekly`: notional placed over the last 7 days, this order included.
+fn weekly_room(placed_7d: f64, quote: f64, cap: f64) -> Result<(), String> {
+    if cap > 0.0 && placed_7d + quote > cap {
+        return Err(format!(
+            "would put the last 7 days at {:.2}, over the {cap:.2} weekly cap",
+            placed_7d + quote
+        ));
+    }
+    Ok(())
+}
+
 fn prepare(args: &Args) -> Result<(Vec<Planned>, Caps, f64), String> {
     let plan = read_plan(args)?;
+    if args.cmd == "sync" {
+        check_plan_age(&plan, now(), args.num("max-plan-age", 60.0)?)?;
+    } else if let Err(e) = check_plan_age(&plan, now(), args.num("max-plan-age", 60.0)?) {
+        println!("WARNING: {e}\n");
+    }
     let budget = args.num("budget", 0.0)?;
     if budget <= 0.0 {
         return Err(
@@ -1254,6 +1454,7 @@ fn cmd_sync(args: &Args) -> Result<(), String> {
     let clients = Clients::new();
     let venue = clients.get(exch)?;
     let day_ago = now() - 86_400.0;
+    let max_weekly = args.num("max-weekly", 0.0)?;
     let (mut placed, mut refused, mut skipped) = (0, 0, 0);
 
     for p in &orders {
@@ -1264,12 +1465,19 @@ fn cmd_sync(args: &Args) -> Result<(), String> {
             println!("  {} {} — already journaled, not re-placed", p.sym, cid);
             continue;
         }
-        let intent = Intent {
-            sym: p.sym.clone(),
-            quote: p.quote,
-            decided_price: p.price,
-            venue_price: p.price,
+        let intent = match intent_for(p, venue.price(&p.pair).map_err(|e| e.to_string())) {
+            Ok(i) => i,
+            Err(e) => {
+                println!("  {} — REFUSED: {e}", p.sym);
+                refused += 1;
+                continue;
+            }
         };
+        if let Err(e) = weekly_room(j.notional_since(ts - 7.0 * 86_400.0), p.quote, max_weekly) {
+            println!("  {} — REFUSED: {e}", p.sym);
+            refused += 1;
+            continue;
+        }
         let ctx = Context {
             mode,
             halted: halt_path().exists(),
@@ -1678,5 +1886,149 @@ mod tests {
         assert_eq!(caps_from(&a).unwrap().max_order_quote, 50.0);
         let b = Args::parse(&["plan".into(), "--max-order".into(), "500".into()]).unwrap();
         assert_eq!(caps_from(&b).unwrap().max_order_quote, 500.0);
+    }
+
+    fn flag_error(a: &[&str]) -> Option<String> {
+        let args = Args::parse(&argv(a)).unwrap();
+        let known = known_flags(&args.cmd)?;
+        rungbot_core::names::unknown_flag(
+            args.flags
+                .keys()
+                .map(String::as_str)
+                .filter(|k| *k != "sub"),
+            known,
+        )
+    }
+
+    #[test]
+    fn a_misspelt_flag_is_refused_before_anything_runs() {
+        assert_eq!(
+            flag_error(&["run", "--dryrun"]).unwrap(),
+            "unknown flag --dryrun (did you mean --dry-run?)"
+        );
+        assert_eq!(
+            flag_error(&["sync", "--from", "p.json", "--max-oder", "10"]).unwrap(),
+            "unknown flag --max-oder (did you mean --max-order?)"
+        );
+        assert_eq!(flag_error(&["run", "--dry-run", "--verbose"]), None);
+        assert_eq!(flag_error(&["import-cex", "/src/bot", "--config"]), None);
+        assert_eq!(
+            flag_error(&["deposits", "--config", "r.yaml", "--on-inflow", "true"]),
+            None
+        );
+        assert_eq!(flag_error(&["shadow-diff", "a", "b", "--anything"]), None);
+    }
+
+    #[test]
+    fn every_flag_the_usage_names_is_known_to_some_command() {
+        let all: Vec<&str> = [
+            "run",
+            "health",
+            "status",
+            "plan",
+            "reconcile",
+            "cancel",
+            "archive",
+            "import-cex",
+            "keys",
+            "snapshot",
+            "balances",
+            "deposits",
+            "deploy",
+        ]
+        .iter()
+        .flat_map(|c| known_flags(c).unwrap().iter().copied())
+        .collect();
+        // shadow-diff parses its own; `--user --no-block` belong to the systemctl example.
+        let shadow = [
+            "since",
+            "tolerance",
+            "abs-tolerance",
+            "window",
+            "rename",
+            "list",
+            "user",
+            "no-block",
+            "help",
+        ];
+        let mut rest = USAGE;
+        while let Some(i) = rest.find("--") {
+            rest = &rest[i + 2..];
+            let name: String = rest
+                .chars()
+                .take_while(|c| c.is_ascii_lowercase() || *c == '-')
+                .collect();
+            if !name.is_empty() && name != "version" && !shadow.contains(&name.as_str()) {
+                assert!(
+                    all.contains(&name.as_str()),
+                    "--{name} is not known to any command"
+                );
+            }
+        }
+    }
+
+    #[test]
+    fn the_plan_stamp_reads_in_every_shape_rungbot_writes() {
+        let at = |g: &str| plan_generated(&serde_json::json!({ "generated": g }));
+        assert_eq!(at("1970-01-01T00:01:00+00:00"), Some(60.0));
+        assert_eq!(at("2026-09-21T06:47:31+00:00"), Some(1_789_973_251.0));
+        assert_eq!(at("2026-09-21T08:47:31+02:00"), Some(1_789_973_251.0));
+        assert_eq!(at("2026-09-21T06:47:31Z"), Some(1_789_973_251.0));
+        assert_eq!(at("2026-09-21T06:47:31.5Z"), Some(1_789_973_251.5));
+        assert_eq!(at("yesterday"), None);
+        assert_eq!(plan_generated(&serde_json::json!({})), None);
+    }
+
+    #[test]
+    fn sync_refuses_a_plan_older_than_its_limit() {
+        let plan = serde_json::json!({ "generated": "1970-01-01T00:00:00+00:00" });
+        assert!(check_plan_age(&plan, 59.0 * 60.0, 60.0).is_ok());
+        let e = check_plan_age(&plan, 61.0 * 60.0, 60.0).unwrap_err();
+        assert!(e.contains("61 min old"), "{e}");
+        assert!(
+            check_plan_age(&plan, 1e9, 0.0).is_ok(),
+            "0 turns the check off"
+        );
+        let e = check_plan_age(&serde_json::json!({ "buys": [] }), 0.0, 60.0).unwrap_err();
+        assert!(e.contains("--max-plan-age 0"), "{e}");
+    }
+
+    #[test]
+    fn the_slippage_rail_judges_the_venue_price_now() {
+        let p = Planned {
+            sym: "AAA".into(),
+            pair: "AAA_USDT".into(),
+            side: Side::Buy,
+            rung: 1,
+            price: 100.0,
+            quote: 20.0,
+            kind: "ladder_buy".into(),
+        };
+        let ctx = Context {
+            mode: guard::Mode::Live,
+            halted: false,
+            acknowledged: true,
+            today_notional: 0.0,
+            today_orders: 0,
+        };
+        let moved = intent_for(&p, Ok(103.0)).unwrap();
+        assert!(matches!(
+            guard::check(&moved, ctx, Caps::default()),
+            Err(Refusal::Slippage { .. })
+        ));
+        let near = intent_for(&p, Ok(101.0)).unwrap();
+        assert!(guard::check(&near, ctx, Caps::default()).is_ok());
+        let e = intent_for(&p, Err("timeout".into())).unwrap_err();
+        assert!(
+            e.contains("cannot read the venue price for AAA_USDT"),
+            "{e}"
+        );
+    }
+
+    #[test]
+    fn the_weekly_cap_counts_the_order_itself_and_zero_is_off() {
+        assert!(weekly_room(450.0, 40.0, 500.0).is_ok());
+        assert!(weekly_room(450.0, 60.0, 500.0).is_err());
+        assert!(weekly_room(1e9, 60.0, 0.0).is_ok());
     }
 }
