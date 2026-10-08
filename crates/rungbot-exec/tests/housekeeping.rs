@@ -368,6 +368,40 @@ fn housekeeping_matches_the_reference_run_after_run() {
             );
             check(&mut f, same(&out["ttl"], &jv(&ttl), &format!("{at} ttl")));
             check(&mut f, same(&out["pnl"], &jv(&pnl), &format!("{at} pnl")));
+            // The fill ping's tag: every FILLED line carries it and no other line does.
+            // It names the line's amount, and a journal row of that coin on that venue
+            // filled for that amount.
+            let after = jv(&journal);
+            for r in &results {
+                let Some(fill) = &r.fill else {
+                    if r.text.contains("FILLED") {
+                        f.push(format!("{at}: no fill tag on {:?}", r.text));
+                    }
+                    continue;
+                };
+                let sym = r.sym.as_deref().unwrap_or_default();
+                let amount = fill
+                    .text
+                    .split_once(" for ~$")
+                    .and_then(|(_, rest)| rest.split_once(" @ "))
+                    .map(|(q, _)| q)
+                    .unwrap_or_default();
+                let row = after.as_object().unwrap().values().any(|o| {
+                    s(&o["sym"]) == sym
+                        && s(&o["exch"]) == fill.exch
+                        && o["filled_quote"]
+                            .as_f64()
+                            .map(|q| pyfmt::fixed(q, 2))
+                            .as_deref()
+                            == Some(amount)
+                });
+                if !r.text.contains("FILLED")
+                    || !r.text.contains(&format!(" {sym} (~${amount}"))
+                    || !row
+                {
+                    f.push(format!("{at}: fill tag {fill:?} on {:?}", r.text));
+                }
+            }
         }
     }
     finish("housekeeping", f);

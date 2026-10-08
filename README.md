@@ -273,7 +273,9 @@ rail when `trade_mode: live` and `live_trading_enabled: yes`, the bull sell poli
 housekeeping, the decision log `decisions.jsonl`, one mail per new signal and the BTC
 level alert. `--dry-run` computes and prints without placing, saving or mailing
 anything; a run that finds another holding the lock prints `SKIPPED` and exits 0.
-[`contrib/systemd`](contrib/systemd) runs it every 30 minutes.
+[`contrib/systemd`](contrib/systemd) runs it every 30 minutes. Every fill goes into
+the housekeeping mail; `telegram_fill_venues: gate` also pings Telegram once for each
+fill on that venue, for a venue whose own order notices are off.
 
 `rungbot-exec health` answers "is the scheduled run still running?" without calling a
 venue: the last completed run from the decision log, whether the journal reads, the
