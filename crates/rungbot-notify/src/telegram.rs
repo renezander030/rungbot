@@ -70,6 +70,10 @@ pub struct TelegramConfig {
     pub host_prefix: bool,
     #[serde(default)]
     pub disable_notification: bool,
+    /// `"22-07"`: UTC hours (start inclusive, end exclusive) in which every message is
+    /// sent silently. It still arrives; the phone makes no sound.
+    #[serde(default)]
+    pub quiet_hours: Option<String>,
     #[serde(default = "yes")]
     pub disable_web_page_preview: bool,
     #[serde(default = "default_timeout")]
@@ -87,6 +91,7 @@ impl TelegramConfig {
             max_chars: default_max_chars(),
             host_prefix: false,
             disable_notification: false,
+            quiet_hours: None,
             disable_web_page_preview: true,
             timeout_s: DEFAULT_TIMEOUT_S,
             user_agent: None,
@@ -102,6 +107,15 @@ impl TelegramConfig {
                 self.token_env
             ))),
         }
+    }
+
+    /// Is a message sent at this UTC hour silent?
+    pub fn silent_at(&self, hour: u32) -> bool {
+        self.disable_notification
+            || self
+                .quiet_hours
+                .as_deref()
+                .is_some_and(|q| quiet_hours_contain(q, hour).unwrap_or(false))
     }
 
     /// The text as it will be sent: cut, prefixed, then held under Telegram's limit.
@@ -127,7 +141,7 @@ impl TelegramConfig {
         if self.disable_web_page_preview {
             body.push_str(",\"disable_web_page_preview\":true");
         }
-        if self.disable_notification {
+        if self.silent_at(utc_hour_now()) {
             body.push_str(",\"disable_notification\":true");
         }
         body.push('}');
@@ -147,6 +161,9 @@ impl TelegramConfig {
         if text.is_empty() {
             return Err(NotifyError::Misconfigured("no message provided".into()));
         }
+        if let Some(q) = &self.quiet_hours {
+            quiet_hours_contain(q, 0).map_err(NotifyError::Misconfigured)?;
+        }
         let token = self.token()?;
         let host = if self.host_prefix { hostname() } else { None };
         let req = self.request(&self.prepare(text, host.as_deref()), &token);
@@ -165,6 +182,32 @@ impl TelegramConfig {
     pub fn send_ok(&self, text: &str) -> bool {
         self.send(text).is_ok()
     }
+}
+
+/// Does the `"START-END"` window of UTC hours hold `hour`? It may wrap past midnight.
+pub fn quiet_hours_contain(spec: &str, hour: u32) -> Result<bool, String> {
+    let bad = || format!("quiet_hours must read START-END in UTC hours 0-23, got {spec:?}");
+    let (a, b) = spec.split_once('-').ok_or_else(bad)?;
+    let (a, b): (u32, u32) = (
+        a.trim().parse().map_err(|_| bad())?,
+        b.trim().parse().map_err(|_| bad())?,
+    );
+    if a > 23 || b > 23 {
+        return Err(bad());
+    }
+    Ok(if a <= b {
+        (a..b).contains(&hour)
+    } else {
+        hour >= a || hour < b
+    })
+}
+
+fn utc_hour_now() -> u32 {
+    let secs = std::time::SystemTime::now()
+        .duration_since(std::time::UNIX_EPOCH)
+        .map(|d| d.as_secs())
+        .unwrap_or(0);
+    ((secs % 86_400) / 3600) as u32
 }
 
 /// At most `limit` UTF-16 units, never splitting a character.
@@ -276,5 +319,25 @@ mod tests {
         assert_eq!(c.chat_id, "-100123");
         assert_eq!(c.max_chars, Some(3900));
         assert!(c.disable_web_page_preview);
+    }
+
+    #[test]
+    fn quiet_hours_wrap_past_midnight_and_refuse_nonsense() {
+        assert_eq!(quiet_hours_contain("22-07", 23), Ok(true));
+        assert_eq!(quiet_hours_contain("22-07", 3), Ok(true));
+        assert_eq!(quiet_hours_contain("22-07", 7), Ok(false));
+        assert_eq!(quiet_hours_contain("22-07", 12), Ok(false));
+        assert_eq!(quiet_hours_contain("1-5", 1), Ok(true));
+        assert_eq!(quiet_hours_contain("1-5", 5), Ok(false));
+        assert!(quiet_hours_contain("22", 0).is_err());
+        assert!(quiet_hours_contain("22-25", 0).is_err());
+
+        let mut c = TelegramConfig::new("1");
+        assert!(!c.silent_at(23));
+        c.quiet_hours = Some("22-07".into());
+        assert!(c.silent_at(23));
+        assert!(!c.silent_at(12));
+        c.disable_notification = true;
+        assert!(c.silent_at(12));
     }
 }

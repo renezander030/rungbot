@@ -23,6 +23,8 @@ pub const TELEGRAM_TOKEN_ENV: &str = rungbot_notify::telegram::DEFAULT_TOKEN_ENV
 pub struct NotifyConfig {
     pub webhook_url: Option<String>,
     pub telegram_chat_id: Option<String>,
+    /// `notify.telegram.quiet_hours`: UTC hours a message is sent silently.
+    pub quiet_hours: Option<String>,
 }
 
 impl NotifyConfig {
@@ -86,6 +88,7 @@ pub fn send(
         let mut tg = TelegramConfig::new(chat.as_str());
         tg.token_env = TELEGRAM_TOKEN_ENV.into();
         tg.max_chars = None;
+        tg.quiet_hours = cfg.quiet_hours.clone();
         tg.user_agent = Some(USER_AGENT.into());
         results.push(("telegram".to_string(), tg.send(text)));
     }

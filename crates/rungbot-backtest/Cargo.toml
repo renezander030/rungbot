@@ -15,4 +15,4 @@ documentation = "https://docs.rs/rungbot-backtest"
 # Pure: every entry point takes price history in and returns text or values out.
 # Reading caches and fetching candles is the CLI's job.
 [dependencies]
-rungbot-core = { path = "../rungbot-core", version = "0.5.5" }
+rungbot-core = { path = "../rungbot-core", version = "0.6.0" }
