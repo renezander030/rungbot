@@ -42,7 +42,7 @@ use std::path::Path;
 
 use serde_json::{json, Map, Value};
 
-use crate::housekeeping::{Books, LadderState, Level, Outcome, Persist};
+use crate::housekeeping::{Books, Fill, LadderState, Level, Outcome, Persist};
 use crate::journal::Journal;
 use crate::reconcile::VenueSource;
 use crate::{pyfmt, store};
@@ -79,6 +79,8 @@ pub struct RunResult {
     pub err: Option<String>,
     /// A note for the log only: no mail, no decision line.
     pub info: Option<String>,
+    /// The fill a housekeeping line booked, for the fill ping.
+    pub fill: Option<Fill>,
 }
 
 impl RunResult {
@@ -112,6 +114,7 @@ impl RunResult {
             mode: Some(o.mode.clone()),
             hk: o.hk,
             committed: o.committed,
+            fill: o.fill.clone(),
             ..Default::default()
         };
         match o.level {
@@ -385,6 +388,19 @@ pub fn rollback(execution: &[RunResult], old_state: &LadderState, new_state: &mu
         }
         new_state.insert(sym.to_string(), Value::Object(cur));
     }
+}
+
+/// One Telegram line per fill booked on a venue in `venues`:
+/// `GATE FILL AAA: buy ~100 AAA for ~$10.00 @ $0.1 (<the order's note>)`.
+pub fn fill_pings(execution: &[RunResult], venues: &[String]) -> Vec<String> {
+    execution
+        .iter()
+        .filter_map(|r| {
+            let f = r.fill.as_ref().filter(|f| venues.contains(&f.exch))?;
+            let sym = r.sym.as_deref().unwrap_or("");
+            Some(format!("{} FILL {sym}: {}", f.exch.to_uppercase(), f.text))
+        })
+        .collect()
 }
 
 fn policy_switch(
@@ -734,6 +750,10 @@ fn run_inner(
                         .telegram(&format!("BULL POLICY SELL {sym}: {t}"));
                 }
             }
+        }
+        // A fill on a venue whose own notices are off: the mail batches it, so ping.
+        for t in fill_pings(&execution, &cfg.telegram_fill_venues) {
+            deps.outbox.telegram(&t);
         }
     }
 
@@ -1094,4 +1114,47 @@ pub fn check_btc_level(
         &cfg.btc_line_name,
         &cfg.halt_file.display().to_string(),
     ))
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn filled(sym: &str, exch: &str, text: &str) -> RunResult {
+        RunResult {
+            sym: Some(sym.into()),
+            side: Some("buy".into()),
+            hk: true,
+            committed: true,
+            done: Some(format!("DEPLOY BUY FILLED ~1 {sym}")),
+            fill: Some(Fill {
+                exch: exch.into(),
+                text: text.into(),
+            }),
+            ..Default::default()
+        }
+    }
+
+    #[test]
+    fn a_fill_pings_only_on_a_listed_venue() {
+        let execution = vec![
+            filled("AAA", "gate", "buy ~100 AAA for ~$10.00 @ $0.1 (n1)"),
+            filled("BBB", "revx", "buy ~50 BBB for ~$5.00 @ $0.1"),
+            RunResult {
+                sym: Some("CCC".into()),
+                done: Some("a deploy line".into()),
+                deploy: true,
+                ..Default::default()
+            },
+        ];
+        assert_eq!(
+            fill_pings(&execution, &["gate".to_string()]),
+            vec!["GATE FILL AAA: buy ~100 AAA for ~$10.00 @ $0.1 (n1)"]
+        );
+        assert_eq!(fill_pings(&execution, &[]), Vec::<String>::new());
+        assert_eq!(
+            fill_pings(&execution, &["gate".to_string(), "revx".to_string()]).len(),
+            2
+        );
+    }
 }
