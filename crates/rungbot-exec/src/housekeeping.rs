@@ -145,6 +145,38 @@ pub struct Outcome {
     pub committed: bool,
     pub level: Level,
     pub text: String,
+    /// The fill this line books, for the fill ping; `None` on every other line.
+    pub fill: Option<Fill>,
+}
+
+/// A fill as the Telegram ping tells it: the venue, and
+/// `buy ~100 AAA for ~$10.00 @ $0.1 (<the order's note>)`.
+#[derive(Debug, Clone, PartialEq)]
+pub struct Fill {
+    pub exch: String,
+    pub text: String,
+}
+
+impl Fill {
+    fn of(o: &Order, side: &str, fb: f64, fq: f64, price: f64) -> Fill {
+        let note = o
+            .note
+            .as_deref()
+            .map(str::trim)
+            .filter(|n| !n.is_empty())
+            .map(|n| format!(" ({n})"))
+            .unwrap_or_default();
+        Fill {
+            exch: o.exch.clone(),
+            text: format!(
+                "{side} ~{} {} for ~${} @ ${}{note}",
+                g(fb, 6),
+                o.sym,
+                pyfmt::fixed(fq, 2),
+                g(price, 6)
+            ),
+        }
+    }
 }
 
 impl Outcome {
@@ -157,6 +189,7 @@ impl Outcome {
             committed: false,
             level,
             text,
+            fill: None,
         }
     }
 
@@ -170,8 +203,14 @@ impl Outcome {
         self
     }
 
+    fn fill(mut self, f: Fill) -> Outcome {
+        self.fill = Some(f);
+        self
+    }
+
     /// The result as a JSON object: `{sym, side, mode, hk, committed, done|warn|err}`,
-    /// absent keys left out.
+    /// absent keys left out. The fill tag is not part of it: the ping reads it, the
+    /// result line stays the reference's.
     pub fn to_json(&self) -> Value {
         let mut m = Map::new();
         if let Some(s) = &self.sym {
@@ -326,6 +365,7 @@ pub fn fetch_balances(venues: &dyn VenueSource, mode: &str) -> (Balances, Vec<Ou
                     committed: false,
                     level: Level::Err,
                     text: format!("{name} balances: {e}"),
+                    fill: None,
                 });
             }
         }
@@ -619,6 +659,7 @@ fn book_fills(
         let fq = o.filled_quote.unwrap_or(0.0);
         let fill_price = || nonzero(o.avg_price).unwrap_or(if fb != 0.0 { fq / fb } else { 0.0 });
         let head = format!("~{} {sym} (~${}", g(fb, 6), pyfmt::fixed(fq, 2));
+        let tag = |side: &str| Fill::of(o, side, fb, fq, fill_price());
         match o.kind.as_str() {
             "market_buy" => {
                 let fp = fill_price();
@@ -635,7 +676,8 @@ fn book_fills(
                             ),
                         )
                         .side("buy")
-                        .committed(),
+                        .committed()
+                        .fill(tag("buy")),
                     );
                     continue;
                 }
@@ -656,7 +698,7 @@ fn book_fills(
                 )?;
                 res.text = format!("BUY FILLED {head}); {}", res.text);
                 res.hk = true;
-                out.push(res.side("buy").committed());
+                out.push(res.side("buy").committed().fill(tag("buy")));
             }
             "deploy_buy" => {
                 if o.exch == "revx" && s.route(sym).is_none_or(|r| r.exch != "revx") {
@@ -669,7 +711,8 @@ fn book_fills(
                             ),
                         )
                         .side("buy")
-                        .committed(),
+                        .committed()
+                        .fill(tag("buy")),
                     );
                     continue;
                 }
@@ -692,7 +735,8 @@ fn book_fills(
                         ),
                     )
                     .side("buy")
-                    .committed(),
+                    .committed()
+                    .fill(tag("buy")),
                 );
             }
             kind => {
@@ -710,7 +754,8 @@ fn book_fills(
                         ),
                     )
                     .side("sell")
-                    .committed(),
+                    .committed()
+                    .fill(tag("sell")),
                 );
                 if let Some(c) = books.ladder.get_mut(sym).and_then(Value::as_object_mut) {
                     c.insert("win_until".into(), json!(now + s.window_hours * 3600.0));

@@ -128,6 +128,9 @@ pub struct RunConfig {
     pub log_hint: String,
     /// A dead-man's-switch URL pinged after each completed run; empty = off.
     pub heartbeat_url: String,
+    /// Venues whose fills each get a Telegram ping, e.g. `gate`; empty = none (the
+    /// housekeeping mail still lists every fill).
+    pub telegram_fill_venues: Vec<String>,
 
     // ---- deploy (read by the deploy layer)
     pub deploy: String,
@@ -276,6 +279,7 @@ impl Default for RunConfig {
             mail_name: "rungbot".into(),
             log_hint: "journalctl -u rungbot-run".into(),
             heartbeat_url: String::new(),
+            telegram_fill_venues: Vec::new(),
             deploy: "off".into(),
             deploy_min_usd: 25.0,
             deploy_max_tranche_usd: 1000.0,
@@ -569,6 +573,10 @@ impl RunConfig {
             "mail_name" => self.mail_name = v.word(key)?,
             "log_hint" => self.log_hint = v.word(key)?,
             "heartbeat_url" => self.heartbeat_url = v.word(key)?,
+            "telegram_fill_venues" => {
+                self.telegram_fill_venues =
+                    v.list(key)?.into_iter().map(|x| x.to_lowercase()).collect()
+            }
             "deploy" => self.deploy = v.word(key)?.to_lowercase(),
             "deploy_min_usd" => self.deploy_min_usd = v.num(key)?,
             "deploy_max_tranche_usd" => self.deploy_max_tranche_usd = v.num(key)?,
@@ -694,6 +702,15 @@ impl RunConfig {
                     env_name(key)
                 ));
             }
+        }
+        if let Some(v) = self
+            .telegram_fill_venues
+            .iter()
+            .find(|v| !matches!(v.as_str(), "binance" | "gate" | "revx"))
+        {
+            return Err(format!(
+                "`telegram_fill_venues`: {v:?} is not a venue (binance, gate, revx)"
+            ));
         }
         if self.watchlist.is_empty() {
             return Err("`watchlist` needs at least one coin".into());
@@ -1091,6 +1108,18 @@ mod tests {
         assert!(RunConfig::from_yaml(bad, &no_env)
             .unwrap_err()
             .contains("BBB"));
+    }
+
+    #[test]
+    fn telegram_fill_venues_read_as_lower_case_venues() {
+        let c = RunConfig::from_yaml(MIN, &no_env).unwrap();
+        assert!(c.telegram_fill_venues.is_empty());
+        let c = RunConfig::from_yaml(&format!("{MIN}telegram_fill_venues: Gate, revx\n"), &no_env)
+            .unwrap();
+        assert_eq!(c.telegram_fill_venues, vec!["gate", "revx"]);
+        let e = RunConfig::from_yaml(&format!("{MIN}telegram_fill_venues: gat\n"), &no_env)
+            .unwrap_err();
+        assert!(e.contains("not a venue"), "{e}");
     }
 
     #[test]

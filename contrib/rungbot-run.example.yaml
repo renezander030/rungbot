@@ -218,6 +218,9 @@ dashboard:
       # api: https://mempool.space/api
 
 # --- Where the mails go --------------------------------------------------------------
+# Venues whose fills each get a Telegram ping, for a venue whose own order notices are
+# off; the housekeeping mail lists every fill either way. Empty = none.
+# telegram_fill_venues: gate
 notify:
   email:
     from: alerts@example.com

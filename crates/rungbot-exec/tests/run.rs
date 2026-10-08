@@ -383,6 +383,8 @@ fn result_of(v: &Value) -> RunResult {
         warn: o("warn"),
         err: o("err"),
         info: o("info"),
+        // The deploy layer books no fill; housekeeping tags its own.
+        fill: None,
     }
 }
 
