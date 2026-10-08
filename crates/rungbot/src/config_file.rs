@@ -83,6 +83,68 @@ pub fn from_str(text: &str) -> Result<CliConfig, ConfigError> {
     })
 }
 
+const TOP_KEYS: &[&str] = &[
+    "bands",
+    "ladder",
+    "coins",
+    "watch",
+    "regime",
+    "notify",
+    "sellpolicy",
+    "backtest",
+    "research",
+];
+const LADDER_KEYS: &[&str] = &[
+    "min_trade_pct",
+    "min_core_pct",
+    "window_hours",
+    "buy_floor_pct",
+    "target_pct",
+    "breaker_pct",
+    "breaker_days",
+    "trail_giveback_pct",
+    "trail",
+];
+const BAND_KEYS: &[&str] = &["first_pct", "step_pct"];
+const COIN_KEYS: &[&str] = &[
+    "venue",
+    "pair",
+    "entry",
+    "bands",
+    "name",
+    "coingecko",
+    "klines",
+];
+
+/// Keys at the top level, under `ladder:`, `bands:` and each coin that no setting reads.
+/// A misspelt key would otherwise leave its setting at the default.
+pub fn unknown_keys(text: &str) -> Vec<String> {
+    let Ok(doc) = yaml::parse(text) else {
+        return Vec::new();
+    };
+    let mut out = Vec::new();
+    let mut check = |path: &str, node: Option<&Yaml>, known: &[&str]| {
+        for (k, _) in node.and_then(|n| n.as_map()).unwrap_or_default() {
+            if !known.contains(&k.as_str()) {
+                out.push(rungbot_core::names::unknown_key(path, k, known));
+            }
+        }
+    };
+    check("", Some(&doc), TOP_KEYS);
+    check("ladder", doc.get("ladder"), LADDER_KEYS);
+    check("bands", doc.get("bands"), BAND_KEYS);
+    for (sym, spec) in doc
+        .get("coins")
+        .and_then(|n| n.as_map())
+        .unwrap_or_default()
+    {
+        let path = format!("coins.{sym}");
+        check(&path, Some(spec), COIN_KEYS);
+        check(&format!("{path}.bands"), spec.get("bands"), BAND_KEYS);
+    }
+    out
+}
+
 fn screen_from(node: Option<&Yaml>) -> Result<ScreenConfig, ConfigError> {
     let mut s = ScreenConfig::default();
     let Some(n) = node else { return Ok(s) };
@@ -273,6 +335,11 @@ fn notifier_from(node: Option<&Yaml>) -> Result<Notifier, ConfigError> {
             if let Some(Yaml::Bool(b)) = tg.get("disable_notification") {
                 t.disable_notification = *b;
             }
+            if let Some(q) = text(tg.get("quiet_hours")) {
+                rungbot_notify::telegram::quiet_hours_contain(&q, 0)
+                    .map_err(|e| ConfigError(format!("notify.telegram.{e}")))?;
+                t.quiet_hours = Some(q);
+            }
         }
         out.telegram = Some(t);
     }
@@ -356,6 +423,7 @@ fn notify_from(node: Option<&Yaml>) -> Result<NotifyConfig, ConfigError> {
     {
         c.telegram_chat_id = Some(chat);
     }
+    c.quiet_hours = n.get("telegram").and_then(|t| text(t.get("quiet_hours")));
     Ok(c)
 }
 
@@ -608,6 +676,29 @@ mod tests {
             cfg.core.settings.trail,
             Trail::Off,
             "`trail: off` survives YAML 1.1"
+        );
+    }
+
+    #[test]
+    fn the_shipped_example_has_no_unknown_keys() {
+        assert_eq!(unknown_keys(EXAMPLE), Vec::<String>::new());
+    }
+
+    #[test]
+    fn a_misspelt_key_is_named_with_the_one_it_meant() {
+        let text = "ladder:\n  breaker_pc: 30\nbandz:\n  first_pct: 5\ncoins:\n  BTC:\n    venue: binance\n    pair: BTCUSDT\n    enrty: 61000\n    bands:\n      step: 4\n";
+        assert_eq!(
+            unknown_keys(text),
+            vec![
+                "unknown key `bandz` (did you mean `bands`?)".to_string(),
+                "unknown key `ladder.breaker_pc` (did you mean `breaker_pct`?)".to_string(),
+                "unknown key `coins.BTC.enrty` (did you mean `entry`?)".to_string(),
+                "unknown key `coins.BTC.bands.step`".to_string(),
+            ]
+        );
+        assert!(
+            from_str(text).is_ok(),
+            "an unknown key warns, it does not refuse"
         );
     }
 

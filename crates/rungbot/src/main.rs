@@ -38,6 +38,7 @@ USAGE:
   rungbot plan    [--config PATH] [--state PATH] [--save] [--fresh]
                   [--prices FILE] [--now EPOCH] [--json]
   rungbot tickers [--config PATH] [--json]
+  rungbot check   [--config PATH] [--state PATH] [--online] [--json]
   rungbot regime  [--config PATH] [--json]
   rungbot regime  --cached [--config PATH] [--force] [-H|--human]
   rungbot kpi     [--config PATH] [--json]
@@ -58,6 +59,11 @@ PLAN OPTIONS:
   --armed    comma-separated coins to force a one-shot armed exit on
   --notify   send the result to the configured webhook or Telegram
 
+CHECK:
+  check       load the config and state, name unknown keys, confirm the notify
+              credentials are in the environment; --online reads every price.
+              Exit 0 when nothing failed, 1 when something did, 2 on a bad config
+
 WATCH:
   regime      mail a market-label change, once when it flips, once when confirmed
   btc         mail when BTC nears or breaks the `watch.btc` lines, once per crossing
@@ -76,6 +82,49 @@ ENVIRONMENT:
   RUNGBOT_ARMED       comma-separated coins to arm
   RUNGBOT_TELEGRAM_TOKEN   bot token; never read from the config file
 ";
+
+/// Every flag any command reads. Anything else is refused, so a typo cannot fall back
+/// to a default silently.
+const KNOWN_FLAGS: &[&str] = &[
+    "armed",
+    "bag",
+    "book",
+    "cache-dir",
+    "cached",
+    "config",
+    "cutoff",
+    "days",
+    "drift-band",
+    "dry-run",
+    "expect",
+    "force",
+    "fresh",
+    "help",
+    "history",
+    "human",
+    "json",
+    "llm",
+    "max-order",
+    "no-percoin",
+    "notify",
+    "now",
+    "online",
+    "out",
+    "percoin-min-gain",
+    "preview",
+    "prices",
+    "recent-from",
+    "refresh",
+    "save",
+    "sources",
+    "state",
+    "steer",
+    "study",
+    "sweep-bag",
+    "tranche",
+    "variants",
+    "windows",
+];
 
 /// Minimal flag parser: `--key value`, `--key=value`, and bare switches.
 struct Args {
@@ -200,9 +249,20 @@ fn main() -> ExitCode {
             return ExitCode::from(1);
         }
     };
+    if args.has("help") {
+        print!("{USAGE}");
+        return ExitCode::SUCCESS;
+    }
+    if let Some(e) =
+        rungbot_core::names::unknown_flag(args.flags.keys().map(String::as_str), KNOWN_FLAGS)
+    {
+        eprintln!("{e}\n\n{USAGE}");
+        return ExitCode::from(1);
+    }
 
     let result = match args.cmd.as_str() {
         "init" => cmd_init(&args),
+        "check" => cmd_check(&args),
         "plan" => cmd_plan(&args),
         "tickers" => cmd_tickers(&args),
         "regime" => cmd_regime(&args),
@@ -266,7 +326,208 @@ fn cmd_init(args: &Args) -> Result<(), Failure> {
 
 fn load_config(args: &Args) -> Result<config_file::CliConfig, Failure> {
     let path = args.path("config", state::default_config_path);
-    config_file::load(&path).map_err(|e| Failure::Config(e.0))
+    let cfg = config_file::load(&path).map_err(|e| Failure::Config(e.0))?;
+    if let Ok(text) = std::fs::read_to_string(&path) {
+        for w in config_file::unknown_keys(&text) {
+            eprintln!("warning: {}: {w}", path.display());
+        }
+    }
+    Ok(cfg)
+}
+
+#[derive(Debug, Clone, Copy, PartialEq)]
+enum Level {
+    Ok,
+    Note,
+    Warn,
+    Fail,
+}
+
+impl Level {
+    fn tag(self) -> &'static str {
+        match self {
+            Level::Ok => "ok  ",
+            Level::Note => "note",
+            Level::Warn => "WARN",
+            Level::Fail => "FAIL",
+        }
+    }
+}
+
+/// Everything `rungbot check` can judge without the network.
+fn check_lines(
+    cfg: &config_file::CliConfig,
+    unknown: &[String],
+    state_path: &std::path::Path,
+    env: &dyn Fn(&str) -> Option<String>,
+) -> Vec<(Level, String)> {
+    let mut out = Vec::new();
+    let coins = &cfg.core.coins;
+    out.push((Level::Ok, format!("{} coin(s) configured", coins.len())));
+    for u in unknown {
+        out.push((
+            Level::Warn,
+            format!("{u}: the setting it names keeps its default"),
+        ));
+    }
+    for c in coins.iter().filter(|c| c.entry.is_none()) {
+        out.push((
+            Level::Note,
+            format!("{}: no entry, so it is watched for dips only", c.symbol),
+        ));
+    }
+
+    match std::fs::read_to_string(state_path) {
+        Err(e) if e.kind() == std::io::ErrorKind::NotFound => out.push((
+            Level::Note,
+            format!(
+                "no state yet at {} (`plan --save` writes it)",
+                state_path.display()
+            ),
+        )),
+        Err(e) => out.push((
+            Level::Fail,
+            format!("state at {} cannot be read: {e}", state_path.display()),
+        )),
+        Ok(raw) => match serde_json::from_str::<serde_json::Value>(&raw) {
+            Ok(v) if v.is_object() => out.push((
+                Level::Ok,
+                format!("state at {} reads", state_path.display()),
+            )),
+            _ => out.push((
+                Level::Fail,
+                format!(
+                    "state at {} does not parse: a run would start cold and repeat rungs",
+                    state_path.display()
+                ),
+            )),
+        },
+    }
+
+    let set = |k: &str| env(k).is_some_and(|v| !v.trim().is_empty());
+    let tg_env = cfg
+        .notifier
+        .telegram
+        .as_ref()
+        .map(|t| t.token_env.clone())
+        .unwrap_or_else(|| notify::TELEGRAM_TOKEN_ENV.to_string());
+    if cfg.notify.telegram_chat_id.is_some() || cfg.notifier.telegram.is_some() {
+        if set(&tg_env) {
+            out.push((Level::Ok, format!("Telegram: chat set, {tg_env} set")));
+        } else {
+            out.push((
+                Level::Fail,
+                format!("Telegram: a chat is configured but {tg_env} is not set"),
+            ));
+        }
+    }
+    if let Some(e) = &cfg.notifier.email {
+        let file = e
+            .api_key_file
+            .as_deref()
+            .map(watch::expand)
+            .filter(|f| f.is_file());
+        if set(&e.api_key_env) || file.is_some() {
+            out.push((
+                Level::Ok,
+                format!("email: {} -> {}, key found", e.from, e.to),
+            ));
+        } else {
+            out.push((
+                Level::Fail,
+                format!(
+                    "email: {} -> {} is configured but {} is not set and no key file was found",
+                    e.from, e.to, e.api_key_env
+                ),
+            ));
+        }
+    }
+    if let Some(u) = &cfg.notify.webhook_url {
+        out.push((
+            Level::Ok,
+            format!("webhook: {}", u.split('?').next().unwrap_or(u)),
+        ));
+    }
+    for (what, p) in [
+        ("watch.journal", &cfg.watch.journal),
+        ("watch.balances", &cfg.watch.balances),
+    ] {
+        if let Some(p) = p {
+            if !p.exists() {
+                out.push((
+                    Level::Warn,
+                    format!("{what}: {} does not exist", p.display()),
+                ));
+            }
+        }
+    }
+    out
+}
+
+fn cmd_check(args: &Args) -> Result<(), Failure> {
+    let path = args.path("config", state::default_config_path);
+    let cfg = config_file::load(&path).map_err(|e| Failure::Config(e.0))?;
+    let text = std::fs::read_to_string(&path).unwrap_or_default();
+    let unknown = config_file::unknown_keys(&text);
+    let spath = args.path("state", state::default_path);
+    let env = |k: &str| std::env::var(k).ok();
+    let mut lines = vec![(Level::Ok, format!("config {} loads", path.display()))];
+    lines.extend(check_lines(&cfg, &unknown, &spath, &env));
+
+    if args.has("online") {
+        match tickers::fetch(&cfg.core.coins, 2) {
+            Ok(prices) => {
+                for c in &cfg.core.coins {
+                    match prices.get(&c.symbol) {
+                        Some(p) => lines.push((
+                            Level::Ok,
+                            format!(
+                                "{}: {} on {}:{}",
+                                c.symbol,
+                                report::fmt_price(Some(p.price)),
+                                c.venue.as_str(),
+                                c.pair
+                            ),
+                        )),
+                        None => lines.push((
+                            Level::Fail,
+                            format!(
+                                "{}: no price from {}:{}",
+                                c.symbol,
+                                c.venue.as_str(),
+                                c.pair
+                            ),
+                        )),
+                    }
+                }
+            }
+            Err(e) => lines.push((Level::Fail, format!("price feed: {e}"))),
+        }
+    }
+
+    let failed = lines.iter().filter(|(l, _)| *l == Level::Fail).count();
+    if args.has("json") {
+        let body: Vec<serde_json::Value> = lines
+            .iter()
+            .map(|(l, m)| serde_json::json!({ "level": l.tag().trim().to_lowercase(), "message": m }))
+            .collect();
+        println!(
+            "{}",
+            serde_json::to_string_pretty(&serde_json::json!({ "ok": failed == 0, "checks": body }))
+                .map_err(|e| Failure::Other(format!("cannot render JSON: {e}")))?
+        );
+    } else {
+        for (l, m) in &lines {
+            println!("{} {m}", l.tag());
+        }
+        if !args.has("online") {
+            println!("\nAdd --online to read every coin's price from its venue.");
+        }
+    }
+    if failed > 0 {
+        return Err(Failure::Exit(1));
+    }
+    Ok(())
 }
 
 fn cmd_tickers(args: &Args) -> Result<(), Failure> {
@@ -824,5 +1085,87 @@ mod tests {
     fn a_flag_missing_its_value_is_an_error() {
         let argv: Vec<String> = ["plan", "--config"].iter().map(|s| s.to_string()).collect();
         assert!(Args::parse(&argv).is_err());
+    }
+
+    fn flag_error(a: &[&str]) -> Option<String> {
+        let argv: Vec<String> = a.iter().map(|s| s.to_string()).collect();
+        let args = Args::parse(&argv).unwrap();
+        rungbot_core::names::unknown_flag(args.flags.keys().map(String::as_str), KNOWN_FLAGS)
+    }
+
+    #[test]
+    fn a_misspelt_flag_is_refused_and_named() {
+        assert_eq!(
+            flag_error(&["plan", "--sav"]).unwrap(),
+            "unknown flag --sav (did you mean --save?)"
+        );
+        assert_eq!(
+            flag_error(&["watch", "daily", "--dryrun"]).unwrap(),
+            "unknown flag --dryrun (did you mean --dry-run?)"
+        );
+        assert_eq!(flag_error(&["plan", "--save", "--json", "--steer"]), None);
+    }
+
+    #[test]
+    fn every_flag_the_usage_names_is_known() {
+        let mut rest = USAGE;
+        while let Some(i) = rest.find("--") {
+            rest = &rest[i + 2..];
+            let name: String = rest
+                .chars()
+                .take_while(|c| c.is_ascii_lowercase() || *c == '-')
+                .collect();
+            if !name.is_empty() && name != "version" {
+                assert!(
+                    KNOWN_FLAGS.contains(&name.as_str()),
+                    "--{name} is not in KNOWN_FLAGS"
+                );
+            }
+        }
+    }
+
+    fn cfg(text: &str) -> config_file::CliConfig {
+        config_file::from_str(text).unwrap()
+    }
+
+    const TG: &str = "notify:\n  telegram_chat_id: \"42\"\ncoins:\n  BTC:\n    venue: binance\n    pair: BTCUSDT\n    entry: 1\n  ETH:\n    venue: binance\n    pair: ETHUSDT\n";
+
+    #[test]
+    fn check_fails_a_telegram_chat_without_its_token() {
+        let missing = std::env::temp_dir().join("rungbot-check-no-state.json");
+        let none = |_: &str| None;
+        let lines = check_lines(&cfg(TG), &[], &missing, &none);
+        assert!(lines
+            .iter()
+            .any(|(l, m)| *l == Level::Fail && m.contains("RUNGBOT_TELEGRAM_TOKEN")));
+        assert!(lines
+            .iter()
+            .any(|(l, m)| *l == Level::Note && m.starts_with("ETH: no entry")));
+        assert!(lines
+            .iter()
+            .any(|(l, m)| *l == Level::Note && m.starts_with("no state yet")));
+
+        let token = |k: &str| (k == "RUNGBOT_TELEGRAM_TOKEN").then(|| "t".to_string());
+        let lines = check_lines(&cfg(TG), &[], &missing, &token);
+        assert!(lines.iter().all(|(l, _)| *l != Level::Fail), "{lines:?}");
+    }
+
+    #[test]
+    fn check_fails_a_state_file_that_does_not_parse() {
+        let p =
+            std::env::temp_dir().join(format!("rungbot-check-state-{}.json", std::process::id()));
+        std::fs::write(&p, "{ not json").unwrap();
+        let token = |_: &str| Some("t".to_string());
+        let lines = check_lines(&cfg(TG), &[], &p, &token);
+        assert!(lines
+            .iter()
+            .any(|(l, m)| *l == Level::Fail && m.contains("does not parse")));
+        std::fs::write(&p, "{}").unwrap();
+        let lines = check_lines(&cfg(TG), &["unknown key `x`".into()], &p, &token);
+        assert!(lines.iter().all(|(l, _)| *l != Level::Fail), "{lines:?}");
+        assert!(lines
+            .iter()
+            .any(|(l, m)| *l == Level::Warn && m.starts_with("unknown key `x`")));
+        let _ = std::fs::remove_file(&p);
     }
 }
