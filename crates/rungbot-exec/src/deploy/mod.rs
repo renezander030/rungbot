@@ -22,6 +22,8 @@
 //!   (staged USDC stays USDC, no free Revolut X cash is laddered that run);
 //! * Gate's USDC (the transfer's bridge asset) auto-converted to USDT;
 //! * the idle sweep: cash a venue freed by cancelling a zone is re-laddered;
+//! * policy proceeds (`deploy_policy_proceeds`): the cash of a bull-policy sell counts as
+//!   new capital, so it ladders on its venue instead of staying free;
 //! * the withhold: the onramp venue re-laddered lighter so the transfer can leave;
 //! * the bull sweep: a zone resting too long in a young bull is bought at market (a
 //!   cancel whose final status is unreadable adds nothing, and the buy never exceeds
@@ -45,7 +47,7 @@ use rungbot_core::watch::pyfmt::{round as py_round, sum as py_sum};
 use serde_json::{json, Map, Value};
 
 use crate::housekeeping::Persist;
-use crate::journal::{Journal, Order};
+use crate::journal::{Journal, Order, POLICY_SELL_LABEL};
 use crate::pyfmt::{fixed, g};
 use crate::reconcile::{price_eq, settle_cancel, Settled, VenueSource};
 use crate::run::config::RunConfig;
@@ -1552,6 +1554,11 @@ impl<'a> Layer<'a> {
                 let fq = o.filled_quote.unwrap_or(0.0);
                 if o.side == "buy" {
                     *x -= (fq - num(part_prev.get(&o.client_id))).max(0.0);
+                } else if self.cfg.deploy_policy_proceeds
+                    && o.label.as_deref() == Some(POLICY_SELL_LABEL)
+                {
+                    // Left unexplained on purpose: the sell's cash is new capital and
+                    // ladders on this venue like a deposit.
                 } else {
                     *x += fq;
                 }
