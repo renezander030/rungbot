@@ -139,6 +139,9 @@ pub struct RunConfig {
     pub deploy_max_depth_pct: f64,
     pub deploy_pin_prices: bool,
     pub deploy_sweep_idle: bool,
+    /// Cash from a bull-policy sell is new capital: it ladders into buy zones on its
+    /// venue like a deposit, instead of staying free until a dip-buy spends it.
+    pub deploy_policy_proceeds: bool,
     pub deploy_bull_sweep: bool,
     pub deploy_bull_sweep_days: f64,
     pub deploy_bull_sweep_max_age: f64,
@@ -286,6 +289,7 @@ impl Default for RunConfig {
             deploy_max_depth_pct: 20.0,
             deploy_pin_prices: true,
             deploy_sweep_idle: true,
+            deploy_policy_proceeds: false,
             deploy_bull_sweep: false,
             deploy_bull_sweep_days: 14.0,
             deploy_bull_sweep_max_age: 120.0,
@@ -583,6 +587,7 @@ impl RunConfig {
             "deploy_max_depth_pct" => self.deploy_max_depth_pct = v.num(key)?,
             "deploy_pin_prices" => self.deploy_pin_prices = v.flag(key)?,
             "deploy_sweep_idle" => self.deploy_sweep_idle = v.flag(key)?,
+            "deploy_policy_proceeds" => self.deploy_policy_proceeds = v.flag(key)?,
             "deploy_bull_sweep" => self.deploy_bull_sweep = v.flag(key)?,
             "deploy_bull_sweep_days" => self.deploy_bull_sweep_days = v.num(key)?,
             "deploy_bull_sweep_max_age" => self.deploy_bull_sweep_max_age = v.num(key)?,
@@ -1006,6 +1011,7 @@ pub const ENV_KNOBS: &[&str] = &[
     "deploy_max_depth_pct",
     "deploy_pin_prices",
     "deploy_sweep_idle",
+    "deploy_policy_proceeds",
     "deploy_bull_sweep",
     "deploy_bull_sweep_days",
     "deploy_bull_sweep_max_age",

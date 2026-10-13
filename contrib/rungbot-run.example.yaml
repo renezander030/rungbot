@@ -107,6 +107,7 @@ deploy_max_tranche_usd: 1000    # most laddered per venue per run; the rest drip
 deploy_max_depth_pct: 20        # no rung rests deeper under spot; 0 = no cap           (20)
 deploy_pin_prices: yes          # a re-ladder keeps the price of zones still resting  (yes)
 deploy_sweep_idle: yes          # re-ladder cash a venue freed by cancelling a zone   (yes)
+deploy_policy_proceeds: no      # ladder the cash of a bull-policy sell on its venue    (no)
 deploy_bull_sweep: no           # buy zones resting too long at market in a young bull (no)
 deploy_bull_sweep_days: 14      # ... once a zone has rested this many days             (14)
 deploy_bull_sweep_max_age: 120  # ... while the bull is at most this many days old    (120)

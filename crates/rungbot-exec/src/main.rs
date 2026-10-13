@@ -36,6 +36,7 @@ USAGE:
   rungbot-exec churn     [--days N] [--json] [--config FILE]
   rungbot-exec fillodds  [--horizons 30,90] [--json] [--config FILE]
   rungbot-exec funding   [--config FILE]
+                         | send-back USD [--hours H] | send-back [--cancel]
   rungbot-exec health    [--config FILE] [--max-age MIN] [--json]
   rungbot-exec snapshot  [--config FILE] [--only data,scenarios,wallets] [--no-deploy]
   rungbot-exec status    [--pair PAIR --venue V]
@@ -278,9 +279,8 @@ fn known_flags(cmd: &str) -> Option<&'static [&'static str]> {
         "snapshot" => &["config", "only", "no-deploy"],
         "balances" => &["config", "book"],
         "deposits" => &["config", "on-inflow"],
-        "deploy" | "churn" | "fillodds" | "funding" => {
-            &["config", "only", "days", "json", "horizons"]
-        }
+        "deploy" | "churn" | "fillodds" => &["config", "only", "days", "json", "horizons"],
+        "funding" => &["config", "json", "hours", "cancel"],
         _ => return None,
     })
 }
@@ -842,7 +842,10 @@ fn positionals(argv: &[String]) -> Vec<String> {
     let mut out = Vec::new();
     let mut it = argv.iter().skip(1);
     while let Some(a) = it.next() {
-        if matches!(a.as_str(), "--config" | "--only" | "--days" | "--horizons") {
+        if matches!(
+            a.as_str(),
+            "--config" | "--only" | "--days" | "--horizons" | "--hours"
+        ) {
             it.next();
         } else if !a.starts_with("--") {
             out.push(a.clone());
@@ -853,6 +856,61 @@ fn positionals(argv: &[String]) -> Vec<String> {
 
 /// `deploy …`, `churn`, `fillodds` and `funding`: the deploy layer's commands and its
 /// read-only reports, all on the run config.
+/// `funding send-back`: hold Gate USDC for a transfer back to Revolut X, show the hold,
+/// or cancel it. Writes the deploy state under the run lock.
+fn funding_send_back(
+    cfg: &rungbot_exec::run::config::RunConfig,
+    argv: &[String],
+    pos: &[String],
+) -> Result<(), String> {
+    use rungbot_exec::deploy::{self, SEND_BACK_HOURS, SEND_BACK_KEY};
+    let wait = Duration::from_secs_f64(cfg.run_lock_wait.max(0.0));
+    let _lock = store::RunLock::acquire(&cfg.lock_path(), "rungbot-exec funding send-back", wait)
+        .map_err(|e| format!("not run: {e}"))?;
+    let spath = cfg.deploy_state_path();
+    let mut st = deploy::load_state(&spath)?;
+    if argv.iter().any(|a| a == "--cancel") {
+        let had = st.remove(SEND_BACK_KEY).is_some();
+        deploy::save_state(&spath, &st)?;
+        println!(
+            "{}",
+            if had {
+                "SEND-BACK cancelled: Gate converts USDC to USDT again from the next run"
+            } else {
+                "no send-back was set"
+            }
+        );
+        return Ok(());
+    }
+    let Some(raw) = pos.get(1) else {
+        match st.get(SEND_BACK_KEY) {
+            Some(v) => println!("{}", rungbot_exec::pyfmt::dumps(v, Some(1))),
+            None => println!("no send-back set"),
+        }
+        return Ok(());
+    };
+    let usd: f64 = raw
+        .parse()
+        .ok()
+        .filter(|u: &f64| u.is_finite() && *u > 0.0)
+        .ok_or_else(|| format!("send-back {raw}: give the USD amount, e.g. send-back 1342"))?;
+    let hours: f64 = match flag_value(argv, "--hours") {
+        Some(h) => h
+            .parse()
+            .ok()
+            .filter(|h: &f64| h.is_finite() && *h > 0.0)
+            .ok_or_else(|| format!("--hours {h}: a positive number of hours"))?,
+        None => SEND_BACK_HOURS,
+    };
+    deploy::send_back_set(&mut st, usd, now(), hours);
+    deploy::save_state(&spath, &st)?;
+    println!(
+        "SEND-BACK set: up to ${usd:.2} USDC stays USDC on Gate for {hours} h. Convert USDT -> USDC \
+         on Gate and withdraw it to Revolut X; the hold ends once the USDC has left Gate."
+    );
+    Ok(())
+}
+
 fn cmd_layer(argv: &[String]) -> Result<(), String> {
     use rungbot_exec::deploy::{self, cli, Layer, LiveRegime};
     use rungbot_exec::run::{config::RunConfig, funding, market::PublicMarket};
@@ -911,6 +969,9 @@ fn cmd_layer(argv: &[String]) -> Result<(), String> {
                 println!("{}", deploy::fillodds::render(&res));
             }
             return Ok(());
+        }
+        "funding" if pos.first().map(String::as_str) == Some("send-back") => {
+            return funding_send_back(&cfg, argv, &pos);
         }
         "funding" => {
             let clients = Clients::new();
@@ -1935,6 +1996,7 @@ mod tests {
             "balances",
             "deposits",
             "deploy",
+            "funding",
         ]
         .iter()
         .flat_map(|c| known_flags(c).unwrap().iter().copied())
