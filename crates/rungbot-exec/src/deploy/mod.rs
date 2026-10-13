@@ -20,8 +20,11 @@
 //!   and ring-fencing it from the ladder, with an in-flight guard while it travels; when
 //!   Gate's balances cannot be read the reserve is unknown and the layer fails closed
 //!   (staged USDC stays USDC, no free Revolut X cash is laddered that run);
-//! * Gate's USDC (the transfer's bridge asset) auto-converted to USDT;
+//! * Gate's USDC (the transfer's bridge asset) auto-converted to USDT, except what a
+//!   send-back holds for a transfer back to Revolut X (`rungbot-exec funding send-back`);
 //! * the idle sweep: cash a venue freed by cancelling a zone is re-laddered;
+//! * policy proceeds (`deploy_policy_proceeds`): the cash of a bull-policy sell counts as
+//!   new capital, so it ladders on its venue instead of staying free;
 //! * the withhold: the onramp venue re-laddered lighter so the transfer can leave;
 //! * the bull sweep: a zone resting too long in a young bull is bought at market (a
 //!   cancel whose final status is unreadable adds nothing, and the buy never exceeds
@@ -45,7 +48,7 @@ use rungbot_core::watch::pyfmt::{round as py_round, sum as py_sum};
 use serde_json::{json, Map, Value};
 
 use crate::housekeeping::Persist;
-use crate::journal::{Journal, Order};
+use crate::journal::{Journal, Order, POLICY_SELL_LABEL};
 use crate::pyfmt::{fixed, g};
 use crate::reconcile::{price_eq, settle_cancel, Settled, VenueSource};
 use crate::run::config::RunConfig;
@@ -53,6 +56,19 @@ use crate::run::funding;
 use crate::run::market::Market;
 use crate::run::RunResult;
 use crate::venue::{venue_id_matches, Balance, Venue};
+
+/// The deploy-state key of a send-back: Gate USDC held for a transfer to Revolut X.
+pub const SEND_BACK_KEY: &str = "send_back";
+/// How long a send-back holds by default, in hours.
+pub const SEND_BACK_HOURS: f64 = 24.0;
+
+/// Set a send-back of `usd` for `hours` from `now`, replacing one already set.
+pub fn send_back_set(st: &mut Map<String, Value>, usd: f64, now: f64, hours: f64) {
+    st.insert(
+        SEND_BACK_KEY.into(),
+        json!({"usd": usd, "ts": now, "until": now + hours * 3600.0, "seen": false}),
+    );
+}
 
 /// Placement retries before a rung is given up on.
 pub const MAX_RETRIES: i64 = 5;
@@ -1254,10 +1270,13 @@ impl<'a> Layer<'a> {
     }
 
     /// Gate: USDC that landed (the top-up's bridge asset) becomes USDT. Not journaled.
-    fn gate_convert(&mut self) -> Result<(), String> {
+    /// A send-back holds its amount as USDC (see [`Self::send_back_hold`]).
+    fn gate_convert(&mut self, st: &mut Map<String, Value>) -> Result<(), String> {
         let gate = self.client("gate")?;
         let full = gate.balances_full().map_err(|e| e.to_string())?;
-        let g_usdc = bal(&full, "USDC").free;
+        let usdc = bal(&full, "USDC");
+        let held = self.send_back_hold(st, usdc.free + usdc.locked);
+        let g_usdc = usdc.free - held;
         if g_usdc >= self.cfg.deploy_min_usd {
             let qty = gate
                 .round_amount("USDC_USDT", g_usdc)
@@ -1277,6 +1296,45 @@ impl<'a> Layer<'a> {
             (self.sleep)(2.0);
         }
         Ok(())
+    }
+
+    /// USDC on Gate the send-back holds for the transfer to Revolut X, or 0 when none is
+    /// set. The send-back ends by itself once its USDC has been seen on Gate and has left
+    /// it again, or when its window closes.
+    fn send_back_hold(&mut self, st: &mut Map<String, Value>, usdc_now: f64) -> f64 {
+        let Some(sb) = st.get(SEND_BACK_KEY).and_then(Value::as_object).cloned() else {
+            return 0.0;
+        };
+        let usd = sb.get("usd").and_then(Value::as_f64).unwrap_or(0.0);
+        let until = sb.get("until").and_then(Value::as_f64).unwrap_or(0.0);
+        let seen = sb.get("seen").and_then(Value::as_bool).unwrap_or(false);
+        let min = self.cfg.deploy_min_usd;
+        if self.now() >= until {
+            st.remove(SEND_BACK_KEY);
+            self.warn(format!(
+                "SEND-BACK: window closed with ${} USDC still on Gate -> USDC converts to USDT again",
+                fixed(usdc_now, 2)
+            ));
+            return 0.0;
+        }
+        if seen && usdc_now < min {
+            st.remove(SEND_BACK_KEY);
+            self.done(format!(
+                "SEND-BACK: the USDC left Gate -> send-back done, Gate converts USDC again (${} asked)",
+                fixed(usd, 2)
+            ));
+            return 0.0;
+        }
+        if !seen && usdc_now >= min {
+            if let Some(o) = st.get_mut(SEND_BACK_KEY).and_then(Value::as_object_mut) {
+                o.insert("seen".into(), json!(true));
+            }
+            self.done(format!(
+                "SEND-BACK: holding ${} USDC on Gate for the transfer to Revolut X",
+                fixed(usdc_now.min(usd), 2)
+            ));
+        }
+        usd
     }
 
     /// The bull sweep: market-buy the unspent budget of zones resting at least
@@ -1552,6 +1610,11 @@ impl<'a> Layer<'a> {
                 let fq = o.filled_quote.unwrap_or(0.0);
                 if o.side == "buy" {
                     *x -= (fq - num(part_prev.get(&o.client_id))).max(0.0);
+                } else if self.cfg.deploy_policy_proceeds
+                    && o.label.as_deref() == Some(POLICY_SELL_LABEL)
+                {
+                    // Left unexplained on purpose: the sell's cash is new capital and
+                    // ladders on this venue like a deposit.
                 } else {
                     *x += fq;
                 }
@@ -1637,7 +1700,7 @@ impl<'a> Layer<'a> {
         };
         let inflight_active = st.get("inflight").is_some_and(inflight_marker);
 
-        if let Err(e) = self.gate_convert() {
+        if let Err(e) = self.gate_convert(&mut st) {
             self.warn(format!(
                 "gate USDC -> USDT conversion failed (top-up keeps its currency, retried next run): {e}"
             ));

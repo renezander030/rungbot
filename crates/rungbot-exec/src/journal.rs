@@ -32,6 +32,10 @@ pub const WINDOW_SECS: f64 = 1800.0;
 /// Binance caps a client id at 36 characters; the journal holds to the same cap.
 pub const MAX_CLIENT_ID_LEN: usize = crate::ids::CID_MAX;
 
+/// The `label` on a market sell the bull sell policy placed while `deploy_policy_proceeds`
+/// is on, so the deploy layer can tell its cash apart from a ladder sell's.
+pub const POLICY_SELL_LABEL: &str = "bull-policy";
+
 /// Statuses that mean the order may still be resting at the venue. Each venue spells
 /// them its own way and the journal keeps the venue's spelling.
 pub const OPEN: [&str; 6] = [

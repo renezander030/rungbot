@@ -1852,3 +1852,149 @@ fn a_failed_journal_write_before_a_placement_places_nothing() {
         s.texts
     );
 }
+
+/// $200 of a CCC sale lands on Gate above its $100 baseline. `label` marks who sold it.
+fn sale_on_gate(tag: &str, proceeds_flag: bool, label: Option<&str>) -> Step {
+    let mut g = load("deploy_onramp_and_inflight.json");
+    g["initial"]["venues"]["gate"]["balances"] = json!({"USDT": {"free": 300.0, "locked": 0.0}});
+    let mut row = json!({
+        "client_id": "mcsCCCs1r91", "sym": "CCC", "exch": "gate", "pair": "CCC_USDT",
+        "side": "sell", "kind": "market_sell", "status": "filled", "base": 50.0,
+        "filled_base": 50.0, "filled_quote": 200.0, "rung": 91,
+        "ts": 1799999000.0, "filled_ts": 1799999000.0
+    });
+    if let Some(l) = label {
+        row["label"] = json!(l);
+    }
+    g["initial"]["journal"] = json!({"mcsCCCs1r91": row});
+    let mut rig = Rig::new(tag, &g, &["binance", "gate", "revx"], None);
+    rig.cfg.deploy_policy_proceeds = proceeds_flag;
+    rig.check(1_800_000_000.0)
+}
+
+#[test]
+fn a_policy_sale_ladders_its_cash_only_with_deploy_policy_proceeds() {
+    let label = Some(rungbot_exec::journal::POLICY_SELL_LABEL);
+    let off = sale_on_gate("rv-policy-off", false, label);
+    assert!(off.r.is_ok(), "{:?}", off.r);
+    assert!(!has_call(&off, "gate", "limit_buy"), "{:?}", off.calls);
+
+    let on = sale_on_gate("rv-policy-on", true, label);
+    assert!(on.r.is_ok(), "{:?}", on.r);
+    assert!(has_call(&on, "gate", "limit_buy"), "{:?}", on.calls);
+    let laddered: f64 = on
+        .calls
+        .iter()
+        .filter(|c| c[0] == "gate" && c[1] == "limit_buy")
+        .map(|c| c[3].as_f64().unwrap_or(0.0) * c[4].as_f64().unwrap_or(0.0))
+        .sum();
+    assert!(
+        (laddered - 200.0).abs() < 5.0,
+        "laddered {laddered}: {:?}",
+        on.calls
+    );
+}
+
+#[test]
+fn a_ladder_sale_stays_explained_with_deploy_policy_proceeds() {
+    let s = sale_on_gate("rv-ladder-sale", true, None);
+    assert!(s.r.is_ok(), "{:?}", s.r);
+    assert!(!has_call(&s, "gate", "limit_buy"), "{:?}", s.calls);
+}
+
+/// Gate holds `usdc` USDC next to its $100 USDT baseline; `send_back` is the state's hold.
+fn usdc_on_gate(tag: &str, usdc: f64, send_back: Option<Value>) -> (Rig, Step) {
+    let g0 = load("deploy_onramp_and_inflight.json");
+    let mut g = g0.clone();
+    g["initial"]["venues"]["gate"]["balances"] = json!({
+        "USDT": {"free": 100.0, "locked": 0.0},
+        "USDC": {"free": usdc, "locked": 0.0}
+    });
+    let mut state = g0["initial"]["state"].clone();
+    if let Some(sb) = send_back {
+        state[deploy::SEND_BACK_KEY] = sb;
+    }
+    let mut rig = Rig::new(tag, &g, &["binance", "gate", "revx"], Some(state));
+    let s = rig.check(1_800_000_000.0);
+    (rig, s)
+}
+
+fn converts_usdc(s: &Step) -> bool {
+    s.calls
+        .iter()
+        .any(|c| c[0] == "gate" && c[1] == "market_sell" && c[2] == "USDC_USDT")
+}
+
+#[test]
+fn gate_usdc_converts_to_usdt_without_a_send_back() {
+    let (_, s) = usdc_on_gate("sb-none", 1340.0, None);
+    assert!(s.r.is_ok(), "{:?}", s.r);
+    assert!(converts_usdc(&s), "{:?}", s.calls);
+}
+
+#[test]
+fn a_send_back_holds_its_usdc_on_gate() {
+    let sb = json!({"usd": 1340.0, "ts": 1_799_999_000.0, "until": 1_800_086_400.0, "seen": false});
+    let (rig, s) = usdc_on_gate("sb-hold", 1340.0, Some(sb));
+    assert!(s.r.is_ok(), "{:?}", s.r);
+    assert!(!converts_usdc(&s), "{:?}", s.calls);
+    assert_eq!(rig.state()[deploy::SEND_BACK_KEY]["seen"], json!(true));
+    assert!(
+        s.texts
+            .iter()
+            .any(|t| t.starts_with("SEND-BACK: holding $1340.00 USDC")),
+        "{:?}",
+        s.texts
+    );
+}
+
+#[test]
+fn a_send_back_converts_only_the_usdc_above_its_amount() {
+    let sb = json!({"usd": 1000.0, "ts": 1_799_999_000.0, "until": 1_800_086_400.0, "seen": false});
+    let (_, s) = usdc_on_gate("sb-excess", 1340.0, Some(sb));
+    let qty = s
+        .calls
+        .iter()
+        .find(|c| c[0] == "gate" && c[1] == "market_sell" && c[2] == "USDC_USDT")
+        .and_then(|c| c[3].as_f64())
+        .unwrap_or_else(|| panic!("no conversion: {:?}", s.calls));
+    assert!((qty - 340.0).abs() < 0.01, "converted {qty}");
+}
+
+#[test]
+fn a_send_back_ends_once_its_usdc_has_left_gate() {
+    let sb = json!({"usd": 1340.0, "ts": 1_799_999_000.0, "until": 1_800_086_400.0, "seen": true});
+    let (rig, s) = usdc_on_gate("sb-left", 0.0, Some(sb));
+    assert!(s.r.is_ok(), "{:?}", s.r);
+    assert!(
+        rig.state().get(deploy::SEND_BACK_KEY).is_none(),
+        "{:?}",
+        rig.state()
+    );
+    assert!(
+        s.texts
+            .iter()
+            .any(|t| t.starts_with("SEND-BACK: the USDC left Gate")),
+        "{:?}",
+        s.texts
+    );
+}
+
+#[test]
+fn a_send_back_waits_for_its_usdc_before_it_can_end() {
+    let sb = json!({"usd": 1340.0, "ts": 1_799_999_000.0, "until": 1_800_086_400.0, "seen": false});
+    let (rig, _) = usdc_on_gate("sb-wait", 0.0, Some(sb));
+    assert_eq!(rig.state()[deploy::SEND_BACK_KEY]["seen"], json!(false));
+}
+
+#[test]
+fn a_closed_send_back_window_converts_again() {
+    let sb = json!({"usd": 1340.0, "ts": 1_799_000_000.0, "until": 1_799_086_400.0, "seen": true});
+    let (rig, s) = usdc_on_gate("sb-expired", 1340.0, Some(sb));
+    assert!(converts_usdc(&s), "{:?}", s.calls);
+    assert!(
+        rig.state().get(deploy::SEND_BACK_KEY).is_none(),
+        "{:?}",
+        rig.state()
+    );
+}

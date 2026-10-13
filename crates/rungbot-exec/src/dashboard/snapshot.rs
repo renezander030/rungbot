@@ -888,7 +888,7 @@ pub fn run(cfg: &RunConfig, d: &DashConfig, io: &mut Io) -> Result<(), String> {
                 .collect();
             let usdc_free = rx("USDC", "total")? - rx("USDC", "reserved")?;
             let c = crate::run::funding::card(rx_stable, gate_stable, usdc_free, &alloc, &routing);
-            obj(vec![
+            let mut card = obj(vec![
                 ("gate_stable", c.gate_stable.into()),
                 ("gate_target", c.gate_target.into()),
                 ("gate_share_pct", c.gate_share_pct.into()),
@@ -901,7 +901,19 @@ pub fn run(cfg: &RunConfig, d: &DashConfig, io: &mut Io) -> Result<(), String> {
                 ("due", Json::Bool(c.due)),
                 ("send_now", c.send_now.into()),
                 ("revx_usdc_free", c.revx_usdc_free.into()),
-            ])
+            ]);
+            // Transfers between the venues, only while one is set, so a book without
+            // one prints the card exactly as before.
+            if let Ok(st) = read_journal(&cfg.deploy_state_path()) {
+                let set = |v: &&Json| matches!(v, Json::Obj(e) if !e.is_empty());
+                if let Some(sb) = st.get(crate::deploy::SEND_BACK_KEY).filter(set) {
+                    card.set("send_back", sb.clone());
+                }
+                if let Some(fl) = st.get("inflight").filter(set) {
+                    card.set("top_up_in_flight", fl.clone());
+                }
+            }
+            card
         }
     };
 
