@@ -1852,3 +1852,52 @@ fn a_failed_journal_write_before_a_placement_places_nothing() {
         s.texts
     );
 }
+
+/// $200 of a CCC sale lands on Gate above its $100 baseline. `label` marks who sold it.
+fn sale_on_gate(tag: &str, proceeds_flag: bool, label: Option<&str>) -> Step {
+    let mut g = load("deploy_onramp_and_inflight.json");
+    g["initial"]["venues"]["gate"]["balances"] = json!({"USDT": {"free": 300.0, "locked": 0.0}});
+    let mut row = json!({
+        "client_id": "mcsCCCs1r91", "sym": "CCC", "exch": "gate", "pair": "CCC_USDT",
+        "side": "sell", "kind": "market_sell", "status": "filled", "base": 50.0,
+        "filled_base": 50.0, "filled_quote": 200.0, "rung": 91,
+        "ts": 1799999000.0, "filled_ts": 1799999000.0
+    });
+    if let Some(l) = label {
+        row["label"] = json!(l);
+    }
+    g["initial"]["journal"] = json!({"mcsCCCs1r91": row});
+    let mut rig = Rig::new(tag, &g, &["binance", "gate", "revx"], None);
+    rig.cfg.deploy_policy_proceeds = proceeds_flag;
+    rig.check(1_800_000_000.0)
+}
+
+#[test]
+fn a_policy_sale_ladders_its_cash_only_with_deploy_policy_proceeds() {
+    let label = Some(rungbot_exec::journal::POLICY_SELL_LABEL);
+    let off = sale_on_gate("rv-policy-off", false, label);
+    assert!(off.r.is_ok(), "{:?}", off.r);
+    assert!(!has_call(&off, "gate", "limit_buy"), "{:?}", off.calls);
+
+    let on = sale_on_gate("rv-policy-on", true, label);
+    assert!(on.r.is_ok(), "{:?}", on.r);
+    assert!(has_call(&on, "gate", "limit_buy"), "{:?}", on.calls);
+    let laddered: f64 = on
+        .calls
+        .iter()
+        .filter(|c| c[0] == "gate" && c[1] == "limit_buy")
+        .map(|c| c[3].as_f64().unwrap_or(0.0) * c[4].as_f64().unwrap_or(0.0))
+        .sum();
+    assert!(
+        (laddered - 200.0).abs() < 5.0,
+        "laddered {laddered}: {:?}",
+        on.calls
+    );
+}
+
+#[test]
+fn a_ladder_sale_stays_explained_with_deploy_policy_proceeds() {
+    let s = sale_on_gate("rv-ladder-sale", true, None);
+    assert!(s.r.is_ok(), "{:?}", s.r);
+    assert!(!has_call(&s, "gate", "limit_buy"), "{:?}", s.calls);
+}

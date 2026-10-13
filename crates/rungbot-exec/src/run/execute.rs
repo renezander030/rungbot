@@ -33,7 +33,7 @@ use crate::housekeeping::{
     Books, LadderState, Persist, Route, RunCtx, Settings,
 };
 use crate::ids;
-use crate::journal::{client_id, Order, Side};
+use crate::journal::{client_id, Order, Side, POLICY_SELL_LABEL};
 use crate::pyfmt::{self, g};
 use crate::reconcile::VenueSource;
 use crate::venue::Venue;
@@ -696,6 +696,13 @@ fn live_sell(
         base: Some(qty),
         rung: Some(r.rung),
         ts: Some(now),
+        // Only while the deploy layer reads it, so the default journal stays the
+        // reference's byte for byte.
+        label: r
+            .policy
+            .as_deref()
+            .filter(|p| cfg.deploy_policy_proceeds && !p.is_empty())
+            .map(|_| POLICY_SELL_LABEL.to_string()),
         ..Default::default()
     });
     if let Err(e) = io.persist.journal(io.books.journal) {
