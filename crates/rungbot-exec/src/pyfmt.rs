@@ -15,42 +15,9 @@
 
 use serde::Serialize;
 
-/// Python's `repr(float)`.
+/// Python's `repr(float)`. One implementation, shared with the watchers and the backtests.
 pub fn float_repr(x: f64) -> String {
-    if x.is_nan() {
-        return "nan".into();
-    }
-    if x.is_infinite() {
-        return if x > 0.0 { "inf" } else { "-inf" }.into();
-    }
-    if x == 0.0 {
-        return if x.is_sign_negative() { "-0.0" } else { "0.0" }.into();
-    }
-    // `{:e}` gives the shortest round-trip digits: "1.2345e-5", "1e16".
-    let sci = format!("{:e}", x.abs());
-    let (mant, exp) = sci.split_once('e').expect("{:e} always has an exponent");
-    let exp: i32 = exp.parse().expect("integer exponent");
-    let digits: String = mant.chars().filter(|c| *c != '.').collect();
-    let sign = if x < 0.0 { "-" } else { "" };
-    if !(-4..16).contains(&exp) {
-        let m = if digits.len() == 1 {
-            digits.clone()
-        } else {
-            format!("{}.{}", &digits[..1], &digits[1..])
-        };
-        let es = if exp < 0 { '-' } else { '+' };
-        return format!("{sign}{m}e{es}{:02}", exp.abs());
-    }
-    let n = digits.len() as i32;
-    let body = if exp < 0 {
-        format!("0.{}{}", "0".repeat((-exp - 1) as usize), digits)
-    } else if exp + 1 >= n {
-        format!("{}{}.0", digits, "0".repeat((exp + 1 - n) as usize))
-    } else {
-        let p = (exp + 1) as usize;
-        format!("{}.{}", &digits[..p], &digits[p..])
-    };
-    format!("{sign}{body}")
+    rungbot_core::watch::pyfmt::repr(x)
 }
 
 /// `f"{x:.{prec}f}"`. Rust's fixed formatting rounds the exact binary value half to
@@ -541,6 +508,17 @@ pub fn truthy(v: Option<&serde_json::Value>) -> bool {
     }
 }
 
+/// A JSON number as f64, anything else (absent, null, a string) as 0. Lenient, unlike
+/// [`float_or_zero`]: it reads the bot's own stored state, never user input.
+pub(crate) fn num(v: Option<&serde_json::Value>) -> f64 {
+    v.and_then(serde_json::Value::as_f64).unwrap_or(0.0)
+}
+
+/// `bool(x)` for an optional number.
+pub(crate) fn truthy_f(x: Option<f64>) -> bool {
+    x.is_some_and(|v| v != 0.0)
+}
+
 /// `float(v or 0)`: a falsy value is 0, a number is itself, a string must parse the way
 /// Python's `float()` parses it. Anything else is an error, as it is there.
 pub fn float_or_zero(v: Option<&serde_json::Value>) -> Result<f64, String> {
@@ -629,6 +607,18 @@ fn type_name(v: &serde_json::Value) -> &'static str {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn stored_numbers_read_leniently_and_zero_is_falsy() {
+        use serde_json::json;
+        assert_eq!(num(Some(&json!(2.5))), 2.5);
+        assert_eq!(num(Some(&json!(3))), 3.0);
+        for v in [json!(null), json!("7"), json!(true), json!([1])] {
+            assert_eq!(num(Some(&v)), 0.0, "{v}");
+        }
+        assert_eq!(num(None), 0.0);
+        assert!(truthy_f(Some(-0.5)) && !truthy_f(Some(0.0)) && !truthy_f(None));
+    }
 
     #[test]
     fn float_repr_switches_to_scientific_where_python_does() {

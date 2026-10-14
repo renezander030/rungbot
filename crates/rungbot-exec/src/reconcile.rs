@@ -23,7 +23,8 @@
 use std::collections::{BTreeMap, BTreeSet};
 
 use crate::http::VenueError;
-use crate::journal::{is_our_cancel, is_venue_cancelled_status, truthy_f, Journal, Order};
+use crate::journal::{is_our_cancel, is_venue_cancelled_status, Journal, Order};
+use crate::pyfmt::truthy_f;
 use crate::venue::{ParsedOrder, Venue};
 
 /// Where reconcile finds the client for a row's `exch`.

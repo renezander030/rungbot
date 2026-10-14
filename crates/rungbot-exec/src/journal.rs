@@ -26,6 +26,8 @@
 use indexmap::IndexMap;
 use serde::{Deserialize, Serialize};
 
+use crate::pyfmt::truthy_f;
+
 /// The window a client id is bucketed into. Same intent inside 30 minutes is one order.
 pub const WINDOW_SECS: f64 = 1800.0;
 
@@ -239,11 +241,6 @@ impl Order {
             self.part_base.unwrap_or(0.0)
         }
     }
-}
-
-/// `bool(x)` for an optional number.
-pub(crate) fn truthy_f(x: Option<f64>) -> bool {
-    x.is_some_and(|v| v != 0.0)
 }
 
 /// Deterministic, exchange-safe client id: `cs{SYM}{b|s}{slot}r{rung}`, where the slot
