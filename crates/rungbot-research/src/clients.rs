@@ -9,15 +9,11 @@ use std::path::PathBuf;
 use std::process::{Command, Stdio};
 use std::time::{Duration, Instant};
 
-use rungbot_notify::{EmailConfig, HttpRequest};
+use rungbot_notify::{offline, EmailConfig, HttpRequest};
 
 use crate::py::{self, Json};
 use crate::report::{Mailer, NoteSink};
 use crate::{Fetch, Llm, Search, SearchError};
-
-fn offline() -> bool {
-    rungbot_notify::offline()
-}
 
 /// `~/` expanded against `$HOME`.
 pub fn expand_home(p: &str) -> PathBuf {

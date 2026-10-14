@@ -16,6 +16,7 @@ use serde_json::{json, Value};
 
 use super::config::RunConfig;
 use crate::housekeeping::LadderState;
+use crate::pyfmt::truthy;
 
 /// One coin's line in the full watchlist.
 #[derive(Debug, Clone, PartialEq, Default)]
@@ -98,10 +99,6 @@ fn f(v: Option<&Value>) -> Option<f64> {
         Value::Bool(b) => Some(*b as i64 as f64),
         _ => None,
     }
-}
-
-fn truthy(v: Option<&Value>) -> bool {
-    crate::pyfmt::truthy(v)
 }
 
 /// The policy's memory for a coin as stored, read the way the reference read its dict:

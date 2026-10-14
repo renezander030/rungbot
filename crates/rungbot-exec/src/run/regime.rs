@@ -16,6 +16,7 @@
 use std::path::Path;
 
 use rungbot_core::regime::{market_label, running_from_series, sma, RegimeConfig};
+use rungbot_core::watch::pyfmt::round as py_round;
 use serde_json::{json, Map, Value};
 
 use super::config::RunConfig;
@@ -30,10 +31,6 @@ pub const ARM_SYM: &str = "BTC";
 
 /// A froth read older than this does not arm.
 pub const ARM_STALE_S: f64 = 3.0 * 86_400.0;
-
-fn round_to(x: f64, digits: usize) -> f64 {
-    format!("{x:.digits$}").parse().unwrap_or(x)
-}
 
 fn read_json(path: &Path) -> Option<Value> {
     serde_json::from_str(&std::fs::read_to_string(path).ok()?).ok()
@@ -88,7 +85,7 @@ pub fn compute(cfg: &RunConfig, m: &dyn Market, now: f64) -> Value {
                 };
                 let last = closes[closes.len() - 1];
                 let sma30 = (closes.len() >= 30)
-                    .then(|| sma(&closes[closes.len() - 30..]).map(|v| round_to(v, 8)))
+                    .then(|| sma(&closes[closes.len() - 30..]).map(|v| py_round(v, 8)))
                     .flatten();
                 if closes.len() >= 30 && sma(&closes[closes.len() - 30..]).is_some_and(|s| last > s)
                 {
@@ -117,8 +114,8 @@ pub fn compute(cfg: &RunConfig, m: &dyn Market, now: f64) -> Value {
             (
                 market_label(&b, above30, n).as_str().to_string(),
                 json!({"px": b[k - 1],
-                       "sma100": round_to(sma(&b[k.saturating_sub(100)..]).unwrap_or(0.0), 2),
-                       "sma200": round_to(sma(&b[k.saturating_sub(200)..]).unwrap_or(0.0), 2)}),
+                       "sma100": py_round(sma(&b[k.saturating_sub(100)..]).unwrap_or(0.0), 2),
+                       "sma200": py_round(sma(&b[k.saturating_sub(200)..]).unwrap_or(0.0), 2)}),
             )
         }
         Ok(_) => (

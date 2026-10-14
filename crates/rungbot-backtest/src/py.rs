@@ -162,13 +162,6 @@ fn sci_parts(x: f64, sig: usize) -> (String, i32) {
     (m.replace('.', ""), e.parse().expect("exponent parses"))
 }
 
-/// Shortest round-trip digits of a finite positive `x`.
-fn shortest_parts(x: f64) -> (String, i32) {
-    let s = format!("{x:e}");
-    let (m, e) = s.split_once('e').expect("LowerExp has an exponent");
-    (m.replace('.', ""), e.parse().expect("exponent parses"))
-}
-
 fn exp_suffix(e: i32) -> String {
     let sign = if e < 0 { '-' } else { '+' };
     format!("e{sign}{:02}", e.abs())
@@ -207,36 +200,9 @@ fn strip_frac_zeros(frac: &str) -> &str {
     frac.trim_end_matches('0')
 }
 
-/// Python `repr(float)`.
+/// Python `repr(float)`. One implementation, shared with the watchers and the live runtime.
 pub fn repr(x: f64) -> String {
-    if x.is_nan() {
-        return "nan".into();
-    }
-    if x.is_infinite() {
-        return if x > 0.0 { "inf".into() } else { "-inf".into() };
-    }
-    let neg = x.is_sign_negative();
-    let a = x.abs();
-    let body = if a == 0.0 {
-        "0.0".to_string()
-    } else {
-        let (digits, e) = shortest_parts(a);
-        if !(-4..16).contains(&e) {
-            sci_body(&digits, e, false)
-        } else {
-            let (i, f) = fixed_from_digits(&digits, e);
-            if f.is_empty() {
-                format!("{i}.0")
-            } else {
-                format!("{i}.{f}")
-            }
-        }
-    };
-    if neg {
-        format!("-{body}")
-    } else {
-        body
-    }
+    rungbot_core::watch::pyfmt::repr(x)
 }
 
 /// The unsigned body of a finite float under a spec (no padding, no sign).

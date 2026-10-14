@@ -109,11 +109,6 @@ fn iso_minute(ts: f64) -> String {
     format!("{y:04}-{m:02}-{d:02}T{h:02}:{mi:02}Z")
 }
 
-/// `round(x, 1)`.
-fn round1(x: f64) -> f64 {
-    format!("{x:.1}").parse().unwrap_or(x)
-}
-
 /// `(kind, text, src)` for one result: the first populated outcome, trimmed to one line
 /// of at most 240 characters.
 pub fn classify(res: &RunResult) -> Option<(String, String, String)> {
@@ -141,7 +136,7 @@ pub fn lines_for(
     n_sells: usize,
     mode: &str,
 ) -> Vec<Record> {
-    let ts = round1(run_ts);
+    let ts = rungbot_core::watch::pyfmt::round(run_ts, 1);
     let run = iso_minute(run_ts);
     let mut counts = [0usize; 5];
     let mut out = Vec::new();

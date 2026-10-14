@@ -39,7 +39,7 @@ use rungbot_research::clients::{
 use rungbot_research::report::RegimeRead;
 use rungbot_research::theses::{Node, Theses};
 
-use crate::yaml::{self, Yaml};
+use rungbot_core::yaml::{self, Yaml};
 
 fn cerr<T>(m: impl Into<String>) -> Result<T, ConfigError> {
     Err(ConfigError(m.into()))
