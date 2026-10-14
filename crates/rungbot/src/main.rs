@@ -16,7 +16,6 @@ mod state;
 mod testenv;
 mod tickers;
 mod watch;
-mod yaml;
 
 use std::collections::BTreeMap;
 use std::path::PathBuf;

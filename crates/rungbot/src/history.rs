@@ -20,7 +20,7 @@ use rungbot_backtest::History;
 use crate::tickers::{get_text, TickerError};
 
 fn sleep(secs: f64) {
-    if std::env::var("RUNGBOT_OFFLINE").as_deref() != Ok("1") {
+    if !rungbot_notify::offline() {
         std::thread::sleep(Duration::from_secs_f64(secs));
     }
 }

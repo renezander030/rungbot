@@ -49,7 +49,7 @@ use serde_json::{json, Map, Value};
 
 use crate::housekeeping::Persist;
 use crate::journal::{Journal, Order, POLICY_SELL_LABEL};
-use crate::pyfmt::{fixed, g};
+use crate::pyfmt::{fixed, g, num, truthy, truthy_f};
 use crate::reconcile::{price_eq, settle_cancel, Settled, VenueSource};
 use crate::run::config::RunConfig;
 use crate::run::funding;
@@ -153,15 +153,6 @@ pub type Only = Option<BTreeSet<String>>;
 fn in_only(only: &Only, sym: &str) -> bool {
     only.as_ref()
         .is_none_or(|o| o.is_empty() || o.contains(sym))
-}
-
-/// `float(x or 0)` for a JSON value.
-pub(crate) fn num(v: Option<&Value>) -> f64 {
-    v.and_then(Value::as_f64).unwrap_or(0.0)
-}
-
-fn truthy_f(x: Option<f64>) -> bool {
-    x.is_some_and(|v| v != 0.0)
 }
 
 fn bal(m: &BTreeMap<String, Balance>, cur: &str) -> Balance {
@@ -1078,7 +1069,7 @@ impl<'a> Layer<'a> {
     ) -> f64 {
         if let Some(v) = st
             .get("inflight")
-            .filter(|v| truthy_obj(v) && !v.is_object())
+            .filter(|v| truthy(Some(v)) && !v.is_object())
         {
             // A hand-edited or corrupt marker: read it as no top-up in flight.
             let shown = crate::pyfmt::dumps(v, None);
@@ -2076,10 +2067,6 @@ fn has_id(o: &Order) -> bool {
 
 fn truthy_i(x: Option<i64>) -> bool {
     x.is_some_and(|v| v != 0)
-}
-
-fn truthy_obj(v: &Value) -> bool {
-    crate::pyfmt::truthy(Some(v))
 }
 
 /// A top-up-in-flight marker: a non-empty object. Anything else is no marker.

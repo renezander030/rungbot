@@ -61,11 +61,7 @@ impl core::fmt::Display for KeyError {
 impl std::error::Error for KeyError {}
 
 pub fn default_key_path(venue: &str) -> PathBuf {
-    let base = match std::env::var("XDG_CONFIG_HOME") {
-        Ok(v) if !v.trim().is_empty() => PathBuf::from(v),
-        _ => PathBuf::from(std::env::var("HOME").unwrap_or_else(|_| ".".into())).join(".config"),
-    };
-    base.join("rungbot").join(format!("{venue}.env"))
+    crate::run::config::default_config_dir().join(format!("{venue}.env"))
 }
 
 #[cfg(unix)]

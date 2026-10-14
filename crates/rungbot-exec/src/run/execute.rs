@@ -34,7 +34,7 @@ use crate::housekeeping::{
 };
 use crate::ids;
 use crate::journal::{client_id, Order, Side, POLICY_SELL_LABEL};
-use crate::pyfmt::{self, g};
+use crate::pyfmt::{self, g, num};
 use crate::reconcile::VenueSource;
 use crate::venue::Venue;
 
@@ -87,10 +87,6 @@ pub fn hk_settings(cfg: &RunConfig) -> Settings {
             .collect(),
         entries: cfg.entries.clone(),
     }
-}
-
-fn num(v: Option<&Value>) -> f64 {
-    v.and_then(Value::as_f64).unwrap_or(0.0)
 }
 
 struct Ledgers {
