@@ -22,6 +22,7 @@ use rungbot_exec::clients::{Clients, VENUES};
 use rungbot_exec::guard::{self, Caps, Context, Intent, Mode, Refusal};
 use rungbot_exec::journal::{self, Order, Side};
 use rungbot_exec::reconcile::{self, Settled};
+use rungbot_exec::run::config::{default_config_dir, default_state_dir};
 use rungbot_exec::{ids, import, store, Venue};
 
 const USAGE: &str = "\
@@ -285,28 +286,10 @@ fn known_flags(cmd: &str) -> Option<&'static [&'static str]> {
     })
 }
 
-fn config_dir() -> PathBuf {
-    let base = match std::env::var("XDG_CONFIG_HOME") {
-        Ok(v) if !v.trim().is_empty() => PathBuf::from(v),
-        _ => PathBuf::from(std::env::var("HOME").unwrap_or_else(|_| ".".into())).join(".config"),
-    };
-    base.join("rungbot")
-}
-
-fn state_dir() -> PathBuf {
-    let base = match std::env::var("XDG_STATE_HOME") {
-        Ok(v) if !v.trim().is_empty() => PathBuf::from(v),
-        _ => PathBuf::from(std::env::var("HOME").unwrap_or_else(|_| ".".into()))
-            .join(".local")
-            .join("state"),
-    };
-    base.join("rungbot")
-}
-
 fn halt_path() -> PathBuf {
     match std::env::var("RUNGBOT_HALT") {
         Ok(v) if !v.trim().is_empty() => PathBuf::from(v),
-        _ => config_dir().join("HALT"),
+        _ => default_config_dir().join("HALT"),
     }
 }
 
@@ -319,9 +302,14 @@ fn run_config_path(args: &Args) -> (PathBuf, bool) {
             return (PathBuf::from(p), true);
         }
     }
+    env_run_config_path()
+}
+
+/// `RUNGBOT_RUN_CONFIG`, else `~/.config/rungbot/run.yaml`; true when the variable named it.
+fn env_run_config_path() -> (PathBuf, bool) {
     match std::env::var("RUNGBOT_RUN_CONFIG") {
         Ok(v) if !v.trim().is_empty() => (PathBuf::from(v), true),
-        _ => (config_dir().join("run.yaml"), false),
+        _ => (default_config_dir().join("run.yaml"), false),
     }
 }
 
@@ -346,7 +334,7 @@ fn target(args: &Args) -> Result<Target, String> {
     let journal = match (args.get("journal"), &cfg) {
         (Some(j), _) => PathBuf::from(j),
         (None, Some(c)) => c.journal_path(),
-        (None, None) => state_dir().join("orders-journal.json"),
+        (None, None) => default_state_dir().join("orders-journal.json"),
     };
     let lock = match &cfg {
         Some(c) if c.journal_path() == journal => c.lock_path(),
@@ -825,10 +813,7 @@ fn layer_config_path(argv: &[String]) -> PathBuf {
     if let Some(p) = argv.iter().find_map(|a| a.strip_prefix("--config=")) {
         return PathBuf::from(p);
     }
-    match std::env::var("RUNGBOT_RUN_CONFIG") {
-        Ok(v) if !v.trim().is_empty() => PathBuf::from(v),
-        _ => config_dir().join("run.yaml"),
-    }
+    env_run_config_path().0
 }
 
 /// The value after `--flag`.

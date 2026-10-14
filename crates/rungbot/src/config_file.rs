@@ -19,7 +19,7 @@ use rungbot_notify::{EmailConfig, Notifier, TelegramConfig};
 use crate::notify::NotifyConfig;
 use crate::watch::{expand, WatchConfig};
 
-use crate::yaml::{self, Yaml};
+use rungbot_core::yaml::{self, Yaml};
 
 pub const EXAMPLE: &str = include_str!("../assets/watchlist.yaml");
 
