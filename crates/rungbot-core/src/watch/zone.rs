@@ -12,8 +12,9 @@
 //! * **Idle cash** — free stable on a venue above the minimum with no tranche coming for
 //!   it. Once per venue until the amount moves by a quarter.
 //!
-//! Every mail leads with the verdict: how many items need a person. A RUN flip on its own
-//! needs nobody and is filed as no-action, with what it means for the coins held.
+//! A mail goes out only when an item needs a person, and it carries only those items. A
+//! RUN flip on its own needs nobody: it moves the baseline without a mail and shows up
+//! only in a `--force` run.
 
 use super::json::{obj, Json};
 use super::pyfmt::{comma, comma_g, fixed, g6, ljust, sum as pysum};
@@ -674,7 +675,8 @@ pub fn build_message(
         }
     }
     let ev = &c.events;
-    if !ev.run.is_empty() {
+    // Flips are a strength reading, not a decision: only a forced run lists them.
+    if force && !ev.run.is_empty() {
         l.push(if todo.is_empty() {
             "FOR THE RECORD, NO ACTION".into()
         } else {
@@ -712,12 +714,6 @@ pub fn build_message(
         if !rule.is_empty() {
             l.extend(wrap74(rule, 74).iter().map(|ln| format!("  {ln}")));
         }
-        l.push(format!(
-            "  You get this mail because {} alts running at once IS your call. Right now: {}/{}.",
-            cfg.alt_run_tripwire,
-            c.alts_running,
-            cfg.alts.len()
-        ));
         l.push(String::new());
     }
     if force && !ev.any() {
@@ -763,7 +759,7 @@ pub fn build_message(
 /// What to print and write after collecting.
 #[derive(Debug, Clone, PartialEq)]
 pub enum Plan {
-    /// Nothing happened: print the line, and (unless dry) write the new baseline.
+    /// Nothing needs a person: print the line, and (unless dry) write the new baseline.
     Quiet { line: String, state: Json },
     /// Something to send.
     Send { subject: String, text: String },
@@ -778,7 +774,7 @@ pub fn plan(
     cfg: &ZoneConfig,
     hints: &Hints,
 ) -> Plan {
-    if !c.events.any() && !force {
+    if todo_items(c, cfg, hints).is_empty() && !force {
         let first = state.get("run").is_none_or(Json::is_null);
         let mut st = state.clone();
         st.set("run", c.running.clone());
@@ -863,6 +859,7 @@ pub fn preview(now: f64, cfg: &ZoneConfig, hints: &Hints) -> String {
     let cases = vec![
         (
             "A: run flip only",
+            false,
             mk(
                 fa,
                 2,
@@ -874,6 +871,7 @@ pub fn preview(now: f64, cfg: &ZoneConfig, hints: &Hints) -> String {
         ),
         (
             "B: run flip that trips alt season",
+            false,
             mk(
                 running(&[&x, &y, &z]),
                 3,
@@ -885,6 +883,7 @@ pub fn preview(now: f64, cfg: &ZoneConfig, hints: &Hints) -> String {
         ),
         (
             "C: stale rung + idle cash",
+            false,
             mk(
                 running(&[&y]),
                 1,
@@ -910,13 +909,20 @@ pub fn preview(now: f64, cfg: &ZoneConfig, hints: &Hints) -> String {
         ),
         (
             "D: --force with nothing at all",
+            true,
             mk(Json::obj(), 0, Events::default()),
         ),
     ];
     let bar = "=".repeat(78);
     let mut out = String::new();
-    for (title, c) in cases {
-        let (subject, text) = build_message(&c, true, now, cfg, hints);
+    for (title, force, c) in cases {
+        if !force && todo_items(&c, cfg, hints).is_empty() {
+            out.push_str(&format!(
+                "\n{bar}\n{title}\n{bar}\nNo mail: nothing in it needs you.\n"
+            ));
+            continue;
+        }
+        let (subject, text) = build_message(&c, force, now, cfg, hints);
         out.push_str(&format!(
             "\n{bar}\n{title}\n{bar}\nSubject: {subject}\n\n{text}\n"
         ));
