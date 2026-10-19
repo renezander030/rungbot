@@ -12,9 +12,8 @@
 //! * **Idle cash** — free stable on a venue above the minimum with no tranche coming for
 //!   it. Once per venue until the amount moves by a quarter.
 //!
-//! A mail goes out only when an item needs a person, and it carries only those items. A
-//! RUN flip on its own needs nobody: it moves the baseline without a mail and shows up
-//! only in a `--force` run.
+//! A mail leads with what needs a person when something does. A RUN flip on its own needs
+//! nobody, so its mail leads with the flip itself and what it means for the coins held.
 
 use super::json::{obj, Json};
 use super::pyfmt::{comma, comma_g, fixed, g6, ljust, sum as pysum};
@@ -642,15 +641,37 @@ pub fn build_message(
 ) -> (String, String) {
     let todo = todo_items(c, cfg, hints);
     let n = todo.len();
+    let ev = &c.events;
+    // With nothing to decide, the flips are the news: the mail leads with them.
+    let flips: Vec<String> = ev
+        .run
+        .iter()
+        .map(|f| {
+            format!(
+                "{} {}",
+                f.sym,
+                if f.on {
+                    "now running"
+                } else {
+                    "stopped running"
+                }
+            )
+        })
+        .collect();
+    let flip_head = match flips.len() {
+        0 => "quiet".to_string(),
+        1 | 2 => flips.join(", "),
+        k => format!("{k} RUN flips"),
+    };
     let verdict = match n {
-        0 => "NOTHING TO DO".to_string(),
+        0 => upper(&flip_head),
         1 => "1 THING NEEDS YOU".into(),
         n => format!("{n} THINGS NEED YOU"),
     };
     let mut l = vec![
         format!("ZONE WATCH: {verdict}"),
         format!(
-            "market {}, {}/{} alts running (alt-season tripwire at {})",
+            "market {}, {}/{} alts running (alt season is your call at {})",
             upper(&c.market),
             c.alts_running,
             cfg.alts.len(),
@@ -674,13 +695,11 @@ pub fn build_message(
             l.push(String::new());
         }
     }
-    let ev = &c.events;
-    // Flips are a strength reading, not a decision: only a forced run lists them.
-    if force && !ev.run.is_empty() {
+    if !ev.run.is_empty() {
         l.push(if todo.is_empty() {
-            "FOR THE RECORD, NO ACTION".into()
+            "WHAT CHANGED".into()
         } else {
-            "ALSO, NO ACTION".into()
+            "ALSO CHANGED".into()
         });
         l.push("  RUN gate flips (a strength reading, not an order):".into());
         for f in &ev.run {
@@ -734,19 +753,10 @@ pub fn build_message(
             tags.join(", "),
         )
     } else {
-        let flips: Vec<String> = ev
-            .run
-            .iter()
-            .map(|f| format!("{} {}", f.sym, if f.on { "running" } else { "stopped" }))
-            .collect();
-        let mut tags = flips.iter().take(2).cloned().collect::<Vec<_>>().join(", ");
-        if tags.is_empty() && force {
-            tags = "quiet".into();
-        }
-        if flips.len() > 2 {
-            tags = format!("{} run flips", flips.len());
-        }
-        ("nothing to do".to_string(), tags)
+        (
+            flip_head,
+            format!("{}/{} alts running", c.alts_running, cfg.alts.len()),
+        )
     };
     let subject = if tags.is_empty() {
         format!("ZONE WATCH: {head}")
@@ -759,7 +769,7 @@ pub fn build_message(
 /// What to print and write after collecting.
 #[derive(Debug, Clone, PartialEq)]
 pub enum Plan {
-    /// Nothing needs a person: print the line, and (unless dry) write the new baseline.
+    /// Nothing happened: print the line, and (unless dry) write the new baseline.
     Quiet { line: String, state: Json },
     /// Something to send.
     Send { subject: String, text: String },
@@ -774,7 +784,7 @@ pub fn plan(
     cfg: &ZoneConfig,
     hints: &Hints,
 ) -> Plan {
-    if todo_items(c, cfg, hints).is_empty() && !force {
+    if !c.events.any() && !force {
         let first = state.get("run").is_none_or(Json::is_null);
         let mut st = state.clone();
         st.set("run", c.running.clone());
@@ -859,7 +869,6 @@ pub fn preview(now: f64, cfg: &ZoneConfig, hints: &Hints) -> String {
     let cases = vec![
         (
             "A: run flip only",
-            false,
             mk(
                 fa,
                 2,
@@ -871,7 +880,6 @@ pub fn preview(now: f64, cfg: &ZoneConfig, hints: &Hints) -> String {
         ),
         (
             "B: run flip that trips alt season",
-            false,
             mk(
                 running(&[&x, &y, &z]),
                 3,
@@ -883,7 +891,6 @@ pub fn preview(now: f64, cfg: &ZoneConfig, hints: &Hints) -> String {
         ),
         (
             "C: stale rung + idle cash",
-            false,
             mk(
                 running(&[&y]),
                 1,
@@ -909,20 +916,13 @@ pub fn preview(now: f64, cfg: &ZoneConfig, hints: &Hints) -> String {
         ),
         (
             "D: --force with nothing at all",
-            true,
             mk(Json::obj(), 0, Events::default()),
         ),
     ];
     let bar = "=".repeat(78);
     let mut out = String::new();
-    for (title, force, c) in cases {
-        if !force && todo_items(&c, cfg, hints).is_empty() {
-            out.push_str(&format!(
-                "\n{bar}\n{title}\n{bar}\nNo mail: nothing in it needs you.\n"
-            ));
-            continue;
-        }
-        let (subject, text) = build_message(&c, force, now, cfg, hints);
+    for (title, c) in cases {
+        let (subject, text) = build_message(&c, true, now, cfg, hints);
         out.push_str(&format!(
             "\n{bar}\n{title}\n{bar}\nSubject: {subject}\n\n{text}\n"
         ));
