@@ -74,7 +74,9 @@ pub fn window_history(ids: &[(String, String)], days: i64) -> Result<History, St
         }
         sleep(5.0);
     }
-    Ok(History(out))
+    let h = History(out);
+    h.check()?;
+    Ok(h)
 }
 
 // ------------------------------------------------------------------ replay candles

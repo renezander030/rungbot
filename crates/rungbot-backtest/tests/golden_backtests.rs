@@ -106,6 +106,51 @@ fn invariants_report_matches_the_reference() {
 }
 
 #[test]
+fn a_window_fee_costs_return_and_prints_its_total() {
+    let golden = loads(&read("golden", "window_sweep.json")).unwrap();
+    let book = Book::parse(&read("fixtures", "book.json")).unwrap();
+    let mut traded = 0;
+    for case in golden.as_list() {
+        let sc = case.get("scenario").unwrap();
+        let env = sc.get("env").unwrap();
+        let cfg = config(sc.get("coins").unwrap(), env);
+        let days = sc.get("days").and_then(|v| v.as_f64()).unwrap() as i64;
+        let hist_file = sc
+            .get("hist")
+            .and_then(|h| h.get(&days.to_string()))
+            .and_then(|v| v.as_str())
+            .unwrap();
+        let hist = History::parse(&read("fixtures", hist_file)).unwrap();
+        let opts = WindowOpts {
+            days,
+            max_order_usd: env_f(env, "MAX_ORDER_USD").unwrap_or(50.0),
+            bag: sc.get("bag").and_then(|v| v.as_f64()),
+            fee_pct: 0.0,
+        };
+        let free = window::run(&cfg, Ok(&hist), &book, &opts).text;
+        let paid = window::run(
+            &cfg,
+            Ok(&hist),
+            &book,
+            &WindowOpts {
+                fee_pct: 0.5,
+                ..opts
+            },
+        )
+        .text;
+        assert!(!free.contains("fees at"), "fee-free output is unchanged");
+        if free.contains("TRADES: 0 buys") && free.contains(", 0 sells") {
+            continue;
+        }
+        traded += 1;
+        assert!(paid.contains("fees at 0.5%: $"), "{paid}");
+        let ret = |t: &str| monthly::parse_strat_return(t).expect("a strategy line");
+        assert!(ret(&paid) < ret(&free), "{free}\n---\n{paid}");
+    }
+    assert!(traded > 0, "no golden scenario traded");
+}
+
+#[test]
 fn window_and_sweep_reports_match_the_reference() {
     let golden = loads(&read("golden", "window_sweep.json")).unwrap();
     let book = Book::parse(&read("fixtures", "book.json")).unwrap();
@@ -127,6 +172,7 @@ fn window_and_sweep_reports_match_the_reference() {
             days,
             max_order_usd: env_f(env, "MAX_ORDER_USD").unwrap_or(50.0),
             bag: sc.get("bag").and_then(|v| v.as_f64()),
+            fee_pct: 0.0,
         };
         let run = window::run(&cfg, Ok(&hist), &book, &opts);
         show_diff(

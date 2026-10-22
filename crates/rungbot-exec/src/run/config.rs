@@ -877,10 +877,31 @@ impl RunConfig {
             .find(|(s, _)| s == sym)
             .map(|(_, p)| p.as_str())
     }
+    /// Each routed coin with its venue, `(sym, exch)`, as [`crate::run::funding`] takes it.
+    pub fn routing_venues(&self) -> Vec<(String, String)> {
+        self.routing
+            .iter()
+            .map(|(s, r)| (s.clone(), r.exch.clone()))
+            .collect()
+    }
+    /// `deploy_alloc` keyed by upper-case symbol, as [`crate::run::funding`] matches it.
+    pub fn deploy_alloc_upper(&self) -> Vec<(String, f64)> {
+        self.deploy_alloc
+            .iter()
+            .map(|(s, w)| (s.to_uppercase(), *w))
+            .collect()
+    }
     /// `run_lock`, else `RUNGBOT_LOCK`, else `<journal>.lock`: the lock every other
     /// subcommand takes on this journal ([`crate::store::lock_path_for`]).
     pub fn lock_path(&self) -> PathBuf {
         crate::store::lock_path_for(&self.journal_path(), self.run_lock.as_deref())
+    }
+
+    /// Take the run lock ([`Self::lock_path`]) for `who`, waiting up to `run_lock_wait`
+    /// seconds for another writer to finish.
+    pub fn run_lock(&self, who: &str) -> Result<crate::store::RunLock, String> {
+        let wait = std::time::Duration::from_secs_f64(self.run_lock_wait.max(0.0));
+        crate::store::RunLock::acquire(&self.lock_path(), who, wait)
     }
 
     /// The bull sell policy's knobs, for the core.

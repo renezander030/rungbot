@@ -57,6 +57,8 @@ use crate::run::market::Market;
 use crate::run::RunResult;
 use crate::venue::{venue_id_matches, Balance, Venue};
 
+/// The deploy-state key of the in-flight top-up marker: Revolut X cash travelling to Gate.
+pub const INFLIGHT_KEY: &str = "inflight";
 /// The deploy-state key of a send-back: Gate USDC held for a transfer to Revolut X.
 pub const SEND_BACK_KEY: &str = "send_back";
 /// How long a send-back holds by default, in hours.
@@ -1044,18 +1046,7 @@ impl<'a> Layer<'a> {
     }
 
     fn reserve(&self, rx: f64, gate: f64) -> f64 {
-        let routing: Vec<(String, String)> = self
-            .cfg
-            .routing
-            .iter()
-            .map(|(s, r)| (s.clone(), r.exch.clone()))
-            .collect();
-        let alloc: Vec<(String, f64)> = self
-            .cfg
-            .deploy_alloc
-            .iter()
-            .map(|(s, w)| (s.to_uppercase(), *w))
-            .collect();
+        let (alloc, routing) = (self.cfg.deploy_alloc_upper(), self.cfg.routing_venues());
         funding::onramp_reserve(rx, gate, &alloc, &routing)
     }
 
@@ -1068,12 +1059,12 @@ impl<'a> Layer<'a> {
         gtf: &BTreeMap<String, Balance>,
     ) -> f64 {
         if let Some(v) = st
-            .get("inflight")
+            .get(INFLIGHT_KEY)
             .filter(|v| truthy(Some(v)) && !v.is_object())
         {
             // A hand-edited or corrupt marker: read it as no top-up in flight.
             let shown = crate::pyfmt::dumps(v, None);
-            st.remove("inflight");
+            st.remove(INFLIGHT_KEY);
             self.warn(format!(
                 "deploy state: `inflight` is not an object ({shown}), treated as no top-up in flight"
             ));
@@ -1101,7 +1092,7 @@ impl<'a> Layer<'a> {
                 )),
                 _ => {
                     let present = st
-                        .get_mut("inflight")
+                        .get_mut(INFLIGHT_KEY)
                         .filter(|v| inflight_marker(v))
                         .and_then(Value::as_object_mut);
                     if let Some(fl) = present {
@@ -1113,7 +1104,7 @@ impl<'a> Layer<'a> {
                             None => gate_stable,
                         };
                         st.insert(
-                            "inflight".into(),
+                            INFLIGHT_KEY.into(),
                             json!({"amount": out, "ts": self.now(), "since": since,
                                    "gate_stable_at": at}),
                         );
@@ -1125,7 +1116,7 @@ impl<'a> Layer<'a> {
                 }
             }
         }
-        if let Some(fl) = st.get("inflight").filter(|v| inflight_marker(v)).cloned() {
+        if let Some(fl) = st.get(INFLIGHT_KEY).filter(|v| inflight_marker(v)).cloned() {
             let fts = fl.get("ts").and_then(Value::as_f64).unwrap_or(0.0);
             let since = match num(fl.get("since")) {
                 x if x != 0.0 => x,
@@ -1144,7 +1135,7 @@ impl<'a> Layer<'a> {
             let age = self.now() - fts;
             let amount = fl.get("amount").and_then(Value::as_f64).unwrap_or(0.0);
             if landed >= 0.8 * amount || age >= INFLIGHT_MAX_S {
-                st.remove("inflight");
+                st.remove(INFLIGHT_KEY);
                 self.done(format!(
                     "REVX: Gate top-up landed ({how} +${}) -> reserve tracking resumes",
                     fixed(landed, 2)
@@ -1689,7 +1680,7 @@ impl<'a> Layer<'a> {
                 (0.0, false)
             }
         };
-        let inflight_active = st.get("inflight").is_some_and(inflight_marker);
+        let inflight_active = st.get(INFLIGHT_KEY).is_some_and(inflight_marker);
 
         if let Err(e) = self.gate_convert(&mut st) {
             self.warn(format!(

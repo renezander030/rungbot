@@ -424,6 +424,12 @@ impl Venue for Gate {
         Ok(self.pair_info(pair)?.round_amount(amount))
     }
 
+    fn pair_status(&self, pair: &str) -> Result<crate::pairs::PairStatus, VenueError> {
+        let r = self.public(&format!("{BASE}/api/v4/spot/currency_pairs/{pair}"))?;
+        crate::pairs::gate_status(r.status, &r.json_or_null())
+            .map_err(|e| VenueError::new(V, r.status, e))
+    }
+
     fn qty_step(&self, pair: &str) -> Result<f64, VenueError> {
         Ok(crate::venue::step_from_precision(
             self.pair_info(pair)?.amount_precision,

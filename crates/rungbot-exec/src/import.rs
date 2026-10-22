@@ -410,7 +410,7 @@ pub fn read_dir(dir: &Path) -> Result<Imported, String> {
                 d.get("stable")
                     .and_then(Value::as_object)
                     .map_or(0, |m| m.len()),
-                d.get("inflight")
+                d.get(crate::deploy::INFLIGHT_KEY)
                     .is_some_and(|v| crate::pyfmt::truthy(Some(v))),
             )
         }),

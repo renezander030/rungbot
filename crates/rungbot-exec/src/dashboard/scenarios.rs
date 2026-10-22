@@ -193,12 +193,11 @@ pub fn run(cfg: &RunConfig, d: &DashConfig, io: &mut Io) -> Result<(), String> {
             .filter(|s| s != model::MARKET)
             .collect()
     });
-    let alloc = d.scenarios.alloc.clone().unwrap_or_else(|| {
-        cfg.deploy_alloc
-            .iter()
-            .map(|(s, w)| (s.to_uppercase(), *w))
-            .collect()
-    });
+    let alloc = d
+        .scenarios
+        .alloc
+        .clone()
+        .unwrap_or_else(|| cfg.deploy_alloc_upper());
     let m = Model {
         fee_default: d.scenarios.fee_pct.unwrap_or(0.1),
         fee_pct: fees,

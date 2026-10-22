@@ -38,21 +38,23 @@ USAGE:
   rungbot-exec fillodds  [--horizons 30,90] [--json] [--config FILE]
   rungbot-exec funding   [--config FILE]
                          | send-back USD [--hours H] | send-back [--cancel]
-  rungbot-exec health    [--config FILE] [--max-age MIN] [--json]
+  rungbot-exec health    [--config FILE] [--max-age MIN] [--json] [--strict]
   rungbot-exec snapshot  [--config FILE] [--only data,scenarios,wallets] [--no-deploy]
-  rungbot-exec status    [--pair PAIR --venue V]
+  rungbot-exec status    [--pair PAIR --venue V] [--json]
   rungbot-exec plan      --from PLAN.json --budget N --pair-map SYM=PAIR,...
   rungbot-exec sync      --from PLAN.json --budget N --pair-map SYM=PAIR,...
                          [--venue V] --live --i-understand
   rungbot-exec reconcile
   rungbot-exec cancel    --pair PAIR [--venue V] [--live --i-understand]
   rungbot-exec archive   [--days N]
+  rungbot-exec fills     [--since YYYY-MM-DD] [--json]
   rungbot-exec shadow-diff REFERENCE.jsonl SHADOW.jsonl [--since TS] [--tolerance PCT]
                          [--abs-tolerance USD] [--window S] [--rename OLD=NEW,...] [--json]
   rungbot-exec shadow-diff --list
   rungbot-exec import-cex DIR [--dry-run | --write [--force]] | --config
   rungbot-exec keys      check [--venue V]
   rungbot-exec balances  [--config FILE] [--book FILE]
+  rungbot-exec pairs     [--config FILE] [--json]
   rungbot-exec deposits  [--config FILE] [--on-inflow CMD]
 
 DEPLOY (the monthly-capital layer; the run calls it every cycle with deploy: live):
@@ -70,7 +72,9 @@ HEALTH (read-only; calls no venue):
   the last completed run from the decision log, the journal, the trade mode, the
   halt file and the balances snapshot's age. Exit 1 when the last run is older than
   --max-age minutes (default 90) or the journal does not read, so a timer or a
-  monitor can alert on a run that stopped. With `heartbeat_url` in the run config
+  monitor can alert on a run that stopped. It warns about open orders whose last
+  poll failed and about venue-cancelled cash not re-laddered within 2 hours;
+  --strict exits 1 on a warning too. With `heartbeat_url` in the run config
   (or RUNGBOT_HEARTBEAT_URL), each completed run also GETs that URL, for a
   dead-man's switch such as healthchecks.io; dry and shadow runs do not.
 
@@ -87,6 +91,11 @@ BALANCES (the balance bridge; read-only on every routed venue):
   --book FILE it also writes the monthly backtest's start book (held per coin, free
   stable per venue, coins per venue), only when every venue was read. Exit 1 when a
   venue could not be read.
+
+PAIRS (read-only, public endpoints; no key needed):
+  each routed pair's trading status as its venue reports it, and any delisting date
+  it announced. Exit 1 when a pair is no longer listed, does not trade, or has a
+  delisting date, so a daily timer can say so before the ladder's orders fail.
 
 DEPOSITS (the deposit check; read-only on every routed venue, about once a minute):
   compares each venue's free EUR, USD, USDC and USDT with the previous check
@@ -154,8 +163,17 @@ OPTIONS:
   --max-orders N     daily order count cap (default 10)
   --max-slippage N   refuse if the venue's price now is this far from the plan's (default 2)
   --max-weekly N     notional cap over the last 7 days (default 0: off)
+  --max-coin-daily N sync: notional cap per coin over the last 24h, so one coin cannot
+                     take the whole daily cap (default 0: off)
   --max-plan-age MIN sync refuses a plan generated longer ago than this (default 60;
                      0 turns the check off); plan only warns
+  --expect-plan D    sync places nothing unless its orders hash to D, the digest `plan`
+                     printed for the same file, budget, pair map and venue
+
+FILLS (read-only):
+  every fill the journal booked, oldest first, as CSV with a header (time_utc, venue,
+  pair, sym, side, base, quote, price, kind, client_id, order_id), or --json. The
+  price is the venue's average fill price. --since keeps fills from that UTC date on.
 
 Commands that write the journal (sync, reconcile, cancel, archive, import-cex
 --write) take the run lock; a second one waits, then gives up naming the holder.
@@ -212,7 +230,9 @@ impl Args {
                         | "max-orders"
                         | "max-slippage"
                         | "max-weekly"
+                        | "max-coin-daily"
                         | "max-plan-age"
+                        | "expect-plan"
                         | "max-age"
                         | "state-dir"
                         | "since"
@@ -264,21 +284,25 @@ fn known_flags(cmd: &str) -> Option<&'static [&'static str]> {
         "max-daily",
         "max-orders",
         "max-weekly",
+        "max-coin-daily",
         "max-slippage",
         "max-plan-age",
+        "expect-plan",
     ];
     Some(match cmd {
         "run" => &["config", "dry-run", "state-dir", "verbose"],
-        "health" => &["config", "max-age", "json"],
-        "status" => &["pair", "venue", "journal", "config"],
+        "health" => &["config", "max-age", "json", "strict"],
+        "status" => &["pair", "venue", "journal", "config", "json"],
         "plan" | "sync" => PLACE,
         "reconcile" => &["journal", "config"],
         "cancel" => &["pair", "venue", "live", "i-understand", "journal", "config"],
         "archive" => &["days", "journal", "config"],
+        "fills" => &["since", "json", "journal", "config"],
         "import-cex" => &["dry-run", "write", "force", "config", "journal"],
         "keys" => &["venue"],
         "snapshot" => &["config", "only", "no-deploy"],
         "balances" => &["config", "book"],
+        "pairs" => &["config", "json"],
         "deposits" => &["config", "on-inflow"],
         "deploy" | "churn" | "fillodds" => &["config", "only", "days", "json", "horizons"],
         "funding" => &["config", "json", "hours", "cancel"],
@@ -370,6 +394,43 @@ struct Planned {
     price: f64,
     quote: f64,
     kind: String,
+}
+
+/// A short digest of exactly what would be placed: venue, then each order's pair, side,
+/// rung, price and quote, in plan order. `plan` prints it; `sync --expect-plan` checks it.
+fn plan_digest(venue: &str, orders: &[Planned]) -> String {
+    use sha2::{Digest, Sha256};
+    let mut h = Sha256::new();
+    h.update(venue.as_bytes());
+    for p in orders {
+        h.update(
+            format!(
+                "\n{} {} {} {:?} {:?}",
+                p.pair,
+                p.side.as_str(),
+                p.rung,
+                p.price,
+                p.quote
+            )
+            .as_bytes(),
+        );
+    }
+    h.finalize()[..8]
+        .iter()
+        .map(|b| format!("{b:02x}"))
+        .collect()
+}
+
+/// `--expect-plan`: the orders must be the ones previewed.
+fn check_expected_plan(expected: Option<&str>, digest: &str) -> Result<(), String> {
+    match expected {
+        Some(e) if e.trim() != digest => Err(format!(
+            "the orders hash to {digest}, not the previewed {}: run `plan` again and \
+             review what changed",
+            e.trim()
+        )),
+        _ => Ok(()),
+    }
 }
 
 /// Turn `rungbot plan --json` into concrete orders.
@@ -471,9 +532,11 @@ fn main() -> ExitCode {
         "reconcile" => cmd_reconcile(&args),
         "cancel" => cmd_cancel(&args),
         "archive" => cmd_archive(&args),
+        "fills" => cmd_fills(&args),
         "import-cex" => cmd_import(&args),
         "keys" => cmd_keys(&args),
         "balances" => return cmd_balances(&argv),
+        "pairs" => return cmd_pairs(&argv),
         "deposits" => return cmd_deposits(&argv),
         other => Err(format!("unknown command {other:?}\n\n{USAGE}")),
     };
@@ -591,15 +654,13 @@ fn cmd_health(args: &Args) -> ExitCode {
         );
     } else {
         for c in &checks {
-            let tag = match c.level {
-                Level::Ok => "ok  ",
-                Level::Warn => "WARN",
-                Level::Fail => "FAIL",
-            };
-            println!("{tag} {}", c.message);
+            println!("{} {}", c.level.tag(), c.message);
         }
     }
-    if checks.iter().any(|c| c.level == Level::Fail) {
+    let failing = |c: &&health::Check| {
+        c.level == Level::Fail || (args.has("strict") && c.level == Level::Warn)
+    };
+    if checks.iter().any(|c| failing(&c)) {
         ExitCode::from(1)
     } else {
         ExitCode::SUCCESS
@@ -839,8 +900,6 @@ fn positionals(argv: &[String]) -> Vec<String> {
     out
 }
 
-/// `deploy …`, `churn`, `fillodds` and `funding`: the deploy layer's commands and its
-/// read-only reports, all on the run config.
 /// `funding send-back`: hold Gate USDC for a transfer back to Revolut X, show the hold,
 /// or cancel it. Writes the deploy state under the run lock.
 fn funding_send_back(
@@ -849,8 +908,8 @@ fn funding_send_back(
     pos: &[String],
 ) -> Result<(), String> {
     use rungbot_exec::deploy::{self, SEND_BACK_HOURS, SEND_BACK_KEY};
-    let wait = Duration::from_secs_f64(cfg.run_lock_wait.max(0.0));
-    let _lock = store::RunLock::acquire(&cfg.lock_path(), "rungbot-exec funding send-back", wait)
+    let _lock = cfg
+        .run_lock("rungbot-exec funding send-back")
         .map_err(|e| format!("not run: {e}"))?;
     let spath = cfg.deploy_state_path();
     let mut st = deploy::load_state(&spath)?;
@@ -896,6 +955,8 @@ fn funding_send_back(
     Ok(())
 }
 
+/// `deploy …`, `churn`, `fillodds` and `funding`: the deploy layer's commands and its
+/// read-only reports, all on the run config.
 fn cmd_layer(argv: &[String]) -> Result<(), String> {
     use rungbot_exec::deploy::{self, cli, Layer, LiveRegime};
     use rungbot_exec::run::{config::RunConfig, funding, market::PublicMarket};
@@ -968,16 +1029,8 @@ fn cmd_layer(argv: &[String]) -> Result<(), String> {
                 .get("gate")?
                 .balances_full()
                 .map_err(|e| e.to_string())?;
-            let routing: Vec<(String, String)> = cfg
-                .routing
-                .iter()
-                .map(|(s, r)| (s.clone(), r.exch.clone()))
-                .collect();
-            let alloc: Vec<(String, f64)> = cfg
-                .deploy_alloc
-                .iter()
-                .map(|(s, w)| (s.to_uppercase(), *w))
-                .collect();
+            let routing = cfg.routing_venues();
+            let alloc = cfg.deploy_alloc_upper();
             let card = funding::card(
                 funding::revx_stable_from(&rx),
                 funding::gate_stable_from(&gt),
@@ -993,14 +1046,9 @@ fn cmd_layer(argv: &[String]) -> Result<(), String> {
     let sub = pos.first().map(String::as_str).unwrap_or("");
     let writes = matches!(sub, "tranche" | "market" | "cancel");
     let _lock = if writes {
-        let wait = Duration::from_secs_f64(cfg.run_lock_wait.max(0.0));
         Some(
-            store::RunLock::acquire(
-                &cfg.lock_path(),
-                &format!("rungbot-exec deploy {sub}"),
-                wait,
-            )
-            .map_err(|e| format!("not run: {e}"))?,
+            cfg.run_lock(&format!("rungbot-exec deploy {sub}"))
+                .map_err(|e| format!("not run: {e}"))?,
         )
     } else {
         None
@@ -1086,6 +1134,45 @@ fn venue_name(args: &Args) -> Result<&str, String> {
             "--venue {v:?}: expected one of {}",
             VENUES.join(", ")
         ))
+    }
+}
+
+/// `pairs`: every routed pair's trading status on its venue; exit 1 on a pair that is
+/// gone, halted or has a delisting date.
+fn cmd_pairs(argv: &[String]) -> ExitCode {
+    use rungbot_exec::health::Level;
+    use rungbot_exec::pairs;
+    use rungbot_exec::run::config::RunConfig;
+    let cfg = match RunConfig::load(&layer_config_path(argv)) {
+        Ok(c) => c,
+        Err(e) => {
+            eprintln!("{e}");
+            return ExitCode::from(1);
+        }
+    };
+    let clients = Clients::public();
+    let rows = pairs::check(&cfg, |v| clients.get(v));
+    if argv.iter().any(|a| a == "--json") {
+        println!(
+            "{}",
+            serde_json::to_string_pretty(&pairs::to_json(&rows)).unwrap_or_default()
+        );
+    } else {
+        for r in &rows {
+            println!(
+                "{} {} {} {}: {}",
+                r.level.tag(),
+                r.sym,
+                r.exch,
+                r.pair,
+                r.message
+            );
+        }
+    }
+    if rows.iter().any(|r| r.level == Level::Fail) {
+        ExitCode::from(1)
+    } else {
+        ExitCode::SUCCESS
     }
 }
 
@@ -1184,6 +1271,12 @@ fn cmd_keys(args: &Args) -> Result<(), String> {
                 println!("If this key has no IP allowlist, Gate disables it 90 days after");
                 println!("creation, without telling you. Allowlisting also prevents that.");
             }
+            if let Some(age) =
+                rungbot_exec::keys::key_file_age_days(name, std::time::SystemTime::now())
+            {
+                println!();
+                println!("{}", rungbot_exec::keys::age_note(name, age));
+            }
             Ok(())
         }
         Err(e) => Err(match e.hint() {
@@ -1198,6 +1291,23 @@ fn cmd_status(args: &Args) -> Result<(), String> {
     let jpath = t.journal.clone();
     let j = store::load_journal(&jpath)?;
     let day_ago = now() - 86_400.0;
+
+    if args.has("json") {
+        let mut v = j.status_json(now());
+        let halt = halt_path();
+        v["journal"] = serde_json::json!(jpath.display().to_string());
+        v["halt_file"] = serde_json::json!({
+            "path": halt.display().to_string(), "present": halt.exists(),
+        });
+        if let Some(pair) = args.get("pair") {
+            let clients = Clients::new();
+            let venue = clients.get(venue_name(args)?)?;
+            let open = venue.open_orders(pair).map_err(|e| e.to_string())?;
+            v["resting"] = serde_json::to_value(&open).map_err(|e| e.to_string())?;
+        }
+        println!("{}", serde_json::to_string_pretty(&v).unwrap_or_default());
+        return Ok(());
+    }
 
     println!("journal: {}", jpath.display());
     println!(
@@ -1217,11 +1327,7 @@ fn cmd_status(args: &Args) -> Result<(), String> {
             "absent"
         }
     );
-    let errors: Vec<&Order> = j
-        .open_orders(None)
-        .into_iter()
-        .filter(|o| o.last_error.is_some())
-        .collect();
+    let errors = j.failing_polls();
     if !errors.is_empty() {
         println!("\n{} open order(s) whose last poll failed:", errors.len());
         for o in errors {
@@ -1245,6 +1351,21 @@ fn cmd_status(args: &Args) -> Result<(), String> {
                 "  {} {} {:.6} @ {:.6}",
                 o.client_id,
                 o.sym,
+                o.base.unwrap_or(0.0),
+                o.price.unwrap_or(0.0)
+            );
+        }
+    }
+
+    let part = j.part_filled();
+    if !part.is_empty() {
+        println!("\n{} open order(s) part-filled:", part.len());
+        for o in part {
+            println!(
+                "  {} {} {:.6} of {:.6} @ {:.6}",
+                o.client_id,
+                o.sym,
+                o.part_base.unwrap_or(0.0),
                 o.base.unwrap_or(0.0),
                 o.price.unwrap_or(0.0)
             );
@@ -1364,6 +1485,17 @@ fn weekly_room(placed_7d: f64, quote: f64, cap: f64) -> Result<(), String> {
     Ok(())
 }
 
+/// `--max-coin-daily`: one coin's notional over the last 24h, this order included.
+fn coin_daily_room(sym: &str, placed_24h: f64, quote: f64, cap: f64) -> Result<(), String> {
+    if cap > 0.0 && placed_24h + quote > cap {
+        return Err(format!(
+            "would put {sym} at {:.2} over 24h, over the {cap:.2} per-coin daily cap",
+            placed_24h + quote
+        ));
+    }
+    Ok(())
+}
+
 fn prepare(args: &Args) -> Result<(Vec<Planned>, Caps, f64), String> {
     let plan = read_plan(args)?;
     if args.cmd == "sync" {
@@ -1410,6 +1542,7 @@ fn cmd_plan(args: &Args) -> Result<(), String> {
         println!("the plan has no buys or sells. Nothing to place.");
         return Ok(());
     }
+    let digest = plan_digest(args.get("venue").unwrap_or("gate"), &orders);
     for p in &orders {
         let cid = planned_cid(p, now());
         let intent = Intent {
@@ -1447,7 +1580,8 @@ fn cmd_plan(args: &Args) -> Result<(), String> {
             p.quote
         );
     }
-    println!("\nNothing was sent. Add --live --i-understand to place these.");
+    println!("\nplan digest {digest}: `sync ... --expect-plan {digest}` places exactly these.");
+    println!("Nothing was sent. Add --live --i-understand to place these.");
     Ok(())
 }
 
@@ -1493,6 +1627,7 @@ fn cmd_sync(args: &Args) -> Result<(), String> {
         return Err("sync without --live does nothing; use `plan` to preview".into());
     }
     let exch = venue_name(args)?;
+    check_expected_plan(args.get("expect-plan"), &plan_digest(exch, &orders))?;
     let t = target(args)?;
     let jpath = t.journal.clone();
     let _lock = lock_journal(&t.lock, "rungbot-exec sync")?;
@@ -1501,6 +1636,7 @@ fn cmd_sync(args: &Args) -> Result<(), String> {
     let venue = clients.get(exch)?;
     let day_ago = now() - 86_400.0;
     let max_weekly = args.num("max-weekly", 0.0)?;
+    let max_coin_daily = args.num("max-coin-daily", 0.0)?;
     let (mut placed, mut refused, mut skipped) = (0, 0, 0);
 
     for p in &orders {
@@ -1520,6 +1656,12 @@ fn cmd_sync(args: &Args) -> Result<(), String> {
             }
         };
         if let Err(e) = weekly_room(j.notional_since(ts - 7.0 * 86_400.0), p.quote, max_weekly) {
+            println!("  {} — REFUSED: {e}", p.sym);
+            refused += 1;
+            continue;
+        }
+        let coin_24h = j.coin_notional_since(&p.sym, ts - 86_400.0);
+        if let Err(e) = coin_daily_room(&p.sym, coin_24h, p.quote, max_coin_daily) {
             println!("  {} — REFUSED: {e}", p.sym);
             refused += 1;
             continue;
@@ -1644,11 +1786,7 @@ fn cmd_reconcile(args: &Args) -> Result<(), String> {
             a.order.quote.unwrap_or(0.0)
         );
     }
-    let errors = j
-        .open_orders(None)
-        .into_iter()
-        .filter(|o| o.last_error.is_some())
-        .count();
+    let errors = j.failing_polls().len();
     println!(
         "\nfilled {} · adopted {} · poll errors {errors}",
         r.filled.len(),
@@ -1719,6 +1857,33 @@ fn cmd_cancel(args: &Args) -> Result<(), String> {
         store::save_journal(&jpath, &j)?;
     }
     store::save_journal(&jpath, &j)?;
+    Ok(())
+}
+
+/// `fills`: every booked fill in the journal, oldest first, as CSV (or `--json`), for a
+/// P&L sheet or a tax tool. Read-only; it takes no lock.
+fn cmd_fills(args: &Args) -> Result<(), String> {
+    use rungbot_exec::journal::{fills_csv, fills_json};
+    let since = match args.get("since") {
+        None => 0.0,
+        Some(d) => {
+            let p: Vec<i64> = d.split('-').filter_map(|x| x.parse().ok()).collect();
+            if p.len() != 3 || d.len() != 10 {
+                return Err(format!("--since takes a UTC date, YYYY-MM-DD, not {d:?}"));
+            }
+            rungbot_core::time::days_from_civil(p[0], p[1], p[2]) as f64 * 86_400.0
+        }
+    };
+    let j = store::load_journal(&target(args)?.journal)?;
+    let rows = j.fills(since);
+    if args.has("json") {
+        println!(
+            "{}",
+            serde_json::to_string_pretty(&fills_json(&rows)).unwrap_or_default()
+        );
+    } else {
+        print!("{}", fills_csv(&rows));
+    }
     Ok(())
 }
 
@@ -1979,6 +2144,8 @@ mod tests {
             "keys",
             "snapshot",
             "balances",
+            "pairs",
+            "fills",
             "deposits",
             "deploy",
             "funding",
@@ -2077,5 +2244,39 @@ mod tests {
         assert!(weekly_room(450.0, 40.0, 500.0).is_ok());
         assert!(weekly_room(450.0, 60.0, 500.0).is_err());
         assert!(weekly_room(1e9, 60.0, 0.0).is_ok());
+    }
+
+    #[test]
+    fn the_plan_digest_moves_with_any_order_detail() {
+        let order = |price: f64| Planned {
+            sym: "AAA".into(),
+            pair: "AAA_USDT".into(),
+            side: Side::Buy,
+            rung: 1,
+            price,
+            quote: 25.0,
+            kind: "ladder_buy".into(),
+        };
+        let d = plan_digest("gate", &[order(10.0)]);
+        assert_eq!(d.len(), 16);
+        assert_eq!(d, plan_digest("gate", &[order(10.0)]));
+        assert_ne!(d, plan_digest("gate", &[order(10.01)]));
+        assert_ne!(d, plan_digest("binance", &[order(10.0)]));
+        assert!(check_expected_plan(None, &d).is_ok());
+        assert!(check_expected_plan(Some(&format!(" {d} ")), &d).is_ok());
+        assert!(check_expected_plan(Some("0000000000000000"), &d)
+            .unwrap_err()
+            .contains(&format!("hash to {d}")));
+    }
+
+    #[test]
+    fn the_coin_daily_cap_counts_the_order_itself_and_zero_is_off() {
+        assert!(coin_daily_room("AAA", 60.0, 40.0, 100.0).is_ok());
+        let e = coin_daily_room("AAA", 60.0, 41.0, 100.0).unwrap_err();
+        assert_eq!(
+            e,
+            "would put AAA at 101.00 over 24h, over the 100.00 per-coin daily cap"
+        );
+        assert!(coin_daily_room("AAA", 1e9, 60.0, 0.0).is_ok());
     }
 }

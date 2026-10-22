@@ -627,6 +627,26 @@ impl Venue for Revx {
         })
     }
 
+    /// Revolut X lists its pairs in one configuration; a pair missing from it is gone.
+    /// Each pair carries a status word: `active` trades, any other word does not.
+    fn pair_status(&self, pair: &str) -> Result<crate::pairs::PairStatus, VenueError> {
+        match self.pair_info(pair) {
+            Ok(p) => Ok(crate::pairs::PairStatus {
+                listed: true,
+                tradable: p
+                    .status
+                    .as_deref()
+                    .map(|s| s.eq_ignore_ascii_case("active")),
+                state: p.status.unwrap_or_default(),
+                delisting_ts: None,
+            }),
+            Err(e) if e.message.contains("not in venue configuration") => {
+                Ok(crate::pairs::PairStatus::unlisted("not listed"))
+            }
+            Err(e) => Err(e),
+        }
+    }
+
     fn qty_step(&self, pair: &str) -> Result<f64, VenueError> {
         let p = self.pair_info(pair)?;
         Ok(if p.base_step != 0.0 {

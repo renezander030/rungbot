@@ -366,6 +366,12 @@ impl Venue for Binance {
         self.round_qty(symbol, amount)
     }
 
+    fn pair_status(&self, symbol: &str) -> Result<crate::pairs::PairStatus, VenueError> {
+        let r = self.public(&format!("/api/v3/exchangeInfo?symbol={symbol}"))?;
+        crate::pairs::binance_status(r.status, &r.json_or_null())
+            .map_err(|e| VenueError::new(V, r.status, e))
+    }
+
     fn qty_step(&self, symbol: &str) -> Result<f64, VenueError> {
         Ok(self.filters(symbol)?.step)
     }
