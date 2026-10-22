@@ -277,6 +277,7 @@ fn run_window(
     let wo = WindowOpts {
         days,
         max_order_usd: opts.max_order_usd,
+        fee_pct: 0.0,
         bag: None,
     };
     let r = window::run(cfg, hist.as_ref().map_err(|e| e.clone()), book, &wo);

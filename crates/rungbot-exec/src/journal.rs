@@ -461,6 +461,74 @@ impl Journal {
             .fold(0.0, |a, b| a + b)
     }
 
+    /// [`Self::notional_since`] for one coin.
+    pub fn coin_notional_since(&self, sym: &str, since: f64) -> f64 {
+        self.orders
+            .values()
+            .filter(|o| o.sym == sym && o.ts.unwrap_or(0.0) >= since && o.status != "error")
+            .map(|o| o.quote.unwrap_or(0.0))
+            .fold(0.0, |a, b| a + b)
+    }
+
+    /// Every booked fill at or after `since`, oldest first: rows with a fill time, a
+    /// part-filled order that left the book included.
+    pub fn fills(&self, since: f64) -> Vec<&Order> {
+        let mut rows: Vec<&Order> = self
+            .orders
+            .values()
+            .filter(|o| truthy_f(o.filled_ts) && o.filled_ts.unwrap_or(0.0) >= since)
+            .collect();
+        rows.sort_by(|a, b| a.filled_ts.partial_cmp(&b.filled_ts).expect("finite times"));
+        rows
+    }
+
+    /// Open orders whose last poll of the venue failed (`last_error` set).
+    pub fn failing_polls(&self) -> Vec<&Order> {
+        self.open_orders(None)
+            .into_iter()
+            .filter(|o| o.last_error.is_some())
+            .collect()
+    }
+
+    /// Open orders that already filled in part, with what filled so far.
+    pub fn part_filled(&self) -> Vec<&Order> {
+        self.open_orders(None)
+            .into_iter()
+            .filter(|o| truthy_f(o.part_base))
+            .collect()
+    }
+
+    /// What `rungbot-exec status` shows of the journal, as data.
+    pub fn status_json(&self, now: f64) -> serde_json::Value {
+        use serde_json::json;
+        let day_ago = now - 86_400.0;
+        let row = |o: &Order| {
+            json!({
+                "client_id": o.client_id, "sym": o.sym, "venue": o.exch, "pair": o.pair,
+                "side": o.side, "price": o.price, "base": o.base,
+            })
+        };
+        json!({
+            "open": self.open_orders(None).len(),
+            "filled_24h": self.filled_since(day_ago, false).len(),
+            "placed_24h": self.count_since(day_ago),
+            "notional_24h": self.notional_since(day_ago),
+            "poll_errors": self.failing_polls().into_iter()
+                .map(|o| { let mut r = row(o); r["error"] = json!(o.last_error); r })
+                .collect::<Vec<_>>(),
+            "venue_cancelled_unswept": self.venue_cancelled_unswept(None).into_iter()
+                .map(row).collect::<Vec<_>>(),
+            "part_filled": self.part_filled().into_iter()
+                .map(|o| {
+                    let mut r = row(o);
+                    r["filled_base"] = json!(o.part_base);
+                    r["filled_quote"] = json!(o.part_quote);
+                    r
+                })
+                .collect::<Vec<_>>(),
+        })
+    }
+
     /// How many orders were journaled on or after `since`, failed placements excluded.
     pub fn count_since(&self, since: f64) -> usize {
         self.orders
@@ -468,6 +536,82 @@ impl Journal {
             .filter(|o| o.ts.unwrap_or(0.0) >= since && o.status != "error")
             .count()
     }
+}
+
+/// The columns of [`fills_csv`].
+pub const FILL_COLUMNS: [&str; 11] = [
+    "time_utc",
+    "venue",
+    "pair",
+    "sym",
+    "side",
+    "base",
+    "quote",
+    "price",
+    "kind",
+    "client_id",
+    "order_id",
+];
+
+/// One fill as the values of [`FILL_COLUMNS`]. `price` is the average fill price, else
+/// the quote over the base, else the order's limit price.
+pub fn fill_fields(o: &Order) -> Vec<String> {
+    let base = o.filled_base.unwrap_or(0.0);
+    let quote = o.filled_quote.unwrap_or(0.0);
+    let price = o
+        .avg_price
+        .filter(|p| *p > 0.0)
+        .or_else(|| (base > 0.0 && quote > 0.0).then(|| quote / base))
+        .or(o.price)
+        .unwrap_or(0.0);
+    let num = |x: f64| format!("{x}");
+    vec![
+        rungbot_core::time::iso8601(o.filled_ts.unwrap_or(0.0)),
+        o.exch.clone(),
+        o.pair.clone(),
+        o.sym.clone(),
+        o.side.clone(),
+        num(base),
+        num(quote),
+        num(price),
+        o.kind.clone(),
+        o.client_id.clone(),
+        o.order_id.clone().unwrap_or_default(),
+    ]
+}
+
+/// `rows` as CSV with a header line. A field holding a comma or a quote is quoted.
+pub fn fills_csv(rows: &[&Order]) -> String {
+    let cell = |f: &str| {
+        if f.contains([',', '"', '\n']) {
+            format!("\"{}\"", f.replace('"', "\"\""))
+        } else {
+            f.to_string()
+        }
+    };
+    let mut out = FILL_COLUMNS.join(",");
+    out.push('\n');
+    for o in rows {
+        let line: Vec<String> = fill_fields(o).iter().map(|f| cell(f)).collect();
+        out.push_str(&line.join(","));
+        out.push('\n');
+    }
+    out
+}
+
+/// `rows` as a JSON list, one object per fill keyed by [`FILL_COLUMNS`].
+pub fn fills_json(rows: &[&Order]) -> serde_json::Value {
+    rows.iter()
+        .map(|o| {
+            FILL_COLUMNS
+                .iter()
+                .zip(fill_fields(o))
+                .map(|(k, v)| (k.to_string(), serde_json::Value::String(v)))
+                .collect::<serde_json::Map<_, _>>()
+                .into()
+        })
+        .collect::<Vec<serde_json::Value>>()
+        .into()
 }
 
 #[cfg(test)]
@@ -542,6 +686,69 @@ mod tests {
         j.record(order("old", "filled", T0 - 86_400.0));
         assert_eq!(j.count_since(T0), 2);
         assert_eq!(j.notional_since(T0), 20.0);
+        let mut other = order("d", "open", T0 + 30.0);
+        other.sym = "BBB".into();
+        j.record(other);
+        assert_eq!(j.coin_notional_since("AAA", T0), 20.0);
+        assert_eq!(j.coin_notional_since("BBB", T0), 10.0);
+        assert_eq!(j.coin_notional_since("CCC", T0), 0.0);
+    }
+
+    #[test]
+    fn fills_come_oldest_first_with_their_average_price() {
+        let mut j = Journal::default();
+        let mut late = order("late", "filled", T0);
+        late.filled_ts = Some(T0 + 200.0);
+        late.filled_base = Some(2.0);
+        late.filled_quote = Some(19.0);
+        late.order_id = Some("9".into());
+        j.record(late);
+        let mut early = order("early", "filled", T0);
+        early.filled_ts = Some(T0 + 100.0);
+        early.filled_base = Some(1.0);
+        early.filled_quote = Some(10.0);
+        early.avg_price = Some(10.0);
+        early.kind = "a,b".into();
+        j.record(early);
+        j.record(order("open", "open", T0));
+        let rows = j.fills(T0);
+        assert_eq!(rows.len(), 2);
+        assert_eq!(j.fills(T0 + 150.0).len(), 1);
+        let csv = fills_csv(&rows);
+        let lines: Vec<&str> = csv.lines().collect();
+        assert_eq!(lines[0], FILL_COLUMNS.join(","));
+        assert_eq!(
+            lines[1],
+            "2023-11-14T22:15:00+00:00,gate,AAA_USDT,AAA,buy,1,10,10,\"a,b\",early,"
+        );
+        assert_eq!(
+            lines[2],
+            "2023-11-14T22:16:40+00:00,gate,AAA_USDT,AAA,buy,2,19,9.5,ladder_buy,late,9"
+        );
+        let json = fills_json(&rows);
+        assert_eq!(json[1]["price"], "9.5");
+        assert_eq!(json[0]["kind"], "a,b");
+        assert_eq!(json[0].as_object().unwrap().len(), FILL_COLUMNS.len());
+    }
+
+    #[test]
+    fn the_status_view_lists_part_fills_and_failing_polls() {
+        let mut j = Journal::default();
+        let mut part = order("p", "open", T0);
+        part.part_base = Some(0.4);
+        part.part_quote = Some(4.0);
+        j.record(part);
+        let mut failing = order("f", "open", T0);
+        failing.last_error = Some("timeout".into());
+        j.record(failing);
+        j.record(order("done", "filled", T0));
+        let v = j.status_json(T0 + 60.0);
+        assert_eq!(v["open"], 2);
+        assert_eq!(v["placed_24h"], 3);
+        assert_eq!(v["part_filled"][0]["client_id"], "p");
+        assert_eq!(v["part_filled"][0]["filled_base"], 0.4);
+        assert_eq!(v["poll_errors"][0]["error"], "timeout");
+        assert_eq!(v["venue_cancelled_unswept"].as_array().unwrap().len(), 0);
     }
 
     #[test]

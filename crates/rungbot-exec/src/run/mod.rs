@@ -477,8 +477,7 @@ struct Stores {
 /// One run under the run lock. A lock another writer keeps past `run_lock_wait` skips
 /// this slot: `SKIPPED run: …` on stdout, exit 0, the next run catches up.
 pub fn run_locked(cfg: &RunConfig, flags: Flags, deps: &mut Deps) -> Result<i32, String> {
-    let wait = std::time::Duration::from_secs_f64(cfg.run_lock_wait.max(0.0));
-    let _lock = match store::RunLock::acquire(&cfg.lock_path(), "rungbot-exec run", wait) {
+    let _lock = match cfg.run_lock("rungbot-exec run") {
         Ok(l) => l,
         Err(e) => {
             say!(deps.out, "SKIPPED run: {e}");

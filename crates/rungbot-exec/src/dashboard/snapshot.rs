@@ -876,16 +876,8 @@ pub fn run(cfg: &RunConfig, d: &DashConfig, io: &mut Io) -> Result<(), String> {
     let funding = match &revx_err {
         Some(e) => obj(vec![("error", e.clone())]),
         None => {
-            let alloc: Vec<(String, f64)> = cfg
-                .deploy_alloc
-                .iter()
-                .map(|(s, w)| (s.to_uppercase(), *w))
-                .collect();
-            let routing: Vec<(String, String)> = cfg
-                .routing
-                .iter()
-                .map(|(s, r)| (s.clone(), r.exch.clone()))
-                .collect();
+            let alloc = cfg.deploy_alloc_upper();
+            let routing = cfg.routing_venues();
             let usdc_free = rx("USDC", "total")? - rx("USDC", "reserved")?;
             let c = crate::run::funding::card(rx_stable, gate_stable, usdc_free, &alloc, &routing);
             let mut card = obj(vec![
@@ -909,7 +901,7 @@ pub fn run(cfg: &RunConfig, d: &DashConfig, io: &mut Io) -> Result<(), String> {
                 if let Some(sb) = st.get(crate::deploy::SEND_BACK_KEY).filter(set) {
                     card.set("send_back", sb.clone());
                 }
-                if let Some(fl) = st.get("inflight").filter(set) {
+                if let Some(fl) = st.get(crate::deploy::INFLIGHT_KEY).filter(set) {
                     card.set("top_up_in_flight", fl.clone());
                 }
             }

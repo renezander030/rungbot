@@ -36,6 +36,7 @@ pub mod ids;
 pub mod import;
 pub mod journal;
 pub mod keys;
+pub mod pairs;
 pub mod pyfmt;
 pub mod reconcile;
 pub mod revx;

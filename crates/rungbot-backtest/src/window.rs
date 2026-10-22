@@ -6,7 +6,8 @@
 //! a live run applies: each venue's free stable is shared by the coins routed there, an
 //! order is capped at `max_order_usd` and at what the venue holds, a trade below the
 //! pair's minimum notional is skipped **and the coin's ladder state rolled back**, and a
-//! buy re-averages the cost basis.
+//! buy re-averages the cost basis. With `fee_pct` set, every buy and sell pays that
+//! share of its notional; the default 0 replays fee-free, as the reference did.
 //!
 //! The window's granularity is read from the data: the 24h lookback is however many
 //! points span a day at the median spacing, so an hourly and a daily series both run the
@@ -39,6 +40,8 @@ pub struct WindowOpts {
     pub max_order_usd: f64,
     /// Replace the book's free stable with this bag, split evenly across venues.
     pub bag: Option<f64>,
+    /// Trading fee in percent of each trade's notional. 0 = fee-free.
+    pub fee_pct: f64,
 }
 
 impl Default for WindowOpts {
@@ -47,6 +50,7 @@ impl Default for WindowOpts {
             days: 28,
             max_order_usd: 50.0,
             bag: None,
+            fee_pct: 0.0,
         }
     }
 }
@@ -170,6 +174,8 @@ pub fn run(
     let mut state: State = State::new();
     let (mut buys, mut sells) = (0i64, 0i64);
     let (mut buy_usd, mut sell_usd) = (0.0f64, 0.0f64);
+    let mut fees = 0.0f64;
+    let fee_of = |notional: f64| notional * opts.fee_pct / 100.0;
     let venue_of = |sym: &str| cfg.coin(sym).map(|c| c.venue.as_str()).unwrap_or("");
     let count_of = |v: &str| {
         counts
@@ -212,7 +218,12 @@ pub fn run(
                 rollback(&mut state, &prev, sym);
                 continue;
             }
-            let units = notional / price;
+            let units = if opts.fee_pct > 0.0 {
+                fees += fee_of(notional);
+                (notional - fee_of(notional)) / price
+            } else {
+                notional / price
+            };
             let old_u = named_get(&held, sym).unwrap_or(0.0);
             let cs = state.get_mut(sym).expect("analyze wrote the coin");
             let old_c = cs
@@ -244,7 +255,13 @@ pub fn run(
             }
             named_set(&mut held, sym, h - qty);
             let st = named_get(&stable, exch).unwrap_or(0.0);
-            named_set(&mut stable, exch, st + notional);
+            let proceeds = if opts.fee_pct > 0.0 {
+                fees += fee_of(notional);
+                notional - fee_of(notional)
+            } else {
+                notional
+            };
+            named_set(&mut stable, exch, st + proceeds);
             sells += 1;
             sell_usd += notional;
         }
@@ -290,6 +307,13 @@ pub fn run(
         ff(buy_usd, ".2f"),
         ff(sell_usd, ".2f")
     ));
+    if opts.fee_pct > 0.0 {
+        out.push_str(&format!(
+            "fees at {}%: ${}\n",
+            ff(opts.fee_pct, "g"),
+            ff(fees, ".2f")
+        ));
+    }
     out.push_str(&format!(
         "end stable bag: ${}\n",
         ff(sum(stable.iter().map(|x| x.1)), ".2f")

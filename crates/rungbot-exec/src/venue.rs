@@ -109,6 +109,16 @@ pub trait Venue {
     fn deposits(&self, _since: f64) -> Option<Result<Vec<crate::gate::Deposit>, VenueError>> {
         None
     }
+    /// Whether the venue still lists and trades `pair`, and any delisting it announced.
+    /// A venue that does not report it says so with `tradable: None`.
+    fn pair_status(&self, _pair: &str) -> Result<crate::pairs::PairStatus, VenueError> {
+        Ok(crate::pairs::PairStatus {
+            listed: true,
+            tradable: None,
+            state: "not reported by the venue".into(),
+            delisting_ts: None,
+        })
+    }
     /// Does `venue_cid`, as this venue echoes it, belong to journal id `cid`?
     fn id_matches(&self, venue_cid: &str, cid: &str) -> bool {
         venue_id_matches(self.name(), venue_cid, cid)

@@ -62,7 +62,30 @@ impl History {
         if out.is_empty() {
             return Err("history has no coins".into());
         }
-        Ok(History(out))
+        let h = History(out);
+        h.check()?;
+        Ok(h)
+    }
+
+    /// Every series has two points or more, in strictly rising time. A short series
+    /// cannot be replayed, and a repeated or backward timestamp (a paged fetch that
+    /// overlapped) would bend the replay's clock, so both are refused by name.
+    pub fn check(&self) -> Result<(), String> {
+        for (sym, pts) in &self.0 {
+            if pts.len() < 2 {
+                return Err(format!(
+                    "history {sym} has {} point(s); a replay needs two or more",
+                    pts.len()
+                ));
+            }
+            if let Some(w) = pts.windows(2).find(|w| w[1].0 <= w[0].0) {
+                return Err(format!(
+                    "history {sym}: timestamp {} follows {}; points must rise in time",
+                    w[1].0, w[0].0
+                ));
+            }
+        }
+        Ok(())
     }
 
     pub fn to_json(&self) -> String {
@@ -180,5 +203,24 @@ pub fn entry_text(v: Option<f64>) -> String {
         None => "None".into(),
         Some(x) if x.fract() == 0.0 && x.abs() < 1e16 => format!("{}", x as i64),
         Some(x) => py::repr(x),
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn a_history_must_rise_in_time_with_two_points_a_coin() {
+        assert!(History::parse(r#"{"AAA": [[1, 2.0], [2, 2.5]]}"#).is_ok());
+        assert_eq!(
+            History::parse(r#"{"AAA": [[1, 2.0], [2, 2.5]], "BBB": []}"#).unwrap_err(),
+            "history BBB has 0 point(s); a replay needs two or more"
+        );
+        assert_eq!(
+            History::parse(r#"{"AAA": [[1, 2.0], [3, 2.5], [3, 2.6]]}"#).unwrap_err(),
+            "history AAA: timestamp 3 follows 3; points must rise in time"
+        );
+        assert!(History::parse(r#"{"AAA": [[5, 2.0], [4, 2.5]]}"#).is_err());
     }
 }

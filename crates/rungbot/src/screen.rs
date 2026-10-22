@@ -13,17 +13,8 @@
 use std::collections::BTreeMap;
 
 use rungbot_core::research::{Candidate, ValueFacts};
-use serde_json::Value;
 
-use crate::tickers::{get_json, TickerError};
-
-fn num(v: Option<&Value>) -> Option<f64> {
-    match v? {
-        Value::Number(n) => n.as_f64(),
-        Value::String(s) => s.trim().parse().ok(),
-        _ => None,
-    }
-}
+use crate::tickers::{get_json, num, TickerError};
 
 /// The whole market from CoinPaprika, as screen candidates.
 ///
@@ -39,7 +30,10 @@ pub fn market() -> Result<Vec<Candidate>, TickerError> {
     let mut out = Vec::new();
     for c in rows {
         let q = c.get("quotes").and_then(|q| q.get("USD"));
-        let Some(fath) = num(q.and_then(|q| q.get("percent_from_price_ath"))) else {
+        let Some(fath) = q
+            .and_then(|q| q.get("percent_from_price_ath"))
+            .and_then(num)
+        else {
             continue;
         };
         let (Some(symbol), Some(name)) = (
@@ -48,19 +42,22 @@ pub fn market() -> Result<Vec<Candidate>, TickerError> {
         ) else {
             continue;
         };
-        let chg_7d = num(q.and_then(|q| q.get("percent_change_7d")));
+        let chg_7d = q.and_then(|q| q.get("percent_change_7d")).and_then(num);
         out.push(Candidate {
             symbol: symbol.to_string(),
             name: name.to_string(),
-            rank: num(c.get("rank")).unwrap_or(0.0) as u32,
-            price: num(q.and_then(|q| q.get("price"))),
+            rank: c.get("rank").and_then(num).unwrap_or(0.0) as u32,
+            price: q.and_then(|q| q.get("price")).and_then(num),
             // The feed reports a negative percentage; the screen works in magnitudes.
             drawdown_pct: -fath,
-            vol_24h: num(q.and_then(|q| q.get("volume_24h"))).unwrap_or(0.0),
-            market_cap: num(q.and_then(|q| q.get("market_cap"))),
-            chg_24h: num(q.and_then(|q| q.get("percent_change_24h"))),
+            vol_24h: q
+                .and_then(|q| q.get("volume_24h"))
+                .and_then(num)
+                .unwrap_or(0.0),
+            market_cap: q.and_then(|q| q.get("market_cap")).and_then(num),
+            chg_24h: q.and_then(|q| q.get("percent_change_24h")).and_then(num),
             chg_7d,
-            chg_1y: num(q.and_then(|q| q.get("percent_change_1y"))),
+            chg_1y: q.and_then(|q| q.get("percent_change_1y")).and_then(num),
             basing: chg_7d.is_some_and(|d| d > 0.0),
             value: None,
             verdict: None,
@@ -87,7 +84,10 @@ pub fn values() -> Result<BTreeMap<String, ValueFacts>, TickerError> {
             if let Some(n) = p.get("name").and_then(|v| v.as_str()) {
                 fee_by_name.insert(
                     n.trim().to_lowercase(),
-                    (num(p.get("total30d")), num(p.get("revenue30d"))),
+                    (
+                        p.get("total30d").and_then(num),
+                        p.get("revenue30d").and_then(num),
+                    ),
                 );
             }
         }
@@ -112,7 +112,7 @@ pub fn values() -> Result<BTreeMap<String, ValueFacts>, TickerError> {
             .get(&name.trim().to_lowercase())
             .copied()
             .unwrap_or((None, None));
-        let tvl = num(p.get("tvl"));
+        let tvl = p.get("tvl").and_then(num);
         let category = p.get("category").and_then(|v| v.as_str()).map(String::from);
 
         // A ticker can front several protocols; keep the one earning the most, which is

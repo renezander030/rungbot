@@ -29,7 +29,7 @@ rungbot backtest — the ladder replayed over history. Never trades.
 USAGE:
   rungbot backtest invariants
   rungbot backtest window  --book FILE [--days N] [--bag USD] [--max-order USD]
-                           [--history FILE] [--cache-dir DIR] [--refresh]
+                           [--fee-pct PCT] [--history FILE] [--cache-dir DIR] [--refresh]
   rungbot backtest sweep   [--days N] [--book FILE] [--history FILE] [--bag USD]
   rungbot backtest monthly --book FILE [--windows 28,90,180] [--expect FILE]
                            [--dry-run] [--notify] [--drift-band PCT] [--no-percoin]
@@ -51,13 +51,16 @@ REPLAY STUDIES:
   sellpolicy            the bull sell policy over btc-top's and alt-top's tops
   microstate            30-day microstate against the resting orders
 
-The window, sweep and monthly runs read the config's coins and ladder. The start book
+The window, sweep and monthly runs read the config's coins and ladder. `window
+--fee-pct 0.2` charges 0.2% of every simulated buy and sell and prints the total;
+without it the window replays fee-free. The start book
 (--book) is JSON: {\"held\": {\"BTC\": 0.05}, \"stable\": {\"binance\": 800},
 \"min_notional\": {\"BTC\": 5}}. A coin's price history comes from CoinGecko: set
 `coingecko: <id>` on each coin whose venue is not coingecko.
 
 ENVIRONMENT:
   RUNGBOT_BT_DAYS, RUNGBOT_BT_WINDOWS, RUNGBOT_BT_BAG, RUNGBOT_MAX_ORDER_USD,
+  RUNGBOT_BT_FEE_PCT,
   RUNGBOT_DRIFT_BAND_PCT, RUNGBOT_BT_PERCOIN=0, RUNGBOT_BT_PERCOIN_MIN_GAIN
   DRY_RUN=1          monthly: print the verdict mail instead of sending it
 
@@ -215,6 +218,7 @@ fn cmd_window(args: &Args, cfg: &CliConfig) -> Result<(), Failure> {
         max_order_usd: flag_f(args, "max-order", "RUNGBOT_MAX_ORDER_USD")?
             .unwrap_or(cfg.backtest.max_order_usd),
         bag: flag_f(args, "bag", "RUNGBOT_BT_WINDOW_BAG")?,
+        fee_pct: flag_f(args, "fee-pct", "RUNGBOT_BT_FEE_PCT")?.unwrap_or(0.0),
     };
     let hist = window_history(args, cfg, days)?;
     let run = window::run(

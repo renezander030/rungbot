@@ -91,15 +91,16 @@ pub fn expand(p: &str) -> PathBuf {
     }
 }
 
+/// An environment override: set and not blank. A blank variable counts as unset, so a
+/// unit file can clear one without deleting the line.
+fn env_set(key: &str) -> Option<String> {
+    std::env::var(key).ok().filter(|v| !v.trim().is_empty())
+}
+
 fn env_num(key: &str) -> Result<Option<f64>, String> {
-    match std::env::var(key) {
-        Ok(v) if !v.trim().is_empty() => v
-            .trim()
-            .parse::<f64>()
-            .map(Some)
-            .map_err(|e| format!("{key}: {e}")),
-        _ => Ok(None),
-    }
+    env_set(key)
+        .map(|v| v.trim().parse::<f64>().map_err(|e| format!("{key}: {e}")))
+        .transpose()
 }
 
 /// The environment overrides the original watchers honoured, applied over the file.
@@ -125,11 +126,10 @@ pub fn apply_env(mut w: WatchConfig) -> Result<WatchConfig, String> {
     num!("DRIFT_BAND_PCT", w.divergence.drift_band_pct, f64);
     num!("FLOOR_MARGIN_PCT", w.divergence.floor_margin_pct, f64);
     num!("MIN_DAYS", w.divergence.min_days, f64);
-    let path = |key: &str| std::env::var(key).ok().filter(|v| !v.trim().is_empty());
-    if let Some(p) = path("ORDER_JOURNAL") {
+    if let Some(p) = env_set("ORDER_JOURNAL") {
         w.journal = Some(expand(&p));
     }
-    if let Some(p) = path("LADDER_STATE") {
+    if let Some(p) = env_set("LADDER_STATE") {
         w.book = Some(expand(&p));
     }
     Ok(w)
@@ -155,9 +155,7 @@ impl Paths {
                 .unwrap_or_else(|| PathBuf::from("."))
         });
         let env = |k: &str, name: &str| {
-            std::env::var(k)
-                .ok()
-                .filter(|v| !v.trim().is_empty())
+            env_set(k)
                 .map(|v| expand(&v))
                 .unwrap_or_else(|| dir.join(name))
         };
@@ -1024,6 +1022,23 @@ mod tests {
         assert_eq!(cfg.watch.btc.warn_usd, 33_000.0);
         assert_eq!(cfg.watch.zone.stale_days, 3.0);
         assert_eq!(cfg.watch.journal.as_deref(), Some(Path::new("/tmp/j.json")));
+        let _ = std::fs::remove_dir_all(&d);
+    }
+
+    #[test]
+    fn a_blank_override_counts_as_unset() {
+        let _env = crate::testenv::EnvGuard::set(&[
+            ("BTC_ALERT_USD", Some("  ")),
+            ("ORDER_JOURNAL", Some(" ")),
+            ("ZONE_STATE", Some("")),
+            ("FROTH_STATE", Some("~/f.json")),
+        ]);
+        let d = tmp("blank");
+        let (cfg, paths) = setup(&d, "");
+        assert_eq!(cfg.watch.btc.alert_usd, 30_000.0);
+        assert_eq!(cfg.watch.journal, Some(d.join("journal.json")));
+        assert_eq!(paths.zone, d.join("zone-state.json"));
+        assert_eq!(paths.froth, expand("~/f.json"));
         let _ = std::fs::remove_dir_all(&d);
     }
 

@@ -2,7 +2,8 @@
 //!
 //! Read-only. It reads the run config, the decision log's last `run` line, the order
 //! journal, the halt file and the balances snapshot, and calls no venue. Exit 1 when a
-//! check fails, so a timer or a monitor can alert on it.
+//! check fails, so a timer or a monitor can alert on it; `--strict` also fails on a
+//! warning.
 
 use std::path::Path;
 
@@ -23,6 +24,15 @@ impl Level {
             Level::Ok => "ok",
             Level::Warn => "warn",
             Level::Fail => "fail",
+        }
+    }
+
+    /// The four-column tag a text report leads each line with.
+    pub fn tag(self) -> &'static str {
+        match self {
+            Level::Ok => "ok  ",
+            Level::Warn => "WARN",
+            Level::Fail => "FAIL",
         }
     }
 }
@@ -56,6 +66,10 @@ pub fn last_run(log: &str) -> Option<(f64, String)> {
         Some((ts, mode))
     })
 }
+
+/// How long the venue's cancel of an order may wait for the run to re-ladder its cash
+/// before health warns. A run every 30 minutes sweeps it well inside this.
+pub const UNSWEPT_WARN_S: f64 = 2.0 * 3600.0;
 
 fn minutes(s: f64) -> String {
     format!("{:.0} min", s / 60.0)
@@ -109,7 +123,7 @@ pub fn report(cfg: &RunConfig, now: f64, max_age_min: f64) -> Vec<Check> {
         match crate::store::load_journal(&jpath) {
             Ok(j) => {
                 let open = j.open_orders(None);
-                let failing = open.iter().filter(|o| o.last_error.is_some()).count();
+                let failing = j.failing_polls().len();
                 out.push(check(
                     Level::Ok,
                     format!("journal reads: {} open order(s)", open.len()),
@@ -119,6 +133,21 @@ pub fn report(cfg: &RunConfig, now: f64, max_age_min: f64) -> Vec<Check> {
                         Level::Warn,
                         format!(
                             "{failing} open order(s) whose last poll failed (rungbot-exec status)"
+                        ),
+                    ));
+                }
+                let unswept = j
+                    .venue_cancelled_unswept(None)
+                    .iter()
+                    .filter(|o| now - o.status_ts.unwrap_or(now) > UNSWEPT_WARN_S)
+                    .count();
+                if unswept > 0 {
+                    out.push(check(
+                        Level::Warn,
+                        format!(
+                            "{unswept} order(s) the venue cancelled over {} ago, cash not \
+                             re-laddered (rungbot-exec status)",
+                            minutes(UNSWEPT_WARN_S)
                         ),
                     ));
                 }
@@ -239,6 +268,25 @@ mod tests {
             stale[0].message
         );
         assert_eq!(to_json(&stale)["ok"], json!(false));
+
+        std::fs::write(
+            cfg.journal_path(),
+            "{\"c1\": {\"client_id\": \"c1\", \"status\": \"cancelled\", \"status_ts\": 1000.0},\
+              \"c2\": {\"client_id\": \"c2\", \"status\": \"cancelled\", \"status_ts\": 8000.0}}",
+        )
+        .unwrap();
+        let unswept = |now: f64| {
+            report(&cfg, now, 0.0)
+                .into_iter()
+                .filter(|c| c.level == Level::Warn && c.message.contains("cash not re-laddered"))
+                .map(|c| c.message)
+                .collect::<Vec<_>>()
+        };
+        assert!(
+            unswept(1000.0 + 3600.0).is_empty(),
+            "inside the grace period"
+        );
+        assert!(unswept(1000.0 + 3.0 * 3600.0)[0].starts_with("1 order(s)"));
 
         std::fs::write(cfg.journal_path(), "{ not json").unwrap();
         let broken = report(&cfg, 1000.0, 60.0);

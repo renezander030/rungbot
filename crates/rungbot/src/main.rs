@@ -96,6 +96,7 @@ const KNOWN_FLAGS: &[&str] = &[
     "drift-band",
     "dry-run",
     "expect",
+    "fee-pct",
     "force",
     "fresh",
     "help",
@@ -176,6 +177,7 @@ impl Args {
                     | "cache-dir"
                     | "bag"
                     | "max-order"
+                    | "fee-pct"
                     | "windows"
                     | "expect"
                     | "drift-band"

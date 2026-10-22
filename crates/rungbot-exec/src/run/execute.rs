@@ -225,11 +225,7 @@ pub fn execute_trades(
     let rxb = bal.full.get("revx").filter(|b| !b.is_empty());
     let gtb = bal.full.get("gate").filter(|b| !b.is_empty());
     if let (Some(rxb), Some(gtb)) = (rxb, gtb) {
-        let routing: Vec<(String, String)> = cfg
-            .routing
-            .iter()
-            .map(|(s, r)| (s.clone(), r.exch.clone()))
-            .collect();
+        let routing = cfg.routing_venues();
         let reserve = funding::onramp_reserve(
             funding::revx_stable_from(rxb),
             funding::gate_stable_from(gtb),

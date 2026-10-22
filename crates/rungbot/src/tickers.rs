@@ -81,7 +81,8 @@ pub fn get_json(url: &str) -> Result<Value, TickerError> {
     serde_json::from_str(body).map_err(|e| TickerError::Failed(format!("{url}: bad JSON: {e}")))
 }
 
-fn num(v: &Value) -> Option<f64> {
+/// A JSON number, or a string holding one (venues send prices both ways).
+pub(crate) fn num(v: &Value) -> Option<f64> {
     match v {
         Value::Number(n) => n.as_f64(),
         Value::String(s) => s.trim().parse().ok(),
