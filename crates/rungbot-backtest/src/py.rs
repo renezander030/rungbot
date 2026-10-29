@@ -432,6 +432,20 @@ pub fn slice(len: usize, a: i64, b: i64) -> std::ops::Range<usize> {
 
 // ------------------------------------------------------------------ statistics
 
+/// Python's `min()` over floats: a fold from +inf, so an empty input gives +inf.
+pub(crate) fn min_of<T: std::borrow::Borrow<f64>>(xs: impl IntoIterator<Item = T>) -> f64 {
+    xs.into_iter()
+        .map(|x| *x.borrow())
+        .fold(f64::INFINITY, f64::min)
+}
+
+/// Python's `max()` over floats: a fold from -inf, so an empty input gives -inf.
+pub(crate) fn max_of<T: std::borrow::Borrow<f64>>(xs: impl IntoIterator<Item = T>) -> f64 {
+    xs.into_iter()
+        .map(|x| *x.borrow())
+        .fold(f64::NEG_INFINITY, f64::max)
+}
+
 /// `statistics.median`.
 pub fn median(xs: &[f64]) -> f64 {
     let mut v: Vec<f64> = xs.to_vec();
@@ -989,6 +1003,15 @@ impl Parser<'_> {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn min_and_max_take_slices_and_iterators_like_python() {
+        let v = [3.0, -1.5, 2.0];
+        assert_eq!(min_of(v), -1.5);
+        assert_eq!(max_of(v.iter().map(|x| x * 2.0)), 6.0);
+        assert_eq!(min_of(std::iter::empty::<f64>()), f64::INFINITY);
+        assert_eq!(max_of(&[] as &[f64]), f64::NEG_INFINITY);
+    }
 
     #[test]
     fn repr_matches_python() {

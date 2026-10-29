@@ -13,7 +13,7 @@
 
 use std::collections::BTreeMap;
 
-use crate::py::{ff, repr, round, round_half_even, sum, Py};
+use crate::py::{ff, max_of, repr, round, round_half_even, sum, Py};
 use crate::pydict;
 use crate::replay::data::{day_num, day_of_epoch, day_str, iso_week, shift};
 
@@ -337,7 +337,7 @@ pub fn run(inp: &Inputs) -> (String, Py) {
             return ("TOP", Some(m.1));
         }
         let fwd = &c[(f + 1).min(n)..(f + 181).min(n)];
-        if !fwd.is_empty() && fwd.iter().cloned().fold(f64::NEG_INFINITY, f64::max) > c[f] * 1.10 {
+        if !fwd.is_empty() && max_of(fwd) > c[f] * 1.10 {
             ("FALSE", None)
         } else {
             ("LOCAL", None)
@@ -550,9 +550,7 @@ pub fn run(inp: &Inputs) -> (String, Py) {
             let win: Vec<f64> = (t.saturating_sub(90)..(t + 31).min(n))
                 .filter_map(|i| fng_d[i])
                 .collect();
-            let pm30 = (t.saturating_sub(30)..(t + 31).min(n))
-                .filter_map(|i| fng_d[i])
-                .fold(f64::NEG_INFINITY, f64::max);
+            let pm30 = max_of((t.saturating_sub(30)..(t + 31).min(n)).filter_map(|i| fng_d[i]));
             a.set("fng_max_pm30", pm30 as i64);
             a.set(
                 "fng_days_ge85_t-90..t+30",

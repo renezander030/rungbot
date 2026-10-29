@@ -6,7 +6,7 @@
 //! 3 or 17); deployment shapes measured from day 3; and the expected deployed fraction
 //! of a tranche.
 
-use crate::py::{ff, mean, median, round_half_even, sum, Py};
+use crate::py::{ff, max_of, mean, median, min_of, round_half_even, sum, Py};
 use crate::pydict;
 use crate::replay::btc_confirm::{key, sma, Btc, H};
 
@@ -31,13 +31,6 @@ fn fget(e: &Py, k: &str) -> Option<f64> {
 
 fn idx(e: &Py) -> usize {
     fget(e, "idx").expect("event idx") as usize
-}
-
-fn minf(v: &[f64]) -> f64 {
-    v.iter().cloned().fold(f64::INFINITY, f64::min)
-}
-fn maxf(v: &[f64]) -> f64 {
-    v.iter().cloned().fold(f64::NEG_INFINITY, f64::max)
 }
 
 struct Ctx<'a> {
@@ -73,7 +66,7 @@ impl Ctx<'_> {
                     continue;
                 }
                 n += 1;
-                if minf(seq) <= c[t] * (1.0 - d / 100.0) {
+                if min_of(seq) <= c[t] * (1.0 - d / 100.0) {
                     k += 1;
                 }
             }
@@ -94,7 +87,7 @@ impl Ctx<'_> {
         let c = &self.b.c;
         let spot = c[t];
         let w30 = &c[t - 29..=t];
-        let (sma30, low30) = (sma(w30), minf(w30));
+        let (sma30, low30) = (sma(w30), min_of(w30));
         let bands: Vec<f64> = depths.iter().map(|d| spot * (1.0 - d / 100.0)).collect();
         let mut rungs = Vec::new();
         for (j, &p0) in bands.iter().enumerate() {
@@ -112,7 +105,7 @@ impl Ctx<'_> {
                 cands.push(low30 * 1.01);
             }
             if !cands.is_empty() {
-                p = maxf(&cands);
+                p = max_of(&cands);
             }
             rungs.push(p);
         }
@@ -143,7 +136,7 @@ impl Ctx<'_> {
         for (d, w) in depths.iter().zip(weights) {
             let p = spot * (1.0 - d / 100.0);
             let amt = (1.0 - m) * w / tw;
-            if minf(&l[start..=end]) <= p {
+            if min_of(&l[start..=end]) <= p {
                 btc += amt / p;
                 dep += amt;
                 nf += 1;
@@ -161,8 +154,8 @@ fn sstats(o: &mut String, name: &str, res: &[(f64, f64, i64)]) -> Py {
         ("n", rs.len()),
         ("median", med(&rs)),
         ("mean", mean(&rs)),
-        ("worst", minf(&rs)),
-        ("best", maxf(&rs)),
+        ("worst", min_of(&rs)),
+        ("best", max_of(&rs)),
         ("none_filled", none),
         ("mean_deployed", mean(&dep))
     ];
@@ -171,8 +164,8 @@ fn sstats(o: &mut String, name: &str, res: &[(f64, f64, i64)]) -> Py {
         crate::py::fs(name, "<62"),
         pct(med(&rs)),
         pct(Some(mean(&rs))),
-        pct(Some(minf(&rs))),
-        pct(Some(maxf(&rs))),
+        pct(Some(min_of(&rs))),
+        pct(Some(max_of(&rs))),
         ff(none * 100.0, "3.0f"),
         ff(mean(&dep) * 100.0, "3.0f")
     ));
@@ -379,10 +372,10 @@ pub fn run(b: &Btc, replay: &Py, tranche_usd: f64) -> (String, Py) {
             "   next {}d from day-{k} spot: median={} worst={} best={}; maxDD median={} worst={}\n",
             H - k,
             pct(med(&ra)),
-            pct(Some(minf(&ra))),
-            pct(Some(maxf(&ra))),
+            pct(Some(min_of(&ra))),
+            pct(Some(max_of(&ra))),
             pct(med(&dd)),
-            pct(Some(minf(&dd)))
+            pct(Some(min_of(&dd)))
         ));
         o.push_str(&format!(
             "   fills from day-{k} spot: {}\n",
@@ -418,10 +411,10 @@ pub fn run(b: &Btc, replay: &Py, tranche_usd: f64) -> (String, Py) {
             ("n", sub.len()),
             ("dates", Py::List(dates)),
             ("ret_after_median", med(&ra)),
-            ("ret_after_worst", minf(&ra)),
-            ("ret_after_best", maxf(&ra)),
+            ("ret_after_worst", min_of(&ra)),
+            ("ret_after_best", max_of(&ra)),
             ("maxdd_after_median", med(&dd)),
-            ("maxdd_after_worst", minf(&dd)),
+            ("maxdd_after_worst", min_of(&dd)),
             ("fills_from_k", fills)
         ]
     };

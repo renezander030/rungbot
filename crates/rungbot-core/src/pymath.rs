@@ -124,9 +124,27 @@ pub fn median(xs: &[f64]) -> Option<f64> {
     })
 }
 
+/// Python's `min()` over floats: a fold from +inf, so an empty slice gives +inf.
+pub(crate) fn min_of(xs: &[f64]) -> f64 {
+    xs.iter().copied().fold(f64::INFINITY, f64::min)
+}
+
+/// Python's `max()` over floats: a fold from -inf, so an empty slice gives -inf.
+pub(crate) fn max_of(xs: &[f64]) -> f64 {
+    xs.iter().copied().fold(f64::NEG_INFINITY, f64::max)
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn min_and_max_fold_like_python_and_start_from_infinity() {
+        assert_eq!(min_of(&[3.0, -1.5, 2.0]), -1.5);
+        assert_eq!(max_of(&[3.0, -1.5, 2.0]), 3.0);
+        assert_eq!(min_of(&[]), f64::INFINITY);
+        assert_eq!(max_of(&[]), f64::NEG_INFINITY);
+    }
 
     #[test]
     fn fsum_is_exact_and_median_averages_the_middle() {

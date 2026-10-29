@@ -259,8 +259,8 @@ pub fn compute(sym: &str, closes: &[f64], stamps: &[f64], now: f64, t: KpiThresh
         k.weekly_rsi14 = rsi(&weeks, 14);
     }
 
-    let high = closes.iter().cloned().fold(f64::NEG_INFINITY, f64::max);
-    let low = closes.iter().cloned().fold(f64::INFINITY, f64::min);
+    let high = crate::pymath::max_of(closes);
+    let low = crate::pymath::min_of(closes);
     if high > 0.0 {
         k.drawdown_pct = Some(((high - px) / high * 100.0).max(0.0));
     }

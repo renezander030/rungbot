@@ -132,6 +132,16 @@ pub fn step_from_precision(p: i64) -> f64 {
     10f64.powf(-(p as f64))
 }
 
+/// `floor(x / step) * step`, or `x` unchanged for a zero step. Round down, never up:
+/// rounding an amount up can exceed the balance you have.
+pub(crate) fn floor_to_step(x: f64, step: f64) -> f64 {
+    if step > 0.0 {
+        (x / step).floor() * step
+    } else {
+        x
+    }
+}
+
 /// Is `venue_cid` (what the venue echoes) the id we sent for journal id `cid`? Revolut X
 /// is sent a uuid5 of it, Gate a hashed-down text, Binance and anything else the id.
 pub fn venue_id_matches(exch: &str, venue_cid: &str, cid: &str) -> bool {
@@ -148,4 +158,18 @@ pub fn venue_id_matches(exch: &str, venue_cid: &str, cid: &str) -> bool {
 /// Bad venue JSON as an error in the venue's voice.
 pub(crate) fn shape_err(venue: &'static str, what: impl core::fmt::Display) -> VenueError {
     VenueError::new(venue, None, what.to_string())
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn floor_to_step_rounds_down_and_leaves_a_zero_step_alone() {
+        assert_eq!(floor_to_step(1.7, 0.5), 1.5);
+        assert_eq!(floor_to_step(0.99, 0.25), 0.75);
+        assert_eq!(floor_to_step(2.0, 0.5), 2.0);
+        assert_eq!(floor_to_step(1.234, 0.0), 1.234);
+        assert_eq!(floor_to_step(1.234, -1.0), 1.234);
+    }
 }

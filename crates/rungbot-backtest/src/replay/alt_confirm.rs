@@ -18,7 +18,9 @@ use std::collections::BTreeMap;
 
 use rungbot_core::regime::{running_from_series, RegimeConfig};
 
-use crate::py::{at, ff, fi, fs, mean, median, repr, round, round_half_even, slice, sum, Py};
+use crate::py::{
+    at, ff, fi, fs, max_of, mean, median, min_of, repr, round, round_half_even, slice, sum, Py,
+};
 use crate::pydict;
 use crate::replay::data::{shift, Bar};
 
@@ -176,13 +178,6 @@ fn med(xs: &[f64]) -> Py {
     }
 }
 
-fn minf(v: &[f64]) -> f64 {
-    v.iter().cloned().fold(f64::INFINITY, f64::min)
-}
-fn maxf(v: &[f64]) -> f64 {
-    v.iter().cloned().fold(f64::NEG_INFINITY, f64::max)
-}
-
 /// One variant's study over all coins. `load(source)` returns a coin's candles.
 pub fn analyze(
     variant: &str,
@@ -225,7 +220,7 @@ pub fn analyze(
                 continue;
             }
             let entry = r0.close;
-            let low_min = minf(&fwd.iter().map(|r| r.low).collect::<Vec<_>>());
+            let low_min = min_of(fwd.iter().map(|r| r.low));
             let d90 = shift(d, HORIZON);
             let c90 = m
                 .close_on_or_before(&d90, 5)
@@ -235,7 +230,7 @@ pub fn analyze(
                 .close_on_or_before(&d90, 5)
                 .expect("BTC close at D+90");
             let bfwd = btc_m.window(d, 1, HORIZON);
-            let blow = minf(&bfwd.iter().map(|r| r.low).collect::<Vec<_>>());
+            let blow = min_of(bfwd.iter().map(|r| r.low));
             let mut fills = Py::dict();
             for dp in DEPTHS {
                 fills.set(dp, low_min <= entry * (1.0 - dp as f64 / 100.0));
@@ -312,12 +307,7 @@ pub fn analyze(
             for n in [90i64, 180, 365] {
                 let mut hits = 0;
                 for t in (len as i64 - n - 14)..(len as i64 - 14) {
-                    let lm = minf(
-                        &rows[slice(len, t + 1, t + 15)]
-                            .iter()
-                            .map(|r| r.low)
-                            .collect::<Vec<_>>(),
-                    );
+                    let lm = min_of(rows[slice(len, t + 1, t + 15)].iter().map(|r| r.low));
                     if lm <= rows[at(len, t)].close * (1.0 - xf / 100.0) {
                         hits += 1;
                     }
@@ -421,13 +411,13 @@ pub fn summarize(out: &Py, coins: &[AltCoin]) -> String {
         o.push_str(&format!(
             "  ret90 med/worst/best = {}/{}/{}  btc90 med={}  rel med={} beatBTC={}/{n}  maxdd90 med={} worst={}\n",
             med(&rets).repr(),
-            repr(round(minf(&rets), 1)),
-            repr(round(maxf(&rets), 1)),
+            repr(round(min_of(&rets), 1)),
+            repr(round(max_of(&rets), 1)),
             med(&btc90).repr(),
             med(&rel).repr(),
             rel.iter().filter(|x| **x > 0.0).count(),
             med(&dd).repr(),
-            repr(round(minf(&dd), 1))
+            repr(round(min_of(&dd), 1))
         ));
         o.push_str(&format!(
             "  fill% within 90d: {}\n",
@@ -464,7 +454,7 @@ pub fn summarize(out: &Py, coins: &[AltCoin]) -> String {
                     format!(
                         "m{label}: {}/{}/{}",
                         med(&xs).repr(),
-                        repr(round(minf(&xs), 1)),
+                        repr(round(min_of(&xs), 1)),
                         repr(round(mean(&xs), 1))
                     )
                 })
@@ -520,7 +510,7 @@ pub fn summarize(out: &Py, coins: &[AltCoin]) -> String {
                         "{gname}: n={} alt med={} (min {}) btc med={} rel med={} beat={}/{}",
                         l.len(),
                         med(&a).repr(),
-                        repr(round(minf(&a), 1)),
+                        repr(round(min_of(&a), 1)),
                         med(&b).repr(),
                         med(&rr).repr(),
                         rr.iter().filter(|x| **x > 0.0).count(),
@@ -693,8 +683,8 @@ pub fn profile_sweep(results: &Py, profiles: &[Profile]) -> String {
                     ff(m, ">4"),
                     ff(median(&r), ">7.1f"),
                     ff(mean(&r), ">7.1f"),
-                    ff(minf(&r), ">7.1f"),
-                    ff(maxf(&r), ">7.1f"),
+                    ff(min_of(&r), ">7.1f"),
+                    ff(max_of(&r), ">7.1f"),
                     ff(median(&dep), ">12.2f"),
                     fi(beats as i64, ">5"),
                     ev.len()
@@ -720,12 +710,7 @@ fn p_fill(rows: &[Bar], dist_pct: f64, h: i64, n: i64) -> i64 {
     let len = rows.len();
     let mut hits = 0;
     for t in (len as i64 - n - h)..(len as i64 - h) {
-        let lm = minf(
-            &rows[slice(len, t + 1, t + 1 + h)]
-                .iter()
-                .map(|r| r.low)
-                .collect::<Vec<_>>(),
-        );
+        let lm = min_of(rows[slice(len, t + 1, t + 1 + h)].iter().map(|r| r.low));
         if lm <= rows[at(len, t)].close * (1.0 + dist_pct / 100.0) {
             hits += 1;
         }
@@ -753,8 +738,8 @@ pub fn current(
             .iter()
             .filter(|r| r.date.as_str() >= flip_next.as_str())
             .collect();
-        let low_since = minf(&since.iter().map(|r| r.low).collect::<Vec<_>>());
-        let hi_since = maxf(&since.iter().map(|r| r.high).collect::<Vec<_>>());
+        let low_since = min_of(since.iter().map(|r| r.low));
+        let hi_since = max_of(since.iter().map(|r| r.high));
         let dists: Vec<f64> = c
             .rungs
             .iter()

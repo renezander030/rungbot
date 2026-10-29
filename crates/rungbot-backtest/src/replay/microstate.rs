@@ -9,7 +9,7 @@
 //! The candle pulls and the derivatives read (funding, open interest, Fear & Greed) are
 //! network calls and live in the CLI; this is the arithmetic.
 
-use crate::py::{fs, pstdev, round, round_half_even, sum, Py};
+use crate::py::{fs, min_of, pstdev, round, round_half_even, sum, Py};
 use crate::pydict;
 use crate::replay::data::day_of_epoch;
 
@@ -82,11 +82,8 @@ pub fn metrics(sym: &str, rows: &[Candle], spot: f64, btc: Option<&BtcRef>, ord:
         .map(|i| (closes[i] / closes[i - 1]).ln())
         .collect();
     let vol = pstdev(&lr) * 100.0;
-    let worst1 = lr.iter().cloned().fold(f64::INFINITY, f64::min) * 100.0;
-    let worst3 = (0..lr.len() - 2)
-        .map(|i| sum(lr[i..i + 3].iter().copied()))
-        .fold(f64::INFINITY, f64::min)
-        * 100.0;
+    let worst1 = min_of(&lr) * 100.0;
+    let worst3 = min_of((0..lr.len() - 2).map(|i| sum(lr[i..i + 3].iter().copied()))) * 100.0;
     let sma30 = sum(closes.iter().copied()) / 30.0;
     let t30 = done[done.len() - 30].t;
     let ratio = btc.and_then(|b| {
