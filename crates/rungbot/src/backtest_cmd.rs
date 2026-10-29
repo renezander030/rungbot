@@ -208,6 +208,25 @@ fn cmd_invariants() -> Result<(), Failure> {
     }
 }
 
+/// `YYYY-MM-DD` of an epoch second, UTC.
+fn utc_day(epoch: i64) -> String {
+    let (y, m, d, ..) = time::civil(epoch as f64);
+    format!("{y:04}-{m:02}-{d:02}")
+}
+
+/// Stderr notes about a history that the replay would otherwise pass over silently.
+fn history_notes(h: &History) -> Vec<String> {
+    let mut out = Vec::new();
+    for (sym, from, to) in h.gaps() {
+        out.push(format!(
+            "note: history {sym} has no points between {} and {}",
+            utc_day(from),
+            utc_day(to)
+        ));
+    }
+    out
+}
+
 fn cmd_window(args: &Args, cfg: &CliConfig) -> Result<(), Failure> {
     let days = days(args)?;
     let book = load_book(Path::new(args.get("book").ok_or_else(|| {
@@ -221,6 +240,11 @@ fn cmd_window(args: &Args, cfg: &CliConfig) -> Result<(), Failure> {
         fee_pct: flag_f(args, "fee-pct", "RUNGBOT_BT_FEE_PCT")?.unwrap_or(0.0),
     };
     let hist = window_history(args, cfg, days)?;
+    if let Ok(h) = &hist {
+        for line in history_notes(h) {
+            eprintln!("{line}");
+        }
+    }
     let run = window::run(
         &cfg.core,
         hist.as_ref().map_err(|e| e.clone()),
@@ -860,6 +884,22 @@ pub fn run(args: &Args) -> Result<(), Failure> {
 
 #[cfg(test)]
 mod tests {
+    #[test]
+    fn history_notes_name_a_gap_by_day() {
+        let day = 86_400;
+        let h = History(vec![(
+            "AAA".to_string(),
+            [0, 1, 2, 3, 10, 11, 12]
+                .iter()
+                .map(|d| (d * day, 1.0))
+                .collect(),
+        )]);
+        assert_eq!(
+            history_notes(&h),
+            vec!["note: history AAA has no points between 1970-01-04 and 1970-01-11"]
+        );
+    }
+
     use super::*;
 
     fn args(argv: &[&str]) -> Args {

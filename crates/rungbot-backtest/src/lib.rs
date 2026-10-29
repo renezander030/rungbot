@@ -88,6 +88,24 @@ impl History {
         Ok(())
     }
 
+    /// Places where a series skips time: consecutive points further apart than three
+    /// times that series' median spacing (the tool's points are daily, so the step
+    /// needs no flag). Returns `(symbol, from_ts, to_ts)` in series order.
+    pub fn gaps(&self) -> Vec<(String, i64, i64)> {
+        let mut out = Vec::new();
+        for (sym, pts) in &self.0 {
+            let Some(step) = median_step(pts) else {
+                continue;
+            };
+            for w in pts.windows(2) {
+                if (w[1].0 - w[0].0) as f64 > 3.0 * step {
+                    out.push((sym.clone(), w[0].0, w[1].0));
+                }
+            }
+        }
+        out
+    }
+
     pub fn to_json(&self) -> String {
         Py::Dict(
             self.0
@@ -197,6 +215,21 @@ impl Book {
     }
 }
 
+/// Median spacing between consecutive points; `None` for fewer than two points.
+fn median_step(pts: &[(i64, f64)]) -> Option<f64> {
+    let mut d: Vec<i64> = pts.windows(2).map(|w| w[1].0 - w[0].0).collect();
+    if d.is_empty() {
+        return None;
+    }
+    d.sort_unstable();
+    let n = d.len();
+    Some(if n % 2 == 1 {
+        d[n / 2] as f64
+    } else {
+        (d[n / 2 - 1] + d[n / 2]) as f64 / 2.0
+    })
+}
+
 /// How a configured cost basis prints. A whole number was written as one.
 pub fn entry_text(v: Option<f64>) -> String {
     match v {
@@ -222,5 +255,25 @@ mod tests {
             "history AAA: timestamp 3 follows 3; points must rise in time"
         );
         assert!(History::parse(r#"{"AAA": [[5, 2.0], [4, 2.5]]}"#).is_err());
+    }
+
+    const DAY: i64 = 86_400;
+
+    fn series(sym: &str, days: &[i64]) -> (String, Vec<(i64, f64)>) {
+        (
+            sym.to_string(),
+            days.iter().map(|d| (d * DAY, 1.0 + *d as f64)).collect(),
+        )
+    }
+
+    #[test]
+    fn gaps_none_one_and_single_series() {
+        let h = History(vec![series("AAA", &[0, 1, 2, 3, 4])]);
+        assert!(h.gaps().is_empty());
+        let h = History(vec![series("AAA", &[0, 1, 2, 3, 10, 11, 12])]);
+        assert_eq!(h.gaps(), vec![("AAA".to_string(), 3 * DAY, 10 * DAY)]);
+        // a spacing of exactly three steps is not a gap
+        let h = History(vec![series("AAA", &[0, 1, 2, 5, 6, 7])]);
+        assert!(h.gaps().is_empty());
     }
 }
