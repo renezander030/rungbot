@@ -498,6 +498,32 @@ impl Journal {
             .collect()
     }
 
+    /// Open orders that share venue, pair, side and price with another open order, sorted
+    /// by those four and then by client id. A row with no price is never one of them.
+    pub fn duplicate_open(&self) -> Vec<&Order> {
+        let mut rows: Vec<&Order> = self
+            .open_orders(None)
+            .into_iter()
+            .filter(|o| o.price.is_some())
+            .collect();
+        let same = |a: &Order, b: &Order| {
+            a.exch == b.exch && a.pair == b.pair && a.side == b.side && a.price == b.price
+        };
+        rows.sort_by(|a, b| {
+            (&a.exch, &a.pair, &a.side)
+                .cmp(&(&b.exch, &b.pair, &b.side))
+                .then(a.price.unwrap_or(0.0).total_cmp(&b.price.unwrap_or(0.0)))
+                .then(a.client_id.cmp(&b.client_id))
+        });
+        (0..rows.len())
+            .filter(|&i| {
+                (i > 0 && same(rows[i - 1], rows[i]))
+                    || (i + 1 < rows.len() && same(rows[i], rows[i + 1]))
+            })
+            .map(|i| rows[i])
+            .collect()
+    }
+
     /// What `rungbot-exec status` shows of the journal, as data.
     pub fn status_json(&self, now: f64) -> serde_json::Value {
         use serde_json::json;
@@ -749,6 +775,34 @@ mod tests {
         assert_eq!(v["part_filled"][0]["filled_base"], 0.4);
         assert_eq!(v["poll_errors"][0]["error"], "timeout");
         assert_eq!(v["venue_cancelled_unswept"].as_array().unwrap().len(), 0);
+    }
+
+    #[test]
+    fn open_orders_at_one_venue_pair_side_and_price_are_duplicates() {
+        let mut j = Journal::default();
+        j.record(order("b", "open", T0));
+        j.record(order("a", "open", T0));
+        j.record(order("lone", "open", T0));
+        j.orders.get_mut("lone").unwrap().price = Some(11.0);
+        let mut other_side = order("sell", "open", T0);
+        other_side.side = "sell".into();
+        j.record(other_side);
+        let mut other_venue = order("kraken", "open", T0);
+        other_venue.exch = "kraken".into();
+        j.record(other_venue);
+        j.record(order("closed", "filled", T0));
+        let mut no_price1 = order("n1", "open", T0);
+        no_price1.price = None;
+        let mut no_price2 = order("n2", "open", T0);
+        no_price2.price = None;
+        j.record(no_price1);
+        j.record(no_price2);
+        let cids: Vec<&str> = j
+            .duplicate_open()
+            .iter()
+            .map(|o| o.client_id.as_str())
+            .collect();
+        assert_eq!(cids, ["a", "b"]);
     }
 
     #[test]

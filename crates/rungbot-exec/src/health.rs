@@ -136,6 +136,16 @@ pub fn report(cfg: &RunConfig, now: f64, max_age_min: f64) -> Vec<Check> {
                         ),
                     ));
                 }
+                let dupes = j.duplicate_open().len();
+                if dupes > 0 {
+                    out.push(check(
+                        Level::Warn,
+                        format!(
+                            "{dupes} open order(s) share a venue, pair, side and price with \
+                             another (rungbot-exec status)"
+                        ),
+                    ));
+                }
                 let unswept = j
                     .venue_cancelled_unswept(None)
                     .iter()
@@ -293,6 +303,38 @@ mod tests {
         assert!(broken
             .iter()
             .any(|c| c.level == Level::Fail && c.message.starts_with("journal does not read")));
+        let _ = std::fs::remove_dir_all(&d);
+    }
+
+    fn write_journal(cfg: &RunConfig, rows: &str) {
+        std::fs::write(cfg.journal_path(), rows).unwrap();
+    }
+
+    fn warnings(cfg: &RunConfig, now: f64) -> Vec<String> {
+        report(cfg, now, 0.0)
+            .into_iter()
+            .filter(|c| c.level == Level::Warn)
+            .map(|c| c.message)
+            .collect()
+    }
+
+    #[test]
+    fn duplicate_open_orders_warn_and_a_clean_journal_does_not() {
+        let d = std::env::temp_dir().join(format!("rungbot-health-dup-{}", std::process::id()));
+        std::fs::create_dir_all(&d).unwrap();
+        let cfg = config(&d);
+        let row = |c: &str, price: f64| {
+            format!(
+                "\"{c}\": {{\"client_id\": \"{c}\", \"status\": \"open\", \"exch\": \"gate\", \
+                 \"pair\": \"AAA_USDT\", \"side\": \"buy\", \"price\": {price}}}"
+            )
+        };
+        write_journal(&cfg, &format!("{{{}, {}}}", row("c1", 1.0), row("c2", 2.0)));
+        assert!(warnings(&cfg, 1000.0).is_empty());
+        write_journal(&cfg, &format!("{{{}, {}}}", row("c1", 1.0), row("c2", 1.0)));
+        let w = warnings(&cfg, 1000.0);
+        assert_eq!(w.len(), 1, "{w:?}");
+        assert!(w[0].starts_with("2 open order(s) share a venue, pair, side and price"));
         let _ = std::fs::remove_dir_all(&d);
     }
 }
