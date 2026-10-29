@@ -38,7 +38,7 @@ USAGE:
   rungbot-exec fillodds  [--horizons 30,90] [--json] [--config FILE]
   rungbot-exec funding   [--config FILE]
                          | send-back USD [--hours H] | send-back [--cancel]
-  rungbot-exec health    [--config FILE] [--max-age MIN] [--json] [--strict]
+  rungbot-exec health    [--config FILE] [--max-age MIN] [--max-rest-days D] [--json] [--strict]
   rungbot-exec snapshot  [--config FILE] [--only data,scenarios,wallets] [--no-deploy]
   rungbot-exec status    [--pair PAIR --venue V] [--json]
   rungbot-exec plan      --from PLAN.json --budget N --pair-map SYM=PAIR,...
@@ -73,8 +73,10 @@ HEALTH (read-only; calls no venue):
   halt file and the balances snapshot's age. Exit 1 when the last run is older than
   --max-age minutes (default 90) or the journal does not read, so a timer or a
   monitor can alert on a run that stopped. It warns about open orders whose last
-  poll failed and about venue-cancelled cash not re-laddered within 2 hours;
-  --strict exits 1 on a warning too. With `heartbeat_url` in the run config
+  poll failed, about open orders that share a venue, pair, side and price, about
+  orders marked filled with no filled amount, and about venue-cancelled cash not
+  re-laddered within 2 hours; --max-rest-days D also warns about open orders resting
+  longer than D days (default 0, off). --strict exits 1 on a warning too. With `heartbeat_url` in the run config
   (or RUNGBOT_HEARTBEAT_URL), each completed run also GETs that URL, for a
   dead-man's switch such as healthchecks.io; dry and shadow runs do not.
 
@@ -236,6 +238,7 @@ impl Args {
                         | "max-plan-age"
                         | "expect-plan"
                         | "max-age"
+                        | "max-rest-days"
                         | "state-dir"
                         | "since"
                         | "tolerance"
@@ -293,7 +296,7 @@ fn known_flags(cmd: &str) -> Option<&'static [&'static str]> {
     ];
     Some(match cmd {
         "run" => &["config", "dry-run", "state-dir", "verbose"],
-        "health" => &["config", "max-age", "json", "strict"],
+        "health" => &["config", "max-age", "max-rest-days", "json", "strict"],
         "status" => &["pair", "venue", "journal", "config", "json"],
         "plan" | "sync" => PLACE,
         "reconcile" => &["journal", "config"],
@@ -648,7 +651,14 @@ fn cmd_health(args: &Args) -> ExitCode {
             return ExitCode::from(1);
         }
     };
-    let checks = health::report(&cfg, now(), max_age);
+    let max_rest_days = match args.num("max-rest-days", 0.0) {
+        Ok(v) => v,
+        Err(e) => {
+            eprintln!("{e}");
+            return ExitCode::from(1);
+        }
+    };
+    let checks = health::report(&cfg, now(), max_age, max_rest_days);
     if args.has("json") {
         println!(
             "{}",

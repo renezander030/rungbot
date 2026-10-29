@@ -285,9 +285,11 @@ fill on that venue, for a venue whose own order notices are off.
 venue: the last completed run from the decision log, whether the journal reads, the
 trade mode, the halt file and the balances snapshot's age. It exits 1 when the last
 run is older than `--max-age` minutes (default 90) or the journal does not read, and
-takes `--json`. It warns about open orders whose last poll failed and about cash the
-venue freed by a cancel that no run has re-laddered within 2 hours; `--strict` exits 1
-on a warning too.
+takes `--json`. It warns about open orders whose last poll failed, about open orders
+that share a venue, pair, side and price, about orders marked filled with no filled
+amount, and about cash the venue freed by a cancel that no run has re-laddered within
+2 hours; `--max-rest-days D` also warns about open orders resting longer than D days.
+`--strict` exits 1 on a warning too.
 
 `rungbot-exec status` shows the journal (open orders, the last 24 hours, failing polls,
 venue cancels, orders that already filled in part) and takes `--json`.

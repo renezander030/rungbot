@@ -76,7 +76,9 @@ fn minutes(s: f64) -> String {
 }
 
 /// Every check, in the order it prints.
-pub fn report(cfg: &RunConfig, now: f64, max_age_min: f64) -> Vec<Check> {
+///
+/// `max_rest_days` above zero also warns about open orders placed longer ago than that.
+pub fn report(cfg: &RunConfig, now: f64, max_age_min: f64, max_rest_days: f64) -> Vec<Check> {
     let mut out = Vec::new();
 
     let log = cfg.decisions_path();
@@ -155,6 +157,22 @@ pub fn report(cfg: &RunConfig, now: f64, max_age_min: f64) -> Vec<Check> {
                              was booked (rungbot-exec status)"
                         ),
                     ));
+                }
+                if max_rest_days > 0.0 {
+                    let cutoff = now - max_rest_days * 86_400.0;
+                    let resting = open
+                        .iter()
+                        .filter(|o| o.ts.is_some_and(|t| t > 0.0 && t < cutoff))
+                        .count();
+                    if resting > 0 {
+                        out.push(check(
+                            Level::Warn,
+                            format!(
+                                "{resting} open order(s) resting over {max_rest_days} day(s) \
+                                 (rungbot-exec status)"
+                            ),
+                        ));
+                    }
                 }
                 let unswept = j
                     .venue_cancelled_unswept(None)
@@ -268,7 +286,7 @@ mod tests {
         std::fs::create_dir_all(&d).unwrap();
         let cfg = config(&d);
 
-        let none = report(&cfg, 10_000.0, 60.0);
+        let none = report(&cfg, 10_000.0, 60.0, 0.0);
         assert_eq!(none[0].level, Level::Fail, "{none:?}");
 
         std::fs::write(
@@ -276,11 +294,11 @@ mod tests {
             "{\"ts\": 1000.0, \"kind\": \"run\", \"mode\": \"live\"}\n",
         )
         .unwrap();
-        let fresh = report(&cfg, 1000.0 + 30.0 * 60.0, 60.0);
+        let fresh = report(&cfg, 1000.0 + 30.0 * 60.0, 60.0, 0.0);
         assert_eq!(fresh[0].level, Level::Ok, "{fresh:?}");
         assert!(fresh.iter().all(|c| c.level != Level::Fail), "{fresh:?}");
 
-        let stale = report(&cfg, 1000.0 + 90.0 * 60.0, 60.0);
+        let stale = report(&cfg, 1000.0 + 90.0 * 60.0, 60.0, 0.0);
         assert_eq!(stale[0].level, Level::Fail);
         assert!(
             stale[0].message.contains("90 min ago"),
@@ -296,7 +314,7 @@ mod tests {
         )
         .unwrap();
         let unswept = |now: f64| {
-            report(&cfg, now, 0.0)
+            report(&cfg, now, 0.0, 0.0)
                 .into_iter()
                 .filter(|c| c.level == Level::Warn && c.message.contains("cash not re-laddered"))
                 .map(|c| c.message)
@@ -309,7 +327,7 @@ mod tests {
         assert!(unswept(1000.0 + 3.0 * 3600.0)[0].starts_with("1 order(s)"));
 
         std::fs::write(cfg.journal_path(), "{ not json").unwrap();
-        let broken = report(&cfg, 1000.0, 60.0);
+        let broken = report(&cfg, 1000.0, 60.0, 0.0);
         assert!(broken
             .iter()
             .any(|c| c.level == Level::Fail && c.message.starts_with("journal does not read")));
@@ -321,7 +339,7 @@ mod tests {
     }
 
     fn warnings(cfg: &RunConfig, now: f64) -> Vec<String> {
-        report(cfg, now, 0.0)
+        report(cfg, now, 0.0, 0.0)
             .into_iter()
             .filter(|c| c.level == Level::Warn)
             .map(|c| c.message)
@@ -366,6 +384,34 @@ mod tests {
         let w = warnings(&cfg, 1000.0);
         assert_eq!(w.len(), 1, "{w:?}");
         assert!(w[0].starts_with("1 order(s) marked filled with no filled amount"));
+        let _ = std::fs::remove_dir_all(&d);
+    }
+
+    #[test]
+    fn long_resting_open_orders_warn_only_when_asked() {
+        let d = std::env::temp_dir().join(format!("rungbot-health-rest-{}", std::process::id()));
+        std::fs::create_dir_all(&d).unwrap();
+        let cfg = config(&d);
+        let day = 86_400.0;
+        write_journal(
+            &cfg,
+            "{\"c1\": {\"client_id\": \"c1\", \"status\": \"open\", \"ts\": 1000.0},\
+              \"c2\": {\"client_id\": \"c2\", \"status\": \"open\", \"ts\": 400000.0},\
+              \"c3\": {\"client_id\": \"c3\", \"status\": \"filled\", \"ts\": 1000.0}}",
+        );
+        let now = 1000.0 + 4.0 * day;
+        assert!(warnings(&cfg, now).is_empty(), "off by default");
+        let rest = |days: f64| {
+            report(&cfg, now, 0.0, days)
+                .into_iter()
+                .filter(|c| c.level == Level::Warn)
+                .map(|c| c.message)
+                .collect::<Vec<_>>()
+        };
+        let w = rest(3.0);
+        assert_eq!(w.len(), 1, "{w:?}");
+        assert!(w[0].starts_with("1 open order(s) resting over 3 day(s)"));
+        assert!(rest(5.0).is_empty(), "inside the limit");
         let _ = std::fs::remove_dir_all(&d);
     }
 }
