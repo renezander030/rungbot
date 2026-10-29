@@ -959,13 +959,28 @@ fn run_inner(
     if !errors.is_empty() {
         let (subject, text) =
             emails::build_error_email(&errors, &when, &cfg.mail_name, &cfg.log_hint);
+        let epath = cfg.error_mail_path();
+        let held = emails::error_mail_held(&epath, &errors, run_now, cfg.error_mail_repeat_min);
         if dry_run {
             say!(
                 deps.out,
                 "\n--- Would send ERROR email ---\nSubject: {subject}\n{text}"
             );
+        } else if let Some(ago) = held {
+            say!(
+                deps.out,
+                "Error email held: the same {} error(s) were mailed {ago:.0} min ago \
+                 (error_mail_repeat_min {}).",
+                errors.len(),
+                cfg.error_mail_repeat_min
+            );
         } else if deps.outbox.email(&subject, &text, None) {
             sent.push(format!("error({})", errors.len()));
+            if cfg.error_mail_repeat_min > 0.0 {
+                if let Err(e) = emails::note_error_mail(&epath, &errors, run_now) {
+                    say!(deps.err, "WARN: {e}");
+                }
+            }
         } else {
             say!(deps.err, "Failed to send error email.");
         }

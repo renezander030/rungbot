@@ -1,6 +1,8 @@
 //! The four mails a run sends: signals, housekeeping, errors and the BTC level alert.
 //! Subjects and bodies are fixed formats; the golden test holds them byte for byte.
 
+use std::path::Path;
+
 use super::signals::{Row, Signal};
 use super::RunResult;
 use crate::pyfmt;
@@ -457,6 +459,28 @@ pub fn build_housekeeping_email(noteworthy: &[&RunResult], when: &str) -> (Strin
 }
 
 /// The error mail.
+/// Was this exact list of errors mailed less than `repeat_min` minutes ago (per the
+/// state at `path`)? Then the minutes since, and the mail is held. A different list, an
+/// unreadable state or `repeat_min <= 0` never holds.
+pub fn error_mail_held(path: &Path, errors: &[String], now: f64, repeat_min: f64) -> Option<f64> {
+    if repeat_min <= 0.0 {
+        return None;
+    }
+    let prev: serde_json::Value =
+        serde_json::from_str(&std::fs::read_to_string(path).ok()?).ok()?;
+    let same = prev.get("errors")? == &serde_json::json!(errors);
+    let ago = (now - prev.get("ts")?.as_f64()?) / 60.0;
+    (same && (0.0..repeat_min).contains(&ago)).then_some(ago)
+}
+
+/// Remember that `errors` were mailed at `now`.
+pub fn note_error_mail(path: &Path, errors: &[String], now: f64) -> Result<(), String> {
+    crate::store::write_atomic(
+        path,
+        &serde_json::json!({"errors": errors, "ts": now}).to_string(),
+    )
+}
+
 pub fn build_error_email(
     errors: &[String],
     when: &str,
@@ -555,6 +579,44 @@ mod tests {
         assert_eq!(comma(1234567.891, 0), "1,234,568");
         assert_eq!(comma(-1234.5, 2), "-1,234.50");
         assert_eq!(comma(999.9996, 3), "1,000.000");
+    }
+
+    #[test]
+    fn the_same_errors_are_held_inside_the_repeat_window_only() {
+        let dir = std::env::temp_dir().join(format!("rungbot-errmail-{}", std::process::id()));
+        let p = dir.join("error-mail-state.json");
+        let errs = vec!["gate: price failed".to_string()];
+        assert_eq!(
+            error_mail_held(&p, &errs, 1000.0, 60.0),
+            None,
+            "no state yet"
+        );
+        note_error_mail(&p, &errs, 1000.0).unwrap();
+        assert_eq!(
+            error_mail_held(&p, &errs, 1000.0 + 30.0 * 60.0, 60.0),
+            Some(30.0)
+        );
+        assert_eq!(
+            error_mail_held(&p, &errs, 1000.0 + 61.0 * 60.0, 60.0),
+            None,
+            "window over"
+        );
+        assert_eq!(error_mail_held(&p, &errs, 1600.0, 0.0), None, "off");
+        let other = vec![
+            "gate: price failed".to_string(),
+            "revx: balances failed".to_string(),
+        ];
+        assert_eq!(
+            error_mail_held(&p, &other, 1600.0, 60.0),
+            None,
+            "a new error mails"
+        );
+        std::fs::write(&p, "not json").unwrap();
+        assert_eq!(
+            error_mail_held(&p, &errs, 1600.0, 60.0),
+            None,
+            "unreadable state mails"
+        );
     }
 
     #[test]

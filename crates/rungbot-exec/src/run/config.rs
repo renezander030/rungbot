@@ -122,6 +122,8 @@ pub struct RunConfig {
     pub decisions_max_mb: f64,
     pub order_archive_days: f64,
     pub run_lock_wait: f64,
+    /// Minutes the same set of errors is not mailed again; `0` mails on every run.
+    pub error_mail_repeat_min: f64,
     /// The run's name in the error mail: `<name> ERROR (n)`.
     pub mail_name: String,
     /// Where the error mail says the log is.
@@ -279,6 +281,7 @@ impl Default for RunConfig {
             decisions_max_mb: 20.0,
             order_archive_days: 30.0,
             run_lock_wait: 300.0,
+            error_mail_repeat_min: 0.0,
             mail_name: "rungbot".into(),
             log_hint: "journalctl -u rungbot-run".into(),
             heartbeat_url: String::new(),
@@ -574,6 +577,7 @@ impl RunConfig {
             "decisions_max_mb" => self.decisions_max_mb = v.num(key)?,
             "order_archive_days" => self.order_archive_days = v.num(key)?,
             "run_lock_wait" => self.run_lock_wait = v.num(key)?,
+            "error_mail_repeat_min" => self.error_mail_repeat_min = v.num(key)?,
             "mail_name" => self.mail_name = v.word(key)?,
             "log_hint" => self.log_hint = v.word(key)?,
             "heartbeat_url" => self.heartbeat_url = v.word(key)?,
@@ -831,6 +835,10 @@ impl RunConfig {
     pub fn decisions_path(&self) -> PathBuf {
         self.file(&self.decisions_log, "decisions.jsonl")
     }
+    /// The last error mail's errors and time, for `error_mail_repeat_min`.
+    pub fn error_mail_path(&self) -> PathBuf {
+        self.state_dir.join("error-mail-state.json")
+    }
     pub fn notices_path(&self) -> PathBuf {
         self.file(&self.signal_notices, "signal-notices.json")
     }
@@ -1026,6 +1034,7 @@ pub const ENV_KNOBS: &[&str] = &[
     "decisions_max_mb",
     "order_archive_days",
     "run_lock_wait",
+    "error_mail_repeat_min",
     "deploy",
     "deploy_min_usd",
     "deploy_max_tranche_usd",
