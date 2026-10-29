@@ -1727,24 +1727,24 @@ fn cmd_sync(args: &Args) -> Result<(), String> {
                 continue;
             }
         };
-        if let Err(e) = weekly_room(j.notional_since(ts - 7.0 * 86_400.0), p.quote, max_weekly) {
+        // The sync-only rails, in order; the book is read only once the caps allow.
+        let rails = weekly_room(j.notional_since(ts - 7.0 * 86_400.0), p.quote, max_weekly)
+            .and_then(|()| {
+                let coin_24h = j.coin_notional_since(&p.sym, ts - 86_400.0);
+                coin_daily_room(&p.sym, coin_24h, p.quote, max_coin_daily)
+            })
+            .and_then(|()| {
+                if max_spread > 0.0 {
+                    let book = venue.book_top(&p.pair).map_err(|e| e.to_string());
+                    spread_room(&p.pair, book, max_spread)
+                } else {
+                    Ok(())
+                }
+            });
+        if let Err(e) = rails {
             println!("  {} — REFUSED: {e}", p.sym);
             refused += 1;
             continue;
-        }
-        let coin_24h = j.coin_notional_since(&p.sym, ts - 86_400.0);
-        if let Err(e) = coin_daily_room(&p.sym, coin_24h, p.quote, max_coin_daily) {
-            println!("  {} — REFUSED: {e}", p.sym);
-            refused += 1;
-            continue;
-        }
-        if max_spread > 0.0 {
-            let book = venue.book_top(&p.pair).map_err(|e| e.to_string());
-            if let Err(e) = spread_room(&p.pair, book, max_spread) {
-                println!("  {} — REFUSED: {e}", p.sym);
-                refused += 1;
-                continue;
-            }
         }
         let ctx = Context {
             mode,

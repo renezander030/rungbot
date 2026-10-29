@@ -130,64 +130,60 @@ pub fn report(cfg: &RunConfig, now: f64, max_age_min: f64, max_rest_days: f64) -
                     Level::Ok,
                     format!("journal reads: {} open order(s)", open.len()),
                 ));
-                if failing > 0 {
-                    out.push(check(
-                        Level::Warn,
-                        format!(
-                            "{failing} open order(s) whose last poll failed (rungbot-exec status)"
-                        ),
-                    ));
-                }
                 let dupes = j.duplicate_open().len();
-                if dupes > 0 {
-                    out.push(check(
-                        Level::Warn,
-                        format!(
-                            "{dupes} open order(s) share a venue, pair, side and price with \
-                             another (rungbot-exec status)"
-                        ),
-                    ));
-                }
                 let empty = j.filled_without_amount().len();
-                if empty > 0 {
-                    out.push(check(
-                        Level::Warn,
-                        format!(
-                            "{empty} order(s) marked filled with no filled amount: nothing \
-                             was booked (rungbot-exec status)"
-                        ),
-                    ));
-                }
-                if max_rest_days > 0.0 {
-                    let cutoff = now - max_rest_days * 86_400.0;
-                    let resting = open
-                        .iter()
-                        .filter(|o| o.ts.is_some_and(|t| t > 0.0 && t < cutoff))
-                        .count();
-                    if resting > 0 {
-                        out.push(check(
-                            Level::Warn,
-                            format!(
-                                "{resting} open order(s) resting over {max_rest_days} day(s) \
-                                 (rungbot-exec status)"
-                            ),
-                        ));
-                    }
-                }
+                let resting = if max_rest_days > 0.0 {
+                    j.resting_before(now - max_rest_days * 86_400.0).len()
+                } else {
+                    0
+                };
                 let unswept = j
                     .venue_cancelled_unswept(None)
                     .iter()
                     .filter(|o| now - o.status_ts.unwrap_or(now) > UNSWEPT_WARN_S)
                     .count();
-                if unswept > 0 {
-                    out.push(check(
-                        Level::Warn,
+                // One warning per journal condition, in this order, only when it holds.
+                let warnings = [
+                    (
+                        failing,
+                        format!(
+                            "{failing} open order(s) whose last poll failed (rungbot-exec status)"
+                        ),
+                    ),
+                    (
+                        dupes,
+                        format!(
+                            "{dupes} open order(s) share a venue, pair, side and price with \
+                             another (rungbot-exec status)"
+                        ),
+                    ),
+                    (
+                        empty,
+                        format!(
+                            "{empty} order(s) marked filled with no filled amount: nothing \
+                             was booked (rungbot-exec status)"
+                        ),
+                    ),
+                    (
+                        resting,
+                        format!(
+                            "{resting} open order(s) resting over {max_rest_days} day(s) \
+                             (rungbot-exec status)"
+                        ),
+                    ),
+                    (
+                        unswept,
                         format!(
                             "{unswept} order(s) the venue cancelled over {} ago, cash not \
                              re-laddered (rungbot-exec status)",
                             minutes(UNSWEPT_WARN_S)
                         ),
-                    ));
+                    ),
+                ];
+                for (n, message) in warnings {
+                    if n > 0 {
+                        out.push(check(Level::Warn, message));
+                    }
                 }
             }
             Err(e) => out.push(check(Level::Fail, format!("journal does not read: {e}"))),

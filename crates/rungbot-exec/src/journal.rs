@@ -524,6 +524,15 @@ impl Journal {
             .collect()
     }
 
+    /// Open orders journaled before `cutoff`: resting longer than the caller allows. A
+    /// row with no placement time, or a zero one, is never counted.
+    pub fn resting_before(&self, cutoff: f64) -> Vec<&Order> {
+        self.open_orders(None)
+            .into_iter()
+            .filter(|o| o.ts.is_some_and(|t| t > 0.0 && t < cutoff))
+            .collect()
+    }
+
     /// Rows marked filled (a fill time set) that carry no filled base and no filled
     /// quote, so nothing was booked for them. Sorted by client id.
     pub fn filled_without_amount(&self) -> Vec<&Order> {
@@ -788,6 +797,23 @@ mod tests {
         assert_eq!(v["part_filled"][0]["filled_base"], 0.4);
         assert_eq!(v["poll_errors"][0]["error"], "timeout");
         assert_eq!(v["venue_cancelled_unswept"].as_array().unwrap().len(), 0);
+    }
+
+    #[test]
+    fn resting_counts_open_orders_placed_before_the_cutoff_only() {
+        let mut j = Journal::default();
+        j.record(order("old", "open", T0));
+        j.record(order("new", "open", T0 + 100.0));
+        j.record(order("done", "filled", T0));
+        let mut no_ts = order("nots", "open", T0);
+        no_ts.ts = None;
+        j.record(no_ts);
+        let cids: Vec<&str> = j
+            .resting_before(T0 + 50.0)
+            .iter()
+            .map(|o| o.client_id.as_str())
+            .collect();
+        assert_eq!(cids, ["old"]);
     }
 
     #[test]

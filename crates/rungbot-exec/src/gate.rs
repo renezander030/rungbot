@@ -162,6 +162,25 @@ impl Gate {
             .ok_or_else(|| shape_err(V, "accounts: not a list"))
     }
 
+    /// The pair's one ticker row; any other reply is an error named `{what} {pair}`.
+    fn ticker_row(&self, pair: &str, what: &str) -> Result<Value, VenueError> {
+        let r = self.public(&format!("{BASE}/api/v4/spot/tickers?currency_pair={pair}"))?;
+        match (
+            r.status,
+            r.json
+                .as_ref()
+                .and_then(|v| v.as_array())
+                .and_then(|a| a.first()),
+        ) {
+            (Some(200), Some(t)) => Ok(t.clone()),
+            _ => Err(VenueError::new(
+                V,
+                r.status,
+                format!("{what} {pair} -> {} {}", r.status_str(), r.body_str()),
+            )),
+        }
+    }
+
     fn field(r: &Value, k: &str) -> Result<f64, VenueError> {
         let v = r.get(k).ok_or_else(|| shape_err(V, format!("'{k}'")))?;
         pyfmt::to_float(v).map_err(|e| shape_err(V, e))
@@ -253,23 +272,11 @@ impl Gate {
 
     /// Public 24h ticker: `(last, change_percentage)`.
     pub fn ticker(&self, pair: &str) -> Result<(f64, f64), VenueError> {
-        let r = self.public(&format!("{BASE}/api/v4/spot/tickers?currency_pair={pair}"))?;
-        let first = r
-            .json
-            .as_ref()
-            .and_then(|v| v.as_array())
-            .and_then(|a| a.first());
-        match (r.status, first) {
-            (Some(200), Some(t)) => Ok((
-                Self::field(t, "last")?,
-                Self::field(t, "change_percentage")?,
-            )),
-            _ => Err(VenueError::new(
-                V,
-                r.status,
-                format!("ticker {pair} -> {} {}", r.status_str(), r.body_str()),
-            )),
-        }
+        let t = self.ticker_row(pair, "ticker")?;
+        Ok((
+            Self::field(&t, "last")?,
+            Self::field(&t, "change_percentage")?,
+        ))
     }
 }
 
@@ -396,41 +403,15 @@ impl Venue for Gate {
     }
 
     fn book_top(&self, pair: &str) -> Result<Option<(f64, f64)>, VenueError> {
-        let r = self.public(&format!("{BASE}/api/v4/spot/tickers?currency_pair={pair}"))?;
-        match (
-            r.status,
-            r.json
-                .as_ref()
-                .and_then(|v| v.as_array())
-                .and_then(|a| a.first()),
-        ) {
-            (Some(200), Some(t)) => Ok(Some((
-                Self::field(t, "highest_bid")?,
-                Self::field(t, "lowest_ask")?,
-            ))),
-            _ => Err(VenueError::new(
-                V,
-                r.status,
-                format!("book {pair} -> {} {}", r.status_str(), r.body_str()),
-            )),
-        }
+        let t = self.ticker_row(pair, "book")?;
+        Ok(Some((
+            Self::field(&t, "highest_bid")?,
+            Self::field(&t, "lowest_ask")?,
+        )))
     }
 
     fn price(&self, pair: &str) -> Result<f64, VenueError> {
-        let r = self.public(&format!("{BASE}/api/v4/spot/tickers?currency_pair={pair}"))?;
-        let first = r
-            .json
-            .as_ref()
-            .and_then(|v| v.as_array())
-            .and_then(|a| a.first());
-        match (r.status, first, pyfmt::truthy(r.json.as_ref())) {
-            (Some(200), Some(t), true) => Self::field(t, "last"),
-            _ => Err(VenueError::new(
-                V,
-                r.status,
-                format!("price {pair} -> {} {}", r.status_str(), r.body_str()),
-            )),
-        }
+        Self::field(&self.ticker_row(pair, "price")?, "last")
     }
 
     fn limits(&self, pair: &str) -> Result<Limits, VenueError> {

@@ -242,17 +242,8 @@ impl Book {
 
 /// Median spacing between consecutive points; `None` for fewer than two points.
 fn median_step(pts: &[(i64, f64)]) -> Option<f64> {
-    let mut d: Vec<i64> = pts.windows(2).map(|w| w[1].0 - w[0].0).collect();
-    if d.is_empty() {
-        return None;
-    }
-    d.sort_unstable();
-    let n = d.len();
-    Some(if n % 2 == 1 {
-        d[n / 2] as f64
-    } else {
-        (d[n / 2 - 1] + d[n / 2]) as f64 / 2.0
-    })
+    let d: Vec<f64> = pts.windows(2).map(|w| (w[1].0 - w[0].0) as f64).collect();
+    (!d.is_empty()).then(|| py::median(&d))
 }
 
 /// How a configured cost basis prints. A whole number was written as one.
