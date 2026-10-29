@@ -291,6 +291,9 @@ amount, and about cash the venue freed by a cancel that no run has re-laddered w
 2 hours; `--max-rest-days D` also warns about open orders resting longer than D days.
 `--strict` exits 1 on a warning too.
 
+`rungbot-exec env` shows the run config it reads, its state directory and each
+environment variable that overrides one of its knobs, with the value applied (`--json`).
+
 `rungbot-exec status` shows the journal (open orders, the last 24 hours, failing polls,
 venue cancels, orders that already filled in part) and takes `--json`.
 `rungbot-exec fills` prints every fill the journal booked, oldest first, as CSV for a

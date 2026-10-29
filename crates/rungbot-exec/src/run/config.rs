@@ -465,11 +465,8 @@ impl RunConfig {
         for (k, v) in entries {
             c.set(k, Raw::Yaml(v))?;
         }
-        for key in ENV_KNOBS {
-            let var = env_name(key);
-            if let Some(v) = env(&var) {
-                c.set(key, Raw::Env(v))?;
-            }
+        for o in env_overrides(env) {
+            c.set(o.key, Raw::Env(o.value))?;
         }
         c.validate()?;
         Ok(c)
@@ -1065,6 +1062,26 @@ pub const ENV_KNOBS: &[&str] = &[
 
 /// The environment variable for a knob: its upper-case name, with the reference's
 /// spellings where they differ (`trail_tp` is `TRAIL_TP`, maps end in `_JSON`).
+/// One environment variable that overrides a run-config knob.
+#[derive(Debug, Clone, PartialEq)]
+pub struct EnvOverride {
+    pub key: &'static str,
+    pub var: String,
+    pub value: String,
+}
+
+/// The knobs the environment overrides, in [`ENV_KNOBS`] order: exactly what
+/// [`RunConfig::from_yaml`] applies over the file.
+pub fn env_overrides(env: &dyn Fn(&str) -> Option<String>) -> Vec<EnvOverride> {
+    ENV_KNOBS
+        .iter()
+        .filter_map(|key| {
+            let var = env_name(key);
+            env(&var).map(|value| EnvOverride { key, var, value })
+        })
+        .collect()
+}
+
 pub fn env_name(key: &str) -> String {
     match key {
         "bands" => "BANDS_JSON".into(),
@@ -1081,6 +1098,30 @@ pub fn env_name(key: &str) -> String {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn env_overrides_name_the_variables_the_load_applies() {
+        let env = |k: &str| match k {
+            "MAX_ORDER_USD" => Some("12".to_string()),
+            "BANDS_JSON" => Some("[]".to_string()),
+            _ => None,
+        };
+        let got: Vec<(&str, String)> = env_overrides(&env)
+            .into_iter()
+            .map(|o| (o.key, o.var))
+            .collect();
+        assert_eq!(
+            got,
+            [
+                ("max_order_usd", "MAX_ORDER_USD".to_string()),
+                ("bands", "BANDS_JSON".to_string())
+            ]
+        );
+        let only_cap = |k: &str| (k == "MAX_ORDER_USD").then(|| "12".to_string());
+        let c = RunConfig::from_yaml(&format!("{MIN}max_order_usd: 5\n"), &only_cap).unwrap();
+        assert_eq!(c.max_order_usd, 12.0);
+        assert!(env_overrides(&|_| None).is_empty());
+    }
 
     const MIN: &str = "watchlist:\n  AAA: aaa-coin\nrouting:\n  AAA: gate AAA_USDT USDT\n";
 

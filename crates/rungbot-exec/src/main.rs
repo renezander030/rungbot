@@ -38,6 +38,7 @@ USAGE:
   rungbot-exec fillodds  [--horizons 30,90] [--json] [--config FILE]
   rungbot-exec funding   [--config FILE]
                          | send-back USD [--hours H] | send-back [--cancel]
+  rungbot-exec env       [--config FILE] [--json]
   rungbot-exec health    [--config FILE] [--max-age MIN] [--max-rest-days D] [--json] [--strict]
   rungbot-exec snapshot  [--config FILE] [--only data,scenarios,wallets] [--no-deploy]
   rungbot-exec status    [--pair PAIR --venue V] [--json]
@@ -68,6 +69,11 @@ DEPLOY (the monthly-capital layer; the run calls it every cycle with deploy: liv
   tranche, market and cancel take the run lock; tranche and market refuse while
   live_trading_enabled is off or the halt file exists.
 
+ENV (read-only; calls no venue):
+  the run config it reads, the state directory, and each environment variable that
+  overrides a knob of that config with the value it applies (`--json` for scripts).
+  Exit 1 when the config does not load.
+
 HEALTH (read-only; calls no venue):
   the last completed run from the decision log, the journal, the trade mode, the
   halt file and the balances snapshot's age. Exit 1 when the last run is older than
@@ -76,8 +82,8 @@ HEALTH (read-only; calls no venue):
   poll failed, about open orders that share a venue, pair, side and price, about
   orders marked filled with no filled amount, and about venue-cancelled cash not
   re-laddered within 2 hours; --max-rest-days D also warns about open orders resting
-  longer than D days (default 0, off). --strict exits 1 on a warning too. With `heartbeat_url` in the run config
-  (or RUNGBOT_HEARTBEAT_URL), each completed run also GETs that URL, for a
+  longer than D days (default 0, off). --strict exits 1 on a warning too. With
+  `heartbeat_url` in the run config (or RUNGBOT_HEARTBEAT_URL), each completed run also GETs that URL, for a
   dead-man's switch such as healthchecks.io; dry and shadow runs do not.
 
 SNAPSHOT (the dashboard collector; read-only on every venue, see the `dashboard:`
@@ -297,6 +303,7 @@ fn known_flags(cmd: &str) -> Option<&'static [&'static str]> {
     Some(match cmd {
         "run" => &["config", "dry-run", "state-dir", "verbose"],
         "health" => &["config", "max-age", "max-rest-days", "json", "strict"],
+        "env" => &["config", "json"],
         "status" => &["pair", "venue", "journal", "config", "json"],
         "plan" | "sync" => PLACE,
         "reconcile" => &["journal", "config"],
@@ -528,6 +535,7 @@ fn main() -> ExitCode {
     let r = match args.cmd.as_str() {
         "run" => return cmd_run(&args),
         "health" => return cmd_health(&args),
+        "env" => cmd_env(&args),
         "shadow-diff" => return cmd_shadow_diff(&argv),
         "deploy" | "churn" | "fillodds" | "funding" => cmd_layer(&argv),
         "snapshot" => return cmd_snapshot(&argv),
@@ -630,6 +638,35 @@ fn cmd_run(args: &Args) -> ExitCode {
             ExitCode::from(1)
         }
     }
+}
+
+/// `env`: the run config it reads and every environment variable that overrides one of
+/// its knobs, with the value it applies. Exit 1 when the config does not load.
+fn cmd_env(args: &Args) -> Result<(), String> {
+    use rungbot_exec::run::config::{env_overrides, RunConfig};
+    let (path, _) = run_config_path(args);
+    let cfg = RunConfig::load(&path)?;
+    let over = env_overrides(&|k| std::env::var(k).ok());
+    if args.has("json") {
+        let rows: Vec<serde_json::Value> = over
+            .iter()
+            .map(|o| serde_json::json!({"key": o.key, "var": o.var, "value": o.value}))
+            .collect();
+        let out = serde_json::json!({
+            "config": path.display().to_string(),
+            "state_dir": cfg.state_dir.display().to_string(),
+            "overrides": rows,
+        });
+        println!("{}", serde_json::to_string_pretty(&out).unwrap_or_default());
+        return Ok(());
+    }
+    println!("run config {} reads", path.display());
+    println!("state dir {}", cfg.state_dir.display());
+    println!("{} environment override(s)", over.len());
+    for o in &over {
+        println!("  {}={} -> {}", o.var, o.value, o.key);
+    }
+    Ok(())
 }
 
 /// `health`: exit 0 when every check passed, 1 when one failed.
