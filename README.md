@@ -358,7 +358,10 @@ after 90 days, silently.** `rungbot-exec keys check --venue V` verifies the key 
 from your address, gives the key file's age (with a warning from day 80 on Gate and
 Binance) and states what it cannot check — no venue here exposes its key's
 permissions, so confirm withdrawals are off in their UI yourself. `RUNGBOT_OFFLINE=1`
-refuses every network call, signed or public.
+refuses every network call, signed or public. `RUNGBOT_READ_RETRY=1` sends a read (a
+`GET`: balances, prices, pair rules, order status) once more a second later when it
+fails on the way or the venue answers 429 or a 5xx; an order, cancel or other write is
+never repeated.
 
 ## Layout
 

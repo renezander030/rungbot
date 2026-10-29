@@ -189,6 +189,8 @@ ENVIRONMENT:
   RUNGBOT_LOCK_WAIT  seconds a second writer waits for the lock (default 120)
   RUNGBOT_ORDER_ARCHIVE  the archive (default: orders-archive.jsonl beside the journal)
   RUNGBOT_OFFLINE=1  refuse every network call, signed or public
+  RUNGBOT_READ_RETRY=1  send a read (GET) once more, a second later, when it fails
+                     on the way or answers 429 or 5xx; orders are never repeated
 
 Gate keys with no IP allowlist are disabled after 90 days, silently. If orders
 stop being accepted, check that first.
