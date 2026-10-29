@@ -224,6 +224,15 @@ fn history_notes(h: &History) -> Vec<String> {
             utc_day(to)
         ));
     }
+    let day = 86_400;
+    let latest = h.0.iter().filter_map(|(_, p)| p.last()).map(|p| p.0).max();
+    for (sym, last) in h.ends_early() {
+        let n = (latest.unwrap_or(last) - last) / day;
+        out.push(format!(
+            "note: history {sym} ends {}, {n} day(s) before the others; the replay has no price for it after that",
+            utc_day(last)
+        ));
+    }
     out
 }
 
@@ -884,6 +893,22 @@ pub fn run(args: &Args) -> Result<(), Failure> {
 
 #[cfg(test)]
 mod tests {
+    #[test]
+    fn history_notes_name_a_series_that_ends_early() {
+        let day = 86_400;
+        let mk = |s: &str, n: i64| {
+            (
+                s.to_string(),
+                (0..n).map(|d| (d * day, 1.0)).collect::<Vec<_>>(),
+            )
+        };
+        let h = History(vec![mk("AAA", 10), mk("BBB", 5)]);
+        assert_eq!(
+            history_notes(&h),
+            vec!["note: history BBB ends 1970-01-05, 5 day(s) before the others; the replay has no price for it after that"]
+        );
+    }
+
     #[test]
     fn history_notes_name_a_gap_by_day() {
         let day = 86_400;

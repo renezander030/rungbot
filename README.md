@@ -216,7 +216,9 @@ holdings and free stable, skipping any trade below the pair's minimum order, and
 the book it started from. `--fee-pct PCT` charges a trading fee on every simulated buy
 and sell and prints the total (default: fee-free); fills are at the period's price, with
 no slippage. A price history whose coin has fewer than two points, or whose timestamps
-repeat or run backwards, is refused with the coin named.
+repeat or run backwards, is refused with the coin named. On stderr, `window` also notes
+a gap in a coin's history (spacing over three times its usual step) and a coin whose
+history ends early, as a delisted coin's does; stdout and the exit code are unchanged.
 `sweep` replays the same window under nine band and core variants. `monthly` runs
 several windows (`backtest.windows`, default 28/90/180), flags REVIEW when a variant
 beats the live bands by more than `backtest.drift_band_pct`, probes per-coin bands, and

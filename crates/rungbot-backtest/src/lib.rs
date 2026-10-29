@@ -106,6 +106,31 @@ impl History {
         out
     }
 
+    /// Series whose last point is more than three of its own median steps before the
+    /// latest last point across all series (a coin whose history stops). Returns
+    /// `(symbol, last_ts)` in series order.
+    pub fn ends_early(&self) -> Vec<(String, i64)> {
+        let Some(latest) = self
+            .0
+            .iter()
+            .filter_map(|(_, p)| p.last())
+            .map(|p| p.0)
+            .max()
+        else {
+            return Vec::new();
+        };
+        let mut out = Vec::new();
+        for (sym, pts) in &self.0 {
+            let (Some(step), Some(last)) = (median_step(pts), pts.last()) else {
+                continue;
+            };
+            if (latest - last.0) as f64 > 3.0 * step {
+                out.push((sym.clone(), last.0));
+            }
+        }
+        out
+    }
+
     pub fn to_json(&self) -> String {
         Py::Dict(
             self.0
@@ -275,5 +300,31 @@ mod tests {
         // a spacing of exactly three steps is not a gap
         let h = History(vec![series("AAA", &[0, 1, 2, 5, 6, 7])]);
         assert!(h.gaps().is_empty());
+    }
+
+    #[test]
+    fn ends_early_flags_a_series_that_stops() {
+        let h = History(vec![
+            series("AAA", &[0, 1, 2, 3, 4, 5, 6, 7, 8, 9]),
+            series("BBB", &[0, 1, 2, 3, 4]),
+        ]);
+        assert_eq!(h.ends_early(), vec![("BBB".to_string(), 4 * DAY)]);
+        assert!(h.gaps().is_empty());
+    }
+
+    #[test]
+    fn ends_early_quiet_when_ends_are_equal_or_close() {
+        let h = History(vec![
+            series("AAA", &[0, 1, 2, 3]),
+            series("BBB", &[0, 1, 2, 3]),
+        ]);
+        assert!(h.ends_early().is_empty());
+        let h = History(vec![
+            series("AAA", &[0, 1, 2, 3, 4]),
+            series("BBB", &[0, 1, 2, 3]),
+        ]);
+        assert!(h.ends_early().is_empty());
+        let h = History(vec![series("AAA", &[0, 1, 2, 3])]);
+        assert!(h.ends_early().is_empty());
     }
 }
