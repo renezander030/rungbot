@@ -395,6 +395,27 @@ impl Venue for Gate {
             .collect()
     }
 
+    fn book_top(&self, pair: &str) -> Result<Option<(f64, f64)>, VenueError> {
+        let r = self.public(&format!("{BASE}/api/v4/spot/tickers?currency_pair={pair}"))?;
+        match (
+            r.status,
+            r.json
+                .as_ref()
+                .and_then(|v| v.as_array())
+                .and_then(|a| a.first()),
+        ) {
+            (Some(200), Some(t)) => Ok(Some((
+                Self::field(t, "highest_bid")?,
+                Self::field(t, "lowest_ask")?,
+            ))),
+            _ => Err(VenueError::new(
+                V,
+                r.status,
+                format!("book {pair} -> {} {}", r.status_str(), r.body_str()),
+            )),
+        }
+    }
+
     fn price(&self, pair: &str) -> Result<f64, VenueError> {
         let r = self.public(&format!("{BASE}/api/v4/spot/tickers?currency_pair={pair}"))?;
         let first = r

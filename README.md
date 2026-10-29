@@ -348,6 +348,7 @@ does not trigger a notification. Wallets without a configured date keep their ru
 | slippage | 2% against the venue's price now | `--max-slippage` |
 | per week | off | `--max-weekly` (7 rolling days) |
 | per coin per day | off | `--max-coin-daily` (24 rolling hours, one coin) |
+| bid-ask spread | off | `--max-spread P` (sync refuses above P% of the mid, or with no book) |
 | plan age | 60 min | `--max-plan-age` (`0` = off) |
 | exact plan | off | `--expect-plan D`: `plan` prints the digest D of its orders; `sync` places nothing else |
 

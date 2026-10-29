@@ -336,6 +336,22 @@ impl Venue for Binance {
             .collect()
     }
 
+    fn book_top(&self, symbol: &str) -> Result<Option<(f64, f64)>, VenueError> {
+        let r = self.public(&format!("/api/v3/ticker/bookTicker?symbol={symbol}"))?;
+        if r.status != Some(200) {
+            return Err(fail(format!("book {symbol}"), &r));
+        }
+        let side = |k: &str| {
+            let v = r
+                .json
+                .as_ref()
+                .and_then(|b| b.get(k))
+                .ok_or_else(|| shape_err(V, format!("'{k}'")))?;
+            pyfmt::to_float(v).map_err(|e| shape_err(V, e))
+        };
+        Ok(Some((side("bidPrice")?, side("askPrice")?)))
+    }
+
     fn price(&self, symbol: &str) -> Result<f64, VenueError> {
         let r = self.public(&format!("/api/v3/ticker/price?symbol={symbol}"))?;
         if r.status != Some(200) {

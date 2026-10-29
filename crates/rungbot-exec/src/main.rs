@@ -173,6 +173,8 @@ OPTIONS:
   --max-weekly N     notional cap over the last 7 days (default 0: off)
   --max-coin-daily N sync: notional cap per coin over the last 24h, so one coin cannot
                      take the whole daily cap (default 0: off)
+  --max-spread P     sync: refuse an order while the venue's bid-ask spread is over P%
+                     of the mid, or the venue gives no book (default 0: off)
   --max-plan-age MIN sync refuses a plan generated longer ago than this (default 60;
                      0 turns the check off); plan only warns
   --expect-plan D    sync places nothing unless its orders hash to D, the digest `plan`
@@ -241,6 +243,7 @@ impl Args {
                         | "max-slippage"
                         | "max-weekly"
                         | "max-coin-daily"
+                        | "max-spread"
                         | "max-plan-age"
                         | "expect-plan"
                         | "max-age"
@@ -296,6 +299,7 @@ fn known_flags(cmd: &str) -> Option<&'static [&'static str]> {
         "max-orders",
         "max-weekly",
         "max-coin-daily",
+        "max-spread",
         "max-slippage",
         "max-plan-age",
         "expect-plan",
@@ -1545,6 +1549,24 @@ fn coin_daily_room(sym: &str, placed_24h: f64, quote: f64, cap: f64) -> Result<(
     Ok(())
 }
 
+/// `--max-spread`: the venue's bid-ask spread for `pair` at most `cap` percent of the
+/// mid. An unreadable, missing, empty or crossed book refuses too.
+fn spread_room(
+    pair: &str,
+    book: Result<Option<(f64, f64)>, String>,
+    cap: f64,
+) -> Result<(), String> {
+    let (bid, ask) = book?.ok_or_else(|| format!("the venue gives no book for {pair}"))?;
+    let pct = rungbot_exec::venue::spread_pct(bid, ask)
+        .ok_or_else(|| format!("{pair} has no usable book (bid {bid}, ask {ask})"))?;
+    if pct > cap {
+        return Err(format!(
+            "{pair} spread {pct:.2}% is over the {cap}% cap (bid {bid}, ask {ask})"
+        ));
+    }
+    Ok(())
+}
+
 fn prepare(args: &Args) -> Result<(Vec<Planned>, Caps, f64), String> {
     let plan = read_plan(args)?;
     if args.cmd == "sync" {
@@ -1686,6 +1708,7 @@ fn cmd_sync(args: &Args) -> Result<(), String> {
     let day_ago = now() - 86_400.0;
     let max_weekly = args.num("max-weekly", 0.0)?;
     let max_coin_daily = args.num("max-coin-daily", 0.0)?;
+    let max_spread = args.num("max-spread", 0.0)?;
     let (mut placed, mut refused, mut skipped) = (0, 0, 0);
 
     for p in &orders {
@@ -1714,6 +1737,14 @@ fn cmd_sync(args: &Args) -> Result<(), String> {
             println!("  {} — REFUSED: {e}", p.sym);
             refused += 1;
             continue;
+        }
+        if max_spread > 0.0 {
+            let book = venue.book_top(&p.pair).map_err(|e| e.to_string());
+            if let Err(e) = spread_room(&p.pair, book, max_spread) {
+                println!("  {} — REFUSED: {e}", p.sym);
+                refused += 1;
+                continue;
+            }
         }
         let ctx = Context {
             mode,
@@ -2293,6 +2324,18 @@ mod tests {
         assert!(weekly_room(450.0, 40.0, 500.0).is_ok());
         assert!(weekly_room(450.0, 60.0, 500.0).is_err());
         assert!(weekly_room(1e9, 60.0, 0.0).is_ok());
+    }
+
+    #[test]
+    fn the_spread_cap_refuses_a_wide_missing_or_unreadable_book() {
+        assert!(spread_room("AAA_USDT", Ok(Some((99.5, 100.5))), 2.0).is_ok());
+        let wide = spread_room("AAA_USDT", Ok(Some((95.0, 105.0))), 2.0).unwrap_err();
+        assert!(wide.contains("spread 10.00% is over the 2% cap"), "{wide}");
+        assert!(spread_room("AAA_USDT", Ok(None), 2.0)
+            .unwrap_err()
+            .contains("no book"));
+        assert!(spread_room("AAA_USDT", Ok(Some((0.0, 100.0))), 2.0).is_err());
+        assert!(spread_room("AAA_USDT", Err("book AAA_USDT -> 503".into()), 2.0).is_err());
     }
 
     #[test]

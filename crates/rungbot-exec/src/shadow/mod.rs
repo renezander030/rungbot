@@ -298,6 +298,10 @@ impl Venue for ShadowVenue<'_> {
     fn price(&self, pair: &str) -> Result<f64, VenueError> {
         self.real()?.price(pair)
     }
+    fn book_top(&self, pair: &str) -> Result<Option<(f64, f64)>, VenueError> {
+        self.real()?.book_top(pair)
+    }
+
     fn limits(&self, pair: &str) -> Result<Limits, VenueError> {
         self.real()?.limits(pair)
     }
