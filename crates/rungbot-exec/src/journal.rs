@@ -524,6 +524,19 @@ impl Journal {
             .collect()
     }
 
+    /// Rows marked filled (a fill time set) that carry no filled base and no filled
+    /// quote, so nothing was booked for them. Sorted by client id.
+    pub fn filled_without_amount(&self) -> Vec<&Order> {
+        let none = |v: Option<f64>| v.unwrap_or(0.0) == 0.0;
+        let mut rows: Vec<&Order> = self
+            .orders
+            .values()
+            .filter(|o| truthy_f(o.filled_ts) && none(o.filled_base) && none(o.filled_quote))
+            .collect();
+        rows.sort_by(|a, b| a.client_id.cmp(&b.client_id));
+        rows
+    }
+
     /// What `rungbot-exec status` shows of the journal, as data.
     pub fn status_json(&self, now: f64) -> serde_json::Value {
         use serde_json::json;
@@ -803,6 +816,34 @@ mod tests {
             .map(|o| o.client_id.as_str())
             .collect();
         assert_eq!(cids, ["a", "b"]);
+    }
+
+    #[test]
+    fn a_filled_row_with_no_amount_is_listed() {
+        let mut j = Journal::default();
+        let mut empty = order("z", "filled", T0);
+        empty.filled_ts = Some(T0 + 5.0);
+        let mut zero = order("a", "filled", T0);
+        zero.filled_ts = Some(T0 + 5.0);
+        zero.filled_base = Some(0.0);
+        zero.filled_quote = Some(0.0);
+        let mut booked = order("base", "filled", T0);
+        booked.filled_ts = Some(T0 + 5.0);
+        booked.filled_base = Some(1.0);
+        let mut quote_only = order("quote", "filled", T0);
+        quote_only.filled_ts = Some(T0 + 5.0);
+        quote_only.filled_quote = Some(10.0);
+        let mut unfilled = order("open", "open", T0);
+        unfilled.filled_ts = Some(0.0);
+        for o in [empty, zero, booked, quote_only, unfilled] {
+            j.record(o);
+        }
+        let cids: Vec<&str> = j
+            .filled_without_amount()
+            .iter()
+            .map(|o| o.client_id.as_str())
+            .collect();
+        assert_eq!(cids, ["a", "z"]);
     }
 
     #[test]

@@ -146,6 +146,16 @@ pub fn report(cfg: &RunConfig, now: f64, max_age_min: f64) -> Vec<Check> {
                         ),
                     ));
                 }
+                let empty = j.filled_without_amount().len();
+                if empty > 0 {
+                    out.push(check(
+                        Level::Warn,
+                        format!(
+                            "{empty} order(s) marked filled with no filled amount: nothing \
+                             was booked (rungbot-exec status)"
+                        ),
+                    ));
+                }
                 let unswept = j
                     .venue_cancelled_unswept(None)
                     .iter()
@@ -335,6 +345,27 @@ mod tests {
         let w = warnings(&cfg, 1000.0);
         assert_eq!(w.len(), 1, "{w:?}");
         assert!(w[0].starts_with("2 open order(s) share a venue, pair, side and price"));
+        let _ = std::fs::remove_dir_all(&d);
+    }
+
+    #[test]
+    fn a_filled_row_with_no_amount_warns() {
+        let d = std::env::temp_dir().join(format!("rungbot-health-fill-{}", std::process::id()));
+        std::fs::create_dir_all(&d).unwrap();
+        let cfg = config(&d);
+        write_journal(
+            &cfg,
+            "{\"c1\": {\"client_id\": \"c1\", \"status\": \"filled\", \"filled_ts\": 900.0, \
+             \"filled_base\": 1.0}}",
+        );
+        assert!(warnings(&cfg, 1000.0).is_empty());
+        write_journal(
+            &cfg,
+            "{\"c1\": {\"client_id\": \"c1\", \"status\": \"filled\", \"filled_ts\": 900.0}}",
+        );
+        let w = warnings(&cfg, 1000.0);
+        assert_eq!(w.len(), 1, "{w:?}");
+        assert!(w[0].starts_with("1 order(s) marked filled with no filled amount"));
         let _ = std::fs::remove_dir_all(&d);
     }
 }
