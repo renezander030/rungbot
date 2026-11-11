@@ -157,12 +157,7 @@ impl Binance {
 
     /// `floor(qty / step) * step`, or `qty` for a zero step.
     pub fn round_qty(&self, symbol: &str, qty: f64) -> Result<f64, VenueError> {
-        let step = self.filters(symbol)?.step;
-        Ok(if step > 0.0 {
-            (qty / step).floor() * step
-        } else {
-            qty
-        })
+        Ok(crate::venue::floor_to_step(qty, self.filters(symbol)?.step))
     }
 
     fn order(
@@ -341,6 +336,22 @@ impl Venue for Binance {
             .collect()
     }
 
+    fn book_top(&self, symbol: &str) -> Result<Option<(f64, f64)>, VenueError> {
+        let r = self.public(&format!("/api/v3/ticker/bookTicker?symbol={symbol}"))?;
+        if r.status != Some(200) {
+            return Err(fail(format!("book {symbol}"), &r));
+        }
+        let side = |k: &str| {
+            let v = r
+                .json
+                .as_ref()
+                .and_then(|b| b.get(k))
+                .ok_or_else(|| shape_err(V, format!("'{k}'")))?;
+            pyfmt::to_float(v).map_err(|e| shape_err(V, e))
+        };
+        Ok(Some((side("bidPrice")?, side("askPrice")?)))
+    }
+
     fn price(&self, symbol: &str) -> Result<f64, VenueError> {
         let r = self.public(&format!("/api/v3/ticker/price?symbol={symbol}"))?;
         if r.status != Some(200) {
@@ -378,12 +389,10 @@ impl Venue for Binance {
 
     /// `floor(price / tick) * tick`, or `price` for a zero tick.
     fn round_price(&self, symbol: &str, price: f64) -> Result<f64, VenueError> {
-        let tick = self.filters(symbol)?.tick;
-        Ok(if tick > 0.0 {
-            (price / tick).floor() * tick
-        } else {
-            price
-        })
+        Ok(crate::venue::floor_to_step(
+            price,
+            self.filters(symbol)?.tick,
+        ))
     }
 
     /// Spend `quote` of the quote asset (`quoteOrderQty`, two decimals).

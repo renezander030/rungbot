@@ -125,8 +125,7 @@ pub fn running_from_series(closes: &[f64], ppd: usize, cfg: RegimeConfig) -> (bo
     let px = closes[n - 1];
     let win30 = &closes[n - w30..];
 
-    let max_of = |s: &[f64]| s.iter().cloned().fold(f64::NEG_INFINITY, f64::max);
-    let min_of = |s: &[f64]| s.iter().cloned().fold(f64::INFINITY, f64::min);
+    use crate::pymath::{max_of, min_of};
 
     let sig = RunSignals {
         above_sma30: sma(win30).is_some_and(|m| px > m),

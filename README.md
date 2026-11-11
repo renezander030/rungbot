@@ -216,7 +216,9 @@ holdings and free stable, skipping any trade below the pair's minimum order, and
 the book it started from. `--fee-pct PCT` charges a trading fee on every simulated buy
 and sell and prints the total (default: fee-free); fills are at the period's price, with
 no slippage. A price history whose coin has fewer than two points, or whose timestamps
-repeat or run backwards, is refused with the coin named.
+repeat or run backwards, is refused with the coin named. On stderr, `window` also notes
+a gap in a coin's history (spacing over three times its usual step) and a coin whose
+history ends early, as a delisted coin's does; stdout and the exit code are unchanged.
 `sweep` replays the same window under nine band and core variants. `monthly` runs
 several windows (`backtest.windows`, default 28/90/180), flags REVIEW when a variant
 beats the live bands by more than `backtest.drift_band_pct`, probes per-coin bands, and
@@ -285,9 +287,14 @@ fill on that venue, for a venue whose own order notices are off.
 venue: the last completed run from the decision log, whether the journal reads, the
 trade mode, the halt file and the balances snapshot's age. It exits 1 when the last
 run is older than `--max-age` minutes (default 90) or the journal does not read, and
-takes `--json`. It warns about open orders whose last poll failed and about cash the
-venue freed by a cancel that no run has re-laddered within 2 hours; `--strict` exits 1
-on a warning too.
+takes `--json`. It warns about open orders whose last poll failed, about open orders
+that share a venue, pair, side and price, about orders marked filled with no filled
+amount, and about cash the venue freed by a cancel that no run has re-laddered within
+2 hours; `--max-rest-days D` also warns about open orders resting longer than D days.
+`--strict` exits 1 on a warning too.
+
+`rungbot-exec env` shows the run config it reads, its state directory and each
+environment variable that overrides one of its knobs, with the value applied (`--json`).
 
 `rungbot-exec status` shows the journal (open orders, the last 24 hours, failing polls,
 venue cancels, orders that already filled in part) and takes `--json`.
@@ -343,6 +350,7 @@ does not trigger a notification. Wallets without a configured date keep their ru
 | slippage | 2% against the venue's price now | `--max-slippage` |
 | per week | off | `--max-weekly` (7 rolling days) |
 | per coin per day | off | `--max-coin-daily` (24 rolling hours, one coin) |
+| bid-ask spread | off | `--max-spread P` (sync refuses above P% of the mid, or with no book) |
 | plan age | 60 min | `--max-plan-age` (`0` = off) |
 | exact plan | off | `--expect-plan D`: `plan` prints the digest D of its orders; `sync` places nothing else |
 
@@ -358,7 +366,10 @@ after 90 days, silently.** `rungbot-exec keys check --venue V` verifies the key 
 from your address, gives the key file's age (with a warning from day 80 on Gate and
 Binance) and states what it cannot check — no venue here exposes its key's
 permissions, so confirm withdrawals are off in their UI yourself. `RUNGBOT_OFFLINE=1`
-refuses every network call, signed or public.
+refuses every network call, signed or public. `RUNGBOT_READ_RETRY=1` sends a read (a
+`GET`: balances, prices, pair rules, order status) once more a second later when it
+fails on the way or the venue answers 429 or a 5xx; an order, cancel or other write is
+never repeated.
 
 ## Layout
 

@@ -498,6 +498,54 @@ impl Journal {
             .collect()
     }
 
+    /// Open orders that share venue, pair, side and price with another open order, sorted
+    /// by those four and then by client id. A row with no price is never one of them.
+    pub fn duplicate_open(&self) -> Vec<&Order> {
+        let mut rows: Vec<&Order> = self
+            .open_orders(None)
+            .into_iter()
+            .filter(|o| o.price.is_some())
+            .collect();
+        let same = |a: &Order, b: &Order| {
+            a.exch == b.exch && a.pair == b.pair && a.side == b.side && a.price == b.price
+        };
+        rows.sort_by(|a, b| {
+            (&a.exch, &a.pair, &a.side)
+                .cmp(&(&b.exch, &b.pair, &b.side))
+                .then(a.price.unwrap_or(0.0).total_cmp(&b.price.unwrap_or(0.0)))
+                .then(a.client_id.cmp(&b.client_id))
+        });
+        (0..rows.len())
+            .filter(|&i| {
+                (i > 0 && same(rows[i - 1], rows[i]))
+                    || (i + 1 < rows.len() && same(rows[i], rows[i + 1]))
+            })
+            .map(|i| rows[i])
+            .collect()
+    }
+
+    /// Open orders journaled before `cutoff`: resting longer than the caller allows. A
+    /// row with no placement time, or a zero one, is never counted.
+    pub fn resting_before(&self, cutoff: f64) -> Vec<&Order> {
+        self.open_orders(None)
+            .into_iter()
+            .filter(|o| o.ts.is_some_and(|t| t > 0.0 && t < cutoff))
+            .collect()
+    }
+
+    /// Rows marked filled (a fill time set) that carry no filled base and no filled
+    /// quote, so nothing was booked for them. Sorted by client id.
+    pub fn filled_without_amount(&self) -> Vec<&Order> {
+        let none = |v: Option<f64>| v.unwrap_or(0.0) == 0.0;
+        let mut rows: Vec<&Order> = self
+            .orders
+            .values()
+            .filter(|o| truthy_f(o.filled_ts) && none(o.filled_base) && none(o.filled_quote))
+            .collect();
+        rows.sort_by(|a, b| a.client_id.cmp(&b.client_id));
+        rows
+    }
+
     /// What `rungbot-exec status` shows of the journal, as data.
     pub fn status_json(&self, now: f64) -> serde_json::Value {
         use serde_json::json;
@@ -749,6 +797,79 @@ mod tests {
         assert_eq!(v["part_filled"][0]["filled_base"], 0.4);
         assert_eq!(v["poll_errors"][0]["error"], "timeout");
         assert_eq!(v["venue_cancelled_unswept"].as_array().unwrap().len(), 0);
+    }
+
+    #[test]
+    fn resting_counts_open_orders_placed_before_the_cutoff_only() {
+        let mut j = Journal::default();
+        j.record(order("old", "open", T0));
+        j.record(order("new", "open", T0 + 100.0));
+        j.record(order("done", "filled", T0));
+        let mut no_ts = order("nots", "open", T0);
+        no_ts.ts = None;
+        j.record(no_ts);
+        let cids: Vec<&str> = j
+            .resting_before(T0 + 50.0)
+            .iter()
+            .map(|o| o.client_id.as_str())
+            .collect();
+        assert_eq!(cids, ["old"]);
+    }
+
+    #[test]
+    fn open_orders_at_one_venue_pair_side_and_price_are_duplicates() {
+        let mut j = Journal::default();
+        j.record(order("b", "open", T0));
+        j.record(order("a", "open", T0));
+        j.record(order("lone", "open", T0));
+        j.orders.get_mut("lone").unwrap().price = Some(11.0);
+        let mut other_side = order("sell", "open", T0);
+        other_side.side = "sell".into();
+        j.record(other_side);
+        let mut other_venue = order("kraken", "open", T0);
+        other_venue.exch = "kraken".into();
+        j.record(other_venue);
+        j.record(order("closed", "filled", T0));
+        let mut no_price1 = order("n1", "open", T0);
+        no_price1.price = None;
+        let mut no_price2 = order("n2", "open", T0);
+        no_price2.price = None;
+        j.record(no_price1);
+        j.record(no_price2);
+        let cids: Vec<&str> = j
+            .duplicate_open()
+            .iter()
+            .map(|o| o.client_id.as_str())
+            .collect();
+        assert_eq!(cids, ["a", "b"]);
+    }
+
+    #[test]
+    fn a_filled_row_with_no_amount_is_listed() {
+        let mut j = Journal::default();
+        let mut empty = order("z", "filled", T0);
+        empty.filled_ts = Some(T0 + 5.0);
+        let mut zero = order("a", "filled", T0);
+        zero.filled_ts = Some(T0 + 5.0);
+        zero.filled_base = Some(0.0);
+        zero.filled_quote = Some(0.0);
+        let mut booked = order("base", "filled", T0);
+        booked.filled_ts = Some(T0 + 5.0);
+        booked.filled_base = Some(1.0);
+        let mut quote_only = order("quote", "filled", T0);
+        quote_only.filled_ts = Some(T0 + 5.0);
+        quote_only.filled_quote = Some(10.0);
+        let mut unfilled = order("open", "open", T0);
+        unfilled.filled_ts = Some(0.0);
+        for o in [empty, zero, booked, quote_only, unfilled] {
+            j.record(o);
+        }
+        let cids: Vec<&str> = j
+            .filled_without_amount()
+            .iter()
+            .map(|o| o.client_id.as_str())
+            .collect();
+        assert_eq!(cids, ["a", "z"]);
     }
 
     #[test]

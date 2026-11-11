@@ -38,7 +38,8 @@ USAGE:
   rungbot-exec fillodds  [--horizons 30,90] [--json] [--config FILE]
   rungbot-exec funding   [--config FILE]
                          | send-back USD [--hours H] | send-back [--cancel]
-  rungbot-exec health    [--config FILE] [--max-age MIN] [--json] [--strict]
+  rungbot-exec env       [--config FILE] [--json]
+  rungbot-exec health    [--config FILE] [--max-age MIN] [--max-rest-days D] [--json] [--strict]
   rungbot-exec snapshot  [--config FILE] [--only data,scenarios,wallets] [--no-deploy]
   rungbot-exec status    [--pair PAIR --venue V] [--json]
   rungbot-exec plan      --from PLAN.json --budget N --pair-map SYM=PAIR,...
@@ -68,14 +69,21 @@ DEPLOY (the monthly-capital layer; the run calls it every cycle with deploy: liv
   tranche, market and cancel take the run lock; tranche and market refuse while
   live_trading_enabled is off or the halt file exists.
 
+ENV (read-only; calls no venue):
+  the run config it reads, the state directory, and each environment variable that
+  overrides a knob of that config with the value it applies (`--json` for scripts).
+  Exit 1 when the config does not load.
+
 HEALTH (read-only; calls no venue):
   the last completed run from the decision log, the journal, the trade mode, the
   halt file and the balances snapshot's age. Exit 1 when the last run is older than
   --max-age minutes (default 90) or the journal does not read, so a timer or a
   monitor can alert on a run that stopped. It warns about open orders whose last
-  poll failed and about venue-cancelled cash not re-laddered within 2 hours;
-  --strict exits 1 on a warning too. With `heartbeat_url` in the run config
-  (or RUNGBOT_HEARTBEAT_URL), each completed run also GETs that URL, for a
+  poll failed, about open orders that share a venue, pair, side and price, about
+  orders marked filled with no filled amount, and about venue-cancelled cash not
+  re-laddered within 2 hours; --max-rest-days D also warns about open orders resting
+  longer than D days (default 0, off). --strict exits 1 on a warning too. With
+  `heartbeat_url` in the run config (or RUNGBOT_HEARTBEAT_URL), each completed run also GETs that URL, for a
   dead-man's switch such as healthchecks.io; dry and shadow runs do not.
 
 SNAPSHOT (the dashboard collector; read-only on every venue, see the `dashboard:`
@@ -165,6 +173,8 @@ OPTIONS:
   --max-weekly N     notional cap over the last 7 days (default 0: off)
   --max-coin-daily N sync: notional cap per coin over the last 24h, so one coin cannot
                      take the whole daily cap (default 0: off)
+  --max-spread P     sync: refuse an order while the venue's bid-ask spread is over P%
+                     of the mid, or the venue gives no book (default 0: off)
   --max-plan-age MIN sync refuses a plan generated longer ago than this (default 60;
                      0 turns the check off); plan only warns
   --expect-plan D    sync places nothing unless its orders hash to D, the digest `plan`
@@ -189,6 +199,8 @@ ENVIRONMENT:
   RUNGBOT_LOCK_WAIT  seconds a second writer waits for the lock (default 120)
   RUNGBOT_ORDER_ARCHIVE  the archive (default: orders-archive.jsonl beside the journal)
   RUNGBOT_OFFLINE=1  refuse every network call, signed or public
+  RUNGBOT_READ_RETRY=1  send a read (GET) once more, a second later, when it fails
+                     on the way or answers 429 or 5xx; orders are never repeated
 
 Gate keys with no IP allowlist are disabled after 90 days, silently. If orders
 stop being accepted, check that first.
@@ -231,9 +243,11 @@ impl Args {
                         | "max-slippage"
                         | "max-weekly"
                         | "max-coin-daily"
+                        | "max-spread"
                         | "max-plan-age"
                         | "expect-plan"
                         | "max-age"
+                        | "max-rest-days"
                         | "state-dir"
                         | "since"
                         | "tolerance"
@@ -285,13 +299,15 @@ fn known_flags(cmd: &str) -> Option<&'static [&'static str]> {
         "max-orders",
         "max-weekly",
         "max-coin-daily",
+        "max-spread",
         "max-slippage",
         "max-plan-age",
         "expect-plan",
     ];
     Some(match cmd {
         "run" => &["config", "dry-run", "state-dir", "verbose"],
-        "health" => &["config", "max-age", "json", "strict"],
+        "health" => &["config", "max-age", "max-rest-days", "json", "strict"],
+        "env" => &["config", "json"],
         "status" => &["pair", "venue", "journal", "config", "json"],
         "plan" | "sync" => PLACE,
         "reconcile" => &["journal", "config"],
@@ -523,6 +539,7 @@ fn main() -> ExitCode {
     let r = match args.cmd.as_str() {
         "run" => return cmd_run(&args),
         "health" => return cmd_health(&args),
+        "env" => cmd_env(&args),
         "shadow-diff" => return cmd_shadow_diff(&argv),
         "deploy" | "churn" | "fillodds" | "funding" => cmd_layer(&argv),
         "snapshot" => return cmd_snapshot(&argv),
@@ -627,6 +644,35 @@ fn cmd_run(args: &Args) -> ExitCode {
     }
 }
 
+/// `env`: the run config it reads and every environment variable that overrides one of
+/// its knobs, with the value it applies. Exit 1 when the config does not load.
+fn cmd_env(args: &Args) -> Result<(), String> {
+    use rungbot_exec::run::config::{env_overrides, RunConfig};
+    let (path, _) = run_config_path(args);
+    let cfg = RunConfig::load(&path)?;
+    let over = env_overrides(&|k| std::env::var(k).ok());
+    if args.has("json") {
+        let rows: Vec<serde_json::Value> = over
+            .iter()
+            .map(|o| serde_json::json!({"key": o.key, "var": o.var, "value": o.value}))
+            .collect();
+        let out = serde_json::json!({
+            "config": path.display().to_string(),
+            "state_dir": cfg.state_dir.display().to_string(),
+            "overrides": rows,
+        });
+        println!("{}", serde_json::to_string_pretty(&out).unwrap_or_default());
+        return Ok(());
+    }
+    println!("run config {} reads", path.display());
+    println!("state dir {}", cfg.state_dir.display());
+    println!("{} environment override(s)", over.len());
+    for o in &over {
+        println!("  {}={} -> {}", o.var, o.value, o.key);
+    }
+    Ok(())
+}
+
 /// `health`: exit 0 when every check passed, 1 when one failed.
 fn cmd_health(args: &Args) -> ExitCode {
     use rungbot_exec::health::{self, Level};
@@ -646,7 +692,14 @@ fn cmd_health(args: &Args) -> ExitCode {
             return ExitCode::from(1);
         }
     };
-    let checks = health::report(&cfg, now(), max_age);
+    let max_rest_days = match args.num("max-rest-days", 0.0) {
+        Ok(v) => v,
+        Err(e) => {
+            eprintln!("{e}");
+            return ExitCode::from(1);
+        }
+    };
+    let checks = health::report(&cfg, now(), max_age, max_rest_days);
     if args.has("json") {
         println!(
             "{}",
@@ -1496,6 +1549,24 @@ fn coin_daily_room(sym: &str, placed_24h: f64, quote: f64, cap: f64) -> Result<(
     Ok(())
 }
 
+/// `--max-spread`: the venue's bid-ask spread for `pair` at most `cap` percent of the
+/// mid. An unreadable, missing, empty or crossed book refuses too.
+fn spread_room(
+    pair: &str,
+    book: Result<Option<(f64, f64)>, String>,
+    cap: f64,
+) -> Result<(), String> {
+    let (bid, ask) = book?.ok_or_else(|| format!("the venue gives no book for {pair}"))?;
+    let pct = rungbot_exec::venue::spread_pct(bid, ask)
+        .ok_or_else(|| format!("{pair} has no usable book (bid {bid}, ask {ask})"))?;
+    if pct > cap {
+        return Err(format!(
+            "{pair} spread {pct:.2}% is over the {cap}% cap (bid {bid}, ask {ask})"
+        ));
+    }
+    Ok(())
+}
+
 fn prepare(args: &Args) -> Result<(Vec<Planned>, Caps, f64), String> {
     let plan = read_plan(args)?;
     if args.cmd == "sync" {
@@ -1637,6 +1708,7 @@ fn cmd_sync(args: &Args) -> Result<(), String> {
     let day_ago = now() - 86_400.0;
     let max_weekly = args.num("max-weekly", 0.0)?;
     let max_coin_daily = args.num("max-coin-daily", 0.0)?;
+    let max_spread = args.num("max-spread", 0.0)?;
     let (mut placed, mut refused, mut skipped) = (0, 0, 0);
 
     for p in &orders {
@@ -1655,13 +1727,21 @@ fn cmd_sync(args: &Args) -> Result<(), String> {
                 continue;
             }
         };
-        if let Err(e) = weekly_room(j.notional_since(ts - 7.0 * 86_400.0), p.quote, max_weekly) {
-            println!("  {} — REFUSED: {e}", p.sym);
-            refused += 1;
-            continue;
-        }
-        let coin_24h = j.coin_notional_since(&p.sym, ts - 86_400.0);
-        if let Err(e) = coin_daily_room(&p.sym, coin_24h, p.quote, max_coin_daily) {
+        // The sync-only rails, in order; the book is read only once the caps allow.
+        let rails = weekly_room(j.notional_since(ts - 7.0 * 86_400.0), p.quote, max_weekly)
+            .and_then(|()| {
+                let coin_24h = j.coin_notional_since(&p.sym, ts - 86_400.0);
+                coin_daily_room(&p.sym, coin_24h, p.quote, max_coin_daily)
+            })
+            .and_then(|()| {
+                if max_spread > 0.0 {
+                    let book = venue.book_top(&p.pair).map_err(|e| e.to_string());
+                    spread_room(&p.pair, book, max_spread)
+                } else {
+                    Ok(())
+                }
+            });
+        if let Err(e) = rails {
             println!("  {} — REFUSED: {e}", p.sym);
             refused += 1;
             continue;
@@ -2244,6 +2324,18 @@ mod tests {
         assert!(weekly_room(450.0, 40.0, 500.0).is_ok());
         assert!(weekly_room(450.0, 60.0, 500.0).is_err());
         assert!(weekly_room(1e9, 60.0, 0.0).is_ok());
+    }
+
+    #[test]
+    fn the_spread_cap_refuses_a_wide_missing_or_unreadable_book() {
+        assert!(spread_room("AAA_USDT", Ok(Some((99.5, 100.5))), 2.0).is_ok());
+        let wide = spread_room("AAA_USDT", Ok(Some((95.0, 105.0))), 2.0).unwrap_err();
+        assert!(wide.contains("spread 10.00% is over the 2% cap"), "{wide}");
+        assert!(spread_room("AAA_USDT", Ok(None), 2.0)
+            .unwrap_err()
+            .contains("no book"));
+        assert!(spread_room("AAA_USDT", Ok(Some((0.0, 100.0))), 2.0).is_err());
+        assert!(spread_room("AAA_USDT", Err("book AAA_USDT -> 503".into()), 2.0).is_err());
     }
 
     #[test]

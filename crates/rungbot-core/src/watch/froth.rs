@@ -126,7 +126,7 @@ fn open_interest(body: &Json) -> Result<(bool, String), String> {
         .map(|x| field(x, "sumOpenInterest").and_then(py_float))
         .collect::<Result<Vec<f64>, String>>()?;
     let last = *oi.last().ok_or(INDEX_ERROR)?;
-    let hi = oi.iter().cloned().fold(f64::NEG_INFINITY, f64::max);
+    let hi = crate::pymath::max_of(&oi);
     Ok((
         last >= hi * OI_NEAR_HIGH,
         format!(

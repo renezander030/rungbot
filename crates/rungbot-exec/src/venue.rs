@@ -109,6 +109,11 @@ pub trait Venue {
     fn deposits(&self, _since: f64) -> Option<Result<Vec<crate::gate::Deposit>, VenueError>> {
         None
     }
+    /// The best bid and ask for `pair` right now, `None` when the venue gives no book here.
+    fn book_top(&self, _pair: &str) -> Result<Option<(f64, f64)>, VenueError> {
+        Ok(None)
+    }
+
     /// Whether the venue still lists and trades `pair`, and any delisting it announced.
     /// A venue that does not report it says so with `tradable: None`.
     fn pair_status(&self, _pair: &str) -> Result<crate::pairs::PairStatus, VenueError> {
@@ -132,6 +137,22 @@ pub fn step_from_precision(p: i64) -> f64 {
     10f64.powf(-(p as f64))
 }
 
+/// The bid-ask spread as a percent of the mid price; `None` for a book that is empty or
+/// crossed (no bid, or an ask below the bid).
+pub fn spread_pct(bid: f64, ask: f64) -> Option<f64> {
+    (bid > 0.0 && ask >= bid).then(|| (ask - bid) / ((ask + bid) / 2.0) * 100.0)
+}
+
+/// `floor(x / step) * step`, or `x` unchanged for a zero step. Round down, never up:
+/// rounding an amount up can exceed the balance you have.
+pub(crate) fn floor_to_step(x: f64, step: f64) -> f64 {
+    if step > 0.0 {
+        (x / step).floor() * step
+    } else {
+        x
+    }
+}
+
 /// Is `venue_cid` (what the venue echoes) the id we sent for journal id `cid`? Revolut X
 /// is sent a uuid5 of it, Gate a hashed-down text, Binance and anything else the id.
 pub fn venue_id_matches(exch: &str, venue_cid: &str, cid: &str) -> bool {
@@ -148,4 +169,26 @@ pub fn venue_id_matches(exch: &str, venue_cid: &str, cid: &str) -> bool {
 /// Bad venue JSON as an error in the venue's voice.
 pub(crate) fn shape_err(venue: &'static str, what: impl core::fmt::Display) -> VenueError {
     VenueError::new(venue, None, what.to_string())
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn the_spread_is_a_percent_of_the_mid_and_a_bad_book_has_none() {
+        assert_eq!(spread_pct(99.0, 101.0), Some(2.0));
+        assert_eq!(spread_pct(100.0, 100.0), Some(0.0));
+        assert_eq!(spread_pct(0.0, 101.0), None);
+        assert_eq!(spread_pct(101.0, 99.0), None);
+    }
+
+    #[test]
+    fn floor_to_step_rounds_down_and_leaves_a_zero_step_alone() {
+        assert_eq!(floor_to_step(1.7, 0.5), 1.5);
+        assert_eq!(floor_to_step(0.99, 0.25), 0.75);
+        assert_eq!(floor_to_step(2.0, 0.5), 2.0);
+        assert_eq!(floor_to_step(1.234, 0.0), 1.234);
+        assert_eq!(floor_to_step(1.234, -1.0), 1.234);
+    }
 }

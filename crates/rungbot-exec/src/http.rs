@@ -42,10 +42,35 @@ pub trait Transport {
 
 /// Is the offline switch on? Any value but empty, `0`, `no` or `false` turns it on.
 pub fn offline() -> bool {
-    match std::env::var("RUNGBOT_OFFLINE") {
+    switch_on("RUNGBOT_OFFLINE")
+}
+
+fn switch_on(var: &str) -> bool {
+    match std::env::var(var) {
         Ok(v) => !matches!(v.trim(), "" | "0" | "no" | "false"),
         Err(_) => false,
     }
+}
+
+/// Is `RUNGBOT_READ_RETRY` on (same reading as the offline switch)? Then a `GET` that
+/// fails on the way or answers 429 or a 5xx is sent once more after a short pause.
+pub fn read_retry() -> bool {
+    switch_on("RUNGBOT_READ_RETRY")
+}
+
+/// Seconds to wait before the one repeat of a read.
+pub const READ_RETRY_PAUSE_S: f64 = 1.0;
+
+/// May this outcome of a read be asked again? Nothing was answered (a network failure),
+/// or the venue said "too many requests" or had a server error. Only a `GET` is ever
+/// repeated: an order or cancel is never sent twice by the transport.
+fn worth_asking_again(req: &Request, got: &Result<Response, SendError>) -> bool {
+    req.method == "GET"
+        && match got {
+            Err(SendError::Network(_)) => true,
+            Ok(r) => r.status == 429 || (500..600).contains(&r.status),
+            Err(SendError::Offline(_)) => false,
+        }
 }
 
 /// The real transport.
@@ -237,7 +262,8 @@ pub fn request(
         body,
         timeout_s: TIMEOUT_S,
     };
-    match http.transport.send(&req) {
+    let pause = read_retry().then_some(READ_RETRY_PAUSE_S);
+    match send_read_twice(http, &req, pause) {
         Err(SendError::Offline(m)) => Err(VenueError::new(venue, None, m)),
         // The wording journals have always stored for a network failure.
         Err(SendError::Network(m)) => Ok(Reply {
@@ -262,6 +288,18 @@ pub fn request(
             json: serde_json::from_str(&r.body).ok(),
             text: r.body,
         }),
+    }
+}
+
+/// Send `req`; with a `pause`, a read [`worth_asking_again`] goes once more after it.
+fn send_read_twice(http: &Http, req: &Request, pause: Option<f64>) -> Result<Response, SendError> {
+    let got = http.transport.send(req);
+    match pause {
+        Some(s) if worth_asking_again(req, &got) => {
+            std::thread::sleep(std::time::Duration::from_secs_f64(s));
+            http.transport.send(req)
+        }
+        _ => got,
     }
 }
 
@@ -294,6 +332,94 @@ mod tests {
             })
             .unwrap_err();
         assert!(matches!(e, SendError::Offline(_)), "{e:?}");
+    }
+
+    /// Answers each call with the next scripted outcome and counts the calls.
+    struct Script(
+        std::cell::RefCell<Vec<Result<Response, SendError>>>,
+        std::cell::Cell<usize>,
+    );
+
+    impl Transport for Script {
+        fn send(&self, _: &Request) -> Result<Response, SendError> {
+            self.1.set(self.1.get() + 1);
+            self.0.borrow_mut().remove(0)
+        }
+    }
+
+    fn script(outcomes: Vec<Result<Response, SendError>>) -> (Rc<Script>, Http) {
+        let t = Rc::new(Script(
+            std::cell::RefCell::new(outcomes),
+            std::cell::Cell::new(0),
+        ));
+        let http = Http::new(t.clone(), Rc::new(|| 0.0));
+        (t, http)
+    }
+
+    fn ok(status: u16, body: &str) -> Result<Response, SendError> {
+        Ok(Response {
+            status,
+            body: body.into(),
+        })
+    }
+
+    fn req(method: &str) -> Request {
+        Request {
+            method: method.into(),
+            url: "https://example.invalid/p".into(),
+            headers: vec![],
+            body: None,
+            timeout_s: 1,
+        }
+    }
+
+    fn status(r: Result<Response, SendError>) -> Option<u16> {
+        r.ok().map(|r| r.status)
+    }
+
+    #[test]
+    fn a_failed_read_is_asked_once_more_only_when_switched_on() {
+        let (t, http) = script(vec![ok(503, "busy"), ok(200, "{}")]);
+        assert_eq!(status(send_read_twice(&http, &req("GET"), None)), Some(503));
+        assert_eq!(t.1.get(), 1);
+
+        for first in [
+            ok(429, "slow down"),
+            ok(502, "bad gateway"),
+            Err(SendError::Network("timed out".into())),
+        ] {
+            let (t, http) = script(vec![first, ok(200, "{}")]);
+            assert_eq!(
+                status(send_read_twice(&http, &req("GET"), Some(0.0))),
+                Some(200)
+            );
+            assert_eq!(t.1.get(), 2);
+        }
+        // The repeat's own failure is the answer; there is no third call.
+        let (t, http) = script(vec![ok(500, "e1"), ok(500, "e2")]);
+        let r = send_read_twice(&http, &req("GET"), Some(0.0)).unwrap();
+        assert_eq!((r.body.as_str(), t.1.get()), ("e2", 2));
+    }
+
+    #[test]
+    fn an_order_or_a_refusal_is_never_sent_twice() {
+        for method in ["POST", "DELETE", "PUT"] {
+            let (t, http) = script(vec![ok(503, "busy"), ok(200, "{}")]);
+            assert_eq!(
+                status(send_read_twice(&http, &req(method), Some(0.0))),
+                Some(503)
+            );
+            assert_eq!(t.1.get(), 1, "{method}");
+        }
+        let (t, http) = script(vec![ok(400, "bad"), ok(200, "{}")]);
+        assert_eq!(
+            status(send_read_twice(&http, &req("GET"), Some(0.0))),
+            Some(400)
+        );
+        assert_eq!(t.1.get(), 1);
+        let (t, http) = script(vec![Err(SendError::Offline("off".into())), ok(200, "{}")]);
+        assert!(send_read_twice(&http, &req("GET"), Some(0.0)).is_err());
+        assert_eq!(t.1.get(), 1);
     }
 
     #[test]

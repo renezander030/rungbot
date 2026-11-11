@@ -68,7 +68,7 @@ pub fn structure(closes: &[f64]) -> (Option<f64>, Option<f64>) {
         return (None, None);
     }
     let w = &closes[closes.len() - 30..];
-    let low = w.iter().copied().fold(f64::INFINITY, f64::min);
+    let low = crate::pymath::min_of(w);
     (Some(pyfmt::sum(w.iter().copied()) / 30.0), Some(low))
 }
 

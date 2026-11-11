@@ -12,7 +12,7 @@
 
 use rungbot_core::sellpolicy::{decide, BullState, SellPolicyConfig};
 
-use crate::py::{fs, median, round, Py};
+use crate::py::{fs, median, min_of, round, Py};
 use crate::pydict;
 use crate::replay::data::{day_num, day_str, iso_week};
 
@@ -550,10 +550,7 @@ fn summarize(rows: &[Row], big_only: bool) -> Py {
         if rs.is_empty() {
             Py::None
         } else {
-            Py::Float(round(
-                rs.iter().map(|r| f(r)).fold(f64::INFINITY, f64::min),
-                3,
-            ))
+            Py::Float(round(min_of(rs.iter().map(|r| f(r))), 3))
         }
     };
     pydict![

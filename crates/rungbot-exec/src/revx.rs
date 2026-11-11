@@ -656,23 +656,18 @@ impl Venue for Revx {
         })
     }
 
-    /// `floor(x / step) * step`, or `x` unchanged for a zero step.
     fn round_amount(&self, pair: &str, amount: f64) -> Result<f64, VenueError> {
-        let step = self.pair_info(pair)?.base_step;
-        Ok(if step > 0.0 {
-            (amount / step).floor() * step
-        } else {
-            amount
-        })
+        Ok(crate::venue::floor_to_step(
+            amount,
+            self.pair_info(pair)?.base_step,
+        ))
     }
 
     fn round_price(&self, pair: &str, price: f64) -> Result<f64, VenueError> {
-        let step = self.pair_info(pair)?.quote_step;
-        Ok(if step > 0.0 {
-            (price / step).floor() * step
-        } else {
-            price
-        })
+        Ok(crate::venue::floor_to_step(
+            price,
+            self.pair_info(pair)?.quote_step,
+        ))
     }
 
     fn market_buy(

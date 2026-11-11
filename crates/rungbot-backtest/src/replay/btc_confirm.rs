@@ -11,7 +11,7 @@
 //! variants: `nobreadth` drops the breadth clauses, `btcbreadth` lets BTC stand in for the
 //! watchlist (breadth = close above its own 30-day SMA).
 
-use crate::py::{ff, fs, mean, median, round_half_even, sum, Py};
+use crate::py::{ff, fs, max_of, mean, median, min_of, round_half_even, sum, Py};
 use crate::pydict;
 use crate::replay::data::Bar;
 
@@ -172,10 +172,7 @@ impl Btc {
     }
 
     fn min_l(&self, a: usize, b_incl: usize) -> f64 {
-        self.l[a..=b_incl]
-            .iter()
-            .cloned()
-            .fold(f64::INFINITY, f64::min)
+        min_of(&self.l[a..=b_incl])
     }
 
     /// Return on $1 at day t+H, deployed fraction, rungs filled. `None` without 90 days.
@@ -228,11 +225,8 @@ fn stats(vals: &[f64]) -> Py {
         ("n", vals.len()),
         ("median", median(vals)),
         ("mean", mean(vals)),
-        ("worst", vals.iter().cloned().fold(f64::INFINITY, f64::min)),
-        (
-            "best",
-            vals.iter().cloned().fold(f64::NEG_INFINITY, f64::max)
-        )
+        ("worst", min_of(vals)),
+        ("best", max_of(vals))
     ]
 }
 
@@ -263,7 +257,7 @@ pub fn run(btc: &Btc, variant: &str, shapes: &[Shape]) -> Py {
         }
         let complete = i + H < n;
         let fw_end = (i + H).min(n - 1);
-        let minl = |a: usize, b: usize| l[a..=b].iter().cloned().fold(f64::INFINITY, f64::min);
+        let minl = |a: usize, b: usize| min_of(&l[a..=b]);
         let mut ev = pydict![
             ("idx", i),
             ("date", btc.dates[i].as_str()),
