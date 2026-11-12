@@ -83,9 +83,12 @@ fn replay_cache_path_obeys_xdg_fallback_and_explicit_override() {
             cmd.args(["--cache-dir", path]);
             PathBuf::from(path)
         } else {
-            expected_root(&f, home, xdg, ".cache").join("rungbot/backtest")
+            expected_root(&f, home, xdg, ".cache")
+                .join("rungbot")
+                .join("backtest")
         }
-        .join("candles/binance_AAA_USD.json");
+        .join("candles")
+        .join("binance_AAA_USD.json");
         let out = cmd.output().unwrap();
         let stderr = String::from_utf8(out.stderr).unwrap();
         assert!(!out.status.success());
