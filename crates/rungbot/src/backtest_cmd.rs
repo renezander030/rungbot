@@ -95,7 +95,7 @@ fn flag_f(args: &Args, k: &str, env: &str) -> Result<Option<f64>, Failure> {
 
 fn base_dir(env_key: &str, fallback: &str) -> PathBuf {
     match std::env::var(env_key) {
-        Ok(v) if !v.is_empty() => PathBuf::from(v),
+        Ok(v) if !v.trim().is_empty() => PathBuf::from(v),
         _ => std::env::var("HOME")
             .map(PathBuf::from)
             .unwrap_or_else(|_| PathBuf::from("."))
