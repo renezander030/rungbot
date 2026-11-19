@@ -176,8 +176,23 @@ fn window_history(
     cfg: &CliConfig,
     days: i64,
 ) -> Result<Result<History, String>, Failure> {
+    // Window and monthly replay every configured coin. Sweep deliberately has a
+    // different contract: it reports and excludes coins without cached history.
+    let validate = |h: History| -> Result<History, Failure> {
+        for coin in &cfg.core.coins {
+            if h.get(&coin.symbol).is_none() {
+                return Err(other(format!(
+                    "history missing configured coin {}",
+                    coin.symbol
+                )));
+            }
+        }
+        Ok(h)
+    };
     if let Some(file) = args.get("history") {
-        return Ok(Ok(History::parse(&read(Path::new(file))?).map_err(other)?));
+        return Ok(Ok(validate(
+            History::parse(&read(Path::new(file))?).map_err(other)?,
+        )?));
     }
     let cache = cache_dir(args).join(format!("bt-hist-{days}d.json"));
     let fresh = std::fs::metadata(&cache)
@@ -186,11 +201,14 @@ fn window_history(
         .and_then(|t| t.elapsed().ok())
         .is_some_and(|age| age.as_secs() < 86_400);
     if fresh && !args.has("refresh") {
-        return Ok(Ok(History::parse(&read(&cache)?).map_err(other)?));
+        return Ok(Ok(validate(
+            History::parse(&read(&cache)?).map_err(other)?,
+        )?));
     }
     let ids = coingecko_ids(cfg)?;
     Ok(match history::window_history(&ids, days) {
         Ok(h) => {
+            let h = validate(h)?;
             write(&cache, &h.to_json())?;
             Ok(h)
         }
