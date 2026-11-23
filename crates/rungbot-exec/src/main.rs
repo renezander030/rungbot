@@ -46,7 +46,7 @@ USAGE:
   rungbot-exec sync      --from PLAN.json --budget N --pair-map SYM=PAIR,...
                          [--venue V] --live --i-understand
   rungbot-exec reconcile
-  rungbot-exec cancel    --pair PAIR [--venue V] [--live --i-understand]
+  rungbot-exec cancel    --pair PAIR [--venue V] [--order-id ID] [--live --i-understand]
   rungbot-exec archive   [--days N]
   rungbot-exec fills     [--since YYYY-MM-DD] [--json]
   rungbot-exec shadow-diff REFERENCE.jsonl SHADOW.jsonl [--since TS] [--tolerance PCT]
@@ -311,7 +311,15 @@ fn known_flags(cmd: &str) -> Option<&'static [&'static str]> {
         "status" => &["pair", "venue", "journal", "config", "json"],
         "plan" | "sync" => PLACE,
         "reconcile" => &["journal", "config"],
-        "cancel" => &["pair", "venue", "live", "i-understand", "journal", "config"],
+        "cancel" => &[
+            "pair",
+            "venue",
+            "order-id",
+            "live",
+            "i-understand",
+            "journal",
+            "config",
+        ],
         "archive" => &["days", "journal", "config"],
         "fills" => &["since", "json", "journal", "config"],
         "import-cex" => &["dry-run", "write", "force", "config", "journal"],
@@ -1193,7 +1201,6 @@ fn venue_name(args: &Args) -> Result<&str, String> {
 /// `pairs`: every routed pair's trading status on its venue; exit 1 on a pair that is
 /// gone, halted or has a delisting date.
 fn cmd_pairs(argv: &[String]) -> ExitCode {
-    use rungbot_exec::health::Level;
     use rungbot_exec::pairs;
     use rungbot_exec::run::config::RunConfig;
     let cfg = match RunConfig::load(&layer_config_path(argv)) {
@@ -1205,10 +1212,11 @@ fn cmd_pairs(argv: &[String]) -> ExitCode {
     };
     let clients = Clients::public();
     let rows = pairs::check(&cfg, |v| clients.get(v));
+    let clock = pairs::clock_check(&cfg, |v| clients.get(v), now);
     if argv.iter().any(|a| a == "--json") {
         println!(
             "{}",
-            serde_json::to_string_pretty(&pairs::to_json(&rows)).unwrap_or_default()
+            serde_json::to_string_pretty(&pairs::report_json(&rows, &clock)).unwrap_or_default()
         );
     } else {
         for r in &rows {
@@ -1221,8 +1229,11 @@ fn cmd_pairs(argv: &[String]) -> ExitCode {
                 r.message
             );
         }
+        for c in &clock {
+            println!("{} clock {}: {}", c.level.tag(), c.exch, c.message);
+        }
     }
-    if rows.iter().any(|r| r.level == Level::Fail) {
+    if !pairs::all_ok(&rows, &clock) {
         ExitCode::from(1)
     } else {
         ExitCode::SUCCESS
@@ -1882,6 +1893,7 @@ fn cmd_cancel(args: &Args) -> Result<(), String> {
     let clients = Clients::new();
     let venue = clients.get(venue_name(args)?)?;
     let open = venue.open_orders(pair).map_err(|e| e.to_string())?;
+    let open = reconcile::cancel_targets(open, args.get("order-id"))?;
     if open.is_empty() {
         println!("nothing resting for {pair}");
         return Ok(());

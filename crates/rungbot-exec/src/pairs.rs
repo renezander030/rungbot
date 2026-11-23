@@ -4,6 +4,11 @@
 //! the ladder only notices once its orders start failing. This asks each routed venue
 //! for the pair's trading status and any delisting it announced. Exit 1 when a pair is
 //! no longer listed, does not trade, or has a delisting date, so a timer can alert.
+//!
+//! It also compares the host clock with each routed venue's unsigned server time. A
+//! signed request carries the host's timestamp, and the venue refuses it outside its
+//! window, so a drifting clock fails every order with a timestamp error; exit 1 when the
+//! offset is outside the window, a warning past half of it.
 
 use rungbot_core::time::utc_day;
 use serde_json::{json, Value};
@@ -164,6 +169,130 @@ pub fn check<'a>(
             }
         })
         .collect()
+}
+
+/// One routed venue's clock verdict.
+#[derive(Debug, Clone, PartialEq)]
+pub struct ClockRow {
+    pub exch: String,
+    pub level: Level,
+    pub message: String,
+    /// Host clock minus venue clock, seconds; `None` when it could not be read.
+    pub offset_s: Option<f64>,
+}
+
+/// How far, in seconds, the host clock may run `(ahead, behind)` the venue's before the
+/// venue refuses a signed request. Binance accepts a timestamp below server time plus
+/// 1 s and no older than the 5 s `recvWindow` the client signs; Gate accepts 60 s
+/// either way. `None` for a venue without a known window.
+pub fn clock_window(exch: &str) -> Option<(f64, f64)> {
+    match exch {
+        "binance" => Some((1.0, crate::binance::RECV_WINDOW_MS as f64 / 1000.0)),
+        "gate" => Some((60.0, 60.0)),
+        _ => None,
+    }
+}
+
+/// The verdict on `offset_s` (host minus venue) measured to within `uncertainty_s`
+/// (half the round trip), against `window` from [`clock_window`]. Fail only when the
+/// offset is outside the window whatever the uncertainty.
+pub fn clock_verdict(window: (f64, f64), offset_s: f64, uncertainty_s: f64) -> (Level, String) {
+    let (limit, way) = if offset_s >= 0.0 {
+        (window.0, "ahead of")
+    } else {
+        (window.1, "behind")
+    };
+    let off = offset_s.abs();
+    let said = format!(
+        "host clock {off:.2} s {way} the venue (±{uncertainty_s:.2} s), accepted up to {limit} s"
+    );
+    if off - uncertainty_s > limit {
+        (
+            Level::Fail,
+            format!("{said}: signed requests are refused, sync the host clock"),
+        )
+    } else if off + uncertainty_s > limit / 2.0 {
+        (Level::Warn, format!("{said}: close to the limit"))
+    } else {
+        (Level::Ok, said)
+    }
+}
+
+/// Every routed venue with a known window, once, in the config's order. `now` is the
+/// host clock in epoch seconds, read before and after each venue's time request.
+pub fn clock_check<'a>(
+    cfg: &RunConfig,
+    venue: impl Fn(&str) -> Result<&'a dyn Venue, String>,
+    now: impl Fn() -> f64,
+) -> Vec<ClockRow> {
+    let mut seen: Vec<&str> = Vec::new();
+    let mut rows = Vec::new();
+    for (_, r) in &cfg.routing {
+        let exch = r.exch.as_str();
+        if seen.contains(&exch) {
+            continue;
+        }
+        seen.push(exch);
+        let Some(window) = clock_window(exch) else {
+            continue;
+        };
+        let v = match venue(exch) {
+            Ok(v) => v,
+            Err(e) => {
+                rows.push(unread(exch, e));
+                continue;
+            }
+        };
+        let sent = now();
+        let Some(read) = v.server_time() else {
+            continue;
+        };
+        let received = now();
+        rows.push(match read {
+            Ok(server) => {
+                let offset = (sent + received) / 2.0 - server;
+                let (level, message) = clock_verdict(window, offset, (received - sent) / 2.0);
+                ClockRow {
+                    exch: exch.into(),
+                    level,
+                    message,
+                    offset_s: Some(offset),
+                }
+            }
+            Err(e) => unread(exch, e.to_string()),
+        });
+    }
+    rows
+}
+
+fn unread(exch: &str, e: String) -> ClockRow {
+    ClockRow {
+        exch: exch.into(),
+        level: Level::Warn,
+        message: format!("could not read the venue clock: {e}"),
+        offset_s: None,
+    }
+}
+
+/// No pair and no venue clock failed: what `ok` says and the exit code follows.
+pub fn all_ok(rows: &[Row], clock: &[ClockRow]) -> bool {
+    rows.iter().all(|r| r.level != Level::Fail) && clock.iter().all(|c| c.level != Level::Fail)
+}
+
+/// [`to_json`] with the clock rows under `clock`; `ok` is [`all_ok`].
+pub fn report_json(rows: &[Row], clock: &[ClockRow]) -> Value {
+    let mut out = to_json(rows);
+    out["ok"] = json!(all_ok(rows, clock));
+    out["clock"] = clock
+        .iter()
+        .map(|c| {
+            json!({
+                "venue": c.exch, "level": c.level.as_str(),
+                "message": c.message, "offset_s": c.offset_s,
+            })
+        })
+        .collect();
+    out
 }
 
 pub fn to_json(rows: &[Row]) -> Value {

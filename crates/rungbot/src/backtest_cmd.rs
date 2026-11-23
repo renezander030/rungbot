@@ -232,6 +232,20 @@ fn utc_day(epoch: i64) -> String {
     format!("{y:04}-{m:02}-{d:02}")
 }
 
+/// A span in hours, one decimal at most (`9.5 h`, `24 h`), or in whole minutes below
+/// an hour (`20 min`, at least `1 min`), so a close pair never reads `0 h`.
+fn hours(seconds: f64) -> String {
+    if seconds < 3_600.0 {
+        return format!("{} min", ((seconds / 60.0).round() as i64).max(1));
+    }
+    let h = (seconds / 360.0).round() / 10.0;
+    if h.fract() == 0.0 {
+        format!("{} h", h as i64)
+    } else {
+        format!("{h} h")
+    }
+}
+
 /// Stderr notes about a history that the replay would otherwise pass over silently.
 fn history_notes(h: &History) -> Vec<String> {
     let mut out = Vec::new();
@@ -240,6 +254,22 @@ fn history_notes(h: &History) -> Vec<String> {
             "note: history {sym} has no points between {} and {}",
             utc_day(from),
             utc_day(to)
+        ));
+    }
+    for (sym, from, to, n) in h.flat_runs() {
+        out.push(format!(
+            "note: history {sym} repeats one price for {n} points from {} to {}; a feed that carries the last price forward replays it as real",
+            utc_day(from),
+            utc_day(to)
+        ));
+    }
+    for (sym, prev, at, step) in h.crowded() {
+        let (.., hh, mm, _) = time::civil(at as f64);
+        out.push(format!(
+            "note: history {sym} has a point at {} {hh:02}:{mm:02} UTC only {} after the one before, against its usual {}; a second bar for one period replays as an extra price move",
+            utc_day(at),
+            hours((at - prev) as f64),
+            hours(step)
         ));
     }
     let day = 86_400;
@@ -917,7 +947,9 @@ mod tests {
         let mk = |s: &str, n: i64| {
             (
                 s.to_string(),
-                (0..n).map(|d| (d * day, 1.0)).collect::<Vec<_>>(),
+                (0..n)
+                    .map(|d| (d * day, 1.0 + d as f64))
+                    .collect::<Vec<_>>(),
             )
         };
         let h = History(vec![mk("AAA", 10), mk("BBB", 5)]);
@@ -934,7 +966,7 @@ mod tests {
             "AAA".to_string(),
             [0, 1, 2, 3, 10, 11, 12]
                 .iter()
-                .map(|d| (d * day, 1.0))
+                .map(|d| (d * day, 1.0 + *d as f64))
                 .collect(),
         )]);
         assert_eq!(
@@ -1056,5 +1088,14 @@ mod tests {
             s(&failed["stderr"])
         );
         assert_eq!(failed["rc"], 1);
+    }
+
+    #[test]
+    fn spans_read_in_hours_or_in_minutes_below_an_hour() {
+        assert_eq!(hours(86_400.0), "24 h");
+        assert_eq!(hours(34_200.0), "9.5 h");
+        assert_eq!(hours(3_600.0), "1 h");
+        assert_eq!(hours(1_200.0), "20 min");
+        assert_eq!(hours(5.0), "1 min");
     }
 }

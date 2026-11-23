@@ -490,6 +490,18 @@ impl Journal {
             .collect()
     }
 
+    /// Open rows with no venue order id that were written before `before`. Reconcile
+    /// polls by venue id, so such a row (a placement whose reply carried no id, or a run
+    /// stopped between writing the row and calling the venue) is never read back and looks
+    /// alive forever. Rows without a timestamp are left out: their age is unknown.
+    pub fn open_without_venue_id(&self, before: f64) -> Vec<&Order> {
+        self.open_orders(None)
+            .into_iter()
+            .filter(|o| o.order_id.as_deref().is_none_or(str::is_empty))
+            .filter(|o| o.ts.is_some_and(|t| t < before))
+            .collect()
+    }
+
     /// Open orders that already filled in part, with what filled so far.
     pub fn part_filled(&self) -> Vec<&Order> {
         self.open_orders(None)

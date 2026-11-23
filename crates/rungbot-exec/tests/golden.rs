@@ -64,6 +64,22 @@ fn same(a: &Value, b: &Value, at: &str) -> Result<(), String> {
     }
 }
 
+/// Rounding cases in `venues.json` whose input already sits on the venue's step.
+const ON_STEP_CASES: usize = 21;
+
+/// The reference rounded a value that already sits on the step down by one more step
+/// (`0.29` to `0.28`, `4.35` to `4.34999`), a binary floating point artefact. Ours keeps
+/// the value. Accepted only for a rounding call whose result equals its input while the
+/// reference's is below it; every other result still compares exactly.
+fn keeps_the_step(call: &str, args: &Value, want: &Value, got: &Value) -> bool {
+    let (Some(x), Some(w), Some(g)) = (args[1].as_f64(), want.as_f64(), got.as_f64()) else {
+        return false;
+    };
+    matches!(call, "round_amount" | "round_qty" | "round_price")
+        && (g - x).abs() <= 1e-9 * x.abs().max(1.0)
+        && w < x
+}
+
 fn check(failures: &mut Vec<String>, r: Result<(), String>) {
     if let Err(e) = r {
         failures.push(e);
@@ -339,6 +355,7 @@ fn venue_clients_match_the_reference_request_for_request() {
     let mut f = Vec::new();
     let tmp = std::env::temp_dir().join(format!("rungbot-golden-{}", std::process::id()));
     std::fs::create_dir_all(&tmp).unwrap();
+    let mut kept_steps = 0;
     for sc in g["scenarios"].as_array().unwrap() {
         let venue = sc["venue"].as_str().unwrap();
         let script = Rc::new(Scripted {
@@ -404,6 +421,12 @@ fn venue_clients_match_the_reference_request_for_request() {
                 same(&step["requests"], &json!(seen), &format!("{at} requests")),
             );
             match (step.get("ok"), got) {
+                (Some(want), Ok(got))
+                    if same(want, &got, "").is_err()
+                        && keeps_the_step(name, &step["args"], want, &got) =>
+                {
+                    kept_steps += 1;
+                }
                 (Some(want), Ok(got)) => check(&mut f, same(want, &got, &format!("{at} result"))),
                 (None, Err(e)) => {
                     if step["error"].as_str() != Some(e.as_str()) {
@@ -422,6 +445,12 @@ fn venue_clients_match_the_reference_request_for_request() {
         }
     }
     let _ = std::fs::remove_dir_all(&tmp);
+    // The one deliberate difference from the reference, counted so it cannot widen.
+    if kept_steps != ON_STEP_CASES {
+        f.push(format!(
+            "{kept_steps} rounding result(s) keep an on-step value, expected {ON_STEP_CASES}"
+        ));
+    }
     finish("venues", f);
 }
 

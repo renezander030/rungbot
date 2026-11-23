@@ -67,15 +67,22 @@ impl History {
         Ok(h)
     }
 
-    /// Every series has two points or more, in strictly rising time. A short series
-    /// cannot be replayed, and a repeated or backward timestamp (a paged fetch that
-    /// overlapped) would bend the replay's clock, so both are refused by name.
+    /// Every series has two points or more, in strictly rising time, and every price is
+    /// a positive number. A short series cannot be replayed, a repeated or backward
+    /// timestamp (a paged fetch that overlapped) would bend the replay's clock, and a
+    /// zero, negative or NaN price (a feed's placeholder for a missing close) would be
+    /// passed over as if the market had not moved, so all three are refused by name.
     pub fn check(&self) -> Result<(), String> {
         for (sym, pts) in &self.0 {
             if pts.len() < 2 {
                 return Err(format!(
                     "history {sym} has {} point(s); a replay needs two or more",
                     pts.len()
+                ));
+            }
+            if let Some((t, px)) = pts.iter().find(|p| !(p.1 > 0.0 && p.1.is_finite())) {
+                return Err(format!(
+                    "history {sym}: price {px} at timestamp {t}; prices must be positive numbers"
                 ));
             }
             if let Some(w) = pts.windows(2).find(|w| w[1].0 <= w[0].0) {
@@ -101,6 +108,51 @@ impl History {
                 if (w[1].0 - w[0].0) as f64 > 3.0 * step {
                     out.push((sym.clone(), w[0].0, w[1].0));
                 }
+            }
+        }
+        out
+    }
+
+    /// Places where a series has two points much closer than its usual spacing: less
+    /// than half that series' median step apart. A feed that writes a second bar for one
+    /// period (one stamped at midnight and one at the session open, or a day split
+    /// across a time zone change) puts such a pair in, and the replay would trade it as
+    /// an extra price move. A series' last point is left out: price feeds end on the
+    /// live price at fetch time, off the grid by design. Returns `(symbol, previous_ts,
+    /// ts, median_step_s)` in series order.
+    pub fn crowded(&self) -> Vec<(String, i64, i64, f64)> {
+        let mut out = Vec::new();
+        for (sym, pts) in &self.0 {
+            let Some(step) = median_step(pts) else {
+                continue;
+            };
+            for w in pts[..pts.len() - 1].windows(2) {
+                if ((w[1].0 - w[0].0) as f64) < step / 2.0 {
+                    out.push((sym.clone(), w[0].0, w[1].0, step));
+                }
+            }
+        }
+        out
+    }
+
+    /// Runs where a series repeats one price exactly: four consecutive points or more,
+    /// spanning a day or more. A feed that carries the last price
+    /// forward over a halt or an empty market writes such runs, and the replay would
+    /// trade them as real prices. Returns `(symbol, from_ts, to_ts, points)` in series
+    /// order.
+    pub fn flat_runs(&self) -> Vec<(String, i64, i64, usize)> {
+        let mut out = Vec::new();
+        for (sym, pts) in &self.0 {
+            let mut start = 0;
+            for i in 1..=pts.len() {
+                if i < pts.len() && pts[i].1 == pts[start].1 {
+                    continue;
+                }
+                let (from, to, n) = (pts[start].0, pts[i - 1].0, i - start);
+                if n >= FLAT_POINTS && to - from >= FLAT_SPAN_S {
+                    out.push((sym.clone(), from, to, n));
+                }
+                start = i;
             }
         }
         out
@@ -241,6 +293,11 @@ impl Book {
 }
 
 /// Median spacing between consecutive points; `None` for fewer than two points.
+/// Fewest repeated points [`History::flat_runs`] reports.
+const FLAT_POINTS: usize = 4;
+/// Shortest span, in seconds, [`History::flat_runs`] reports.
+const FLAT_SPAN_S: i64 = 86_400;
+
 fn median_step(pts: &[(i64, f64)]) -> Option<f64> {
     let d: Vec<f64> = pts.windows(2).map(|w| (w[1].0 - w[0].0) as f64).collect();
     (!d.is_empty()).then(|| py::median(&d))
@@ -291,6 +348,27 @@ mod tests {
         // a spacing of exactly three steps is not a gap
         let h = History(vec![series("AAA", &[0, 1, 2, 5, 6, 7])]);
         assert!(h.gaps().is_empty());
+    }
+
+    #[test]
+    fn flat_runs_need_four_points_and_a_day() {
+        let pts = |px: &[f64]| -> Vec<(i64, f64)> {
+            px.iter()
+                .enumerate()
+                .map(|(d, p)| (d as i64 * DAY, *p))
+                .collect()
+        };
+        let h = History(vec![("AAA".into(), pts(&[1.0, 2.0, 2.0, 2.0, 2.0, 3.0]))]);
+        assert_eq!(h.flat_runs(), vec![("AAA".to_string(), DAY, 4 * DAY, 4)]);
+        // three repeats are a quiet market, not a carried-forward feed
+        let h = History(vec![("AAA".into(), pts(&[1.0, 2.0, 2.0, 2.0, 3.0]))]);
+        assert!(h.flat_runs().is_empty());
+        // a run at the end of a series counts
+        let h = History(vec![("AAA".into(), pts(&[1.0, 5.0, 5.0, 5.0, 5.0, 5.0]))]);
+        assert_eq!(h.flat_runs(), vec![("AAA".to_string(), DAY, 5 * DAY, 5)]);
+        // four hourly repeats span less than a day
+        let hourly: Vec<(i64, f64)> = (0..6).map(|i| (i * 3600, 7.0)).collect();
+        assert!(History(vec![("AAA".into(), hourly)]).flat_runs().is_empty());
     }
 
     #[test]

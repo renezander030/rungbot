@@ -259,6 +259,23 @@ pub enum Settled {
     Booked(Box<Order>),
 }
 
+/// The resting orders `cancel` acts on: all of them, or with `only` the one whose venue
+/// order id matches. An id that is not resting is an error, so a typo or an order that
+/// already left the book cancels nothing instead of falling back to the whole pair.
+pub fn cancel_targets(
+    open: Vec<ParsedOrder>,
+    only: Option<&str>,
+) -> Result<Vec<ParsedOrder>, String> {
+    let Some(id) = only else {
+        return Ok(open);
+    };
+    let picked: Vec<ParsedOrder> = open.into_iter().filter(|o| o.order_id == id).collect();
+    if picked.is_empty() {
+        return Err(format!("order {id} is not resting; nothing cancelled"));
+    }
+    Ok(picked)
+}
+
 /// After WE cancel an order, read its final state once. A fill that landed after the
 /// last poll (or the partial it already had) is booked, and the row is queued so the
 /// next reconcile hands it to the fill handlers. Never fails: an unreadable status

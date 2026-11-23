@@ -23,6 +23,9 @@ use crate::venue::{shape_err, Balance, Limits, ParsedOrder, Venue};
 
 pub const BASE: &str = "https://api.binance.com";
 const V: &str = "binance";
+/// How long, in milliseconds, a signed request stays valid: the `recvWindow` every
+/// signed query carries, and how far behind the venue the host clock may run.
+pub const RECV_WINDOW_MS: i64 = 5000;
 
 /// A symbol's trading rules: lot step and minimum, minimum notional, price tick.
 #[derive(Debug, Clone, Copy, Default, PartialEq, Serialize, Deserialize)]
@@ -68,7 +71,7 @@ impl Binance {
     pub fn signed_query(&self, params: &[(&str, String)], ts_ms: i64) -> String {
         let mut p: Vec<(&str, String)> = params.to_vec();
         p.push(("timestamp", ts_ms.to_string()));
-        p.push(("recvWindow", "5000".into()));
+        p.push(("recvWindow", RECV_WINDOW_MS.to_string()));
         let qs = pyfmt::urlencode(&p);
         let mut mac = HmacSha256::new_from_slice(self.creds.secret.as_bytes())
             .expect("hmac takes any key length");
@@ -216,6 +219,14 @@ impl Binance {
         };
         Ok((need("lastPrice")?, need("priceChangePercent")?))
     }
+}
+
+/// Epoch seconds from a time endpoint's millisecond `field`.
+fn server_ms(body: &Value, field: &str) -> Result<f64, VenueError> {
+    body.get(field)
+        .and_then(Value::as_f64)
+        .map(|ms| ms / 1000.0)
+        .ok_or_else(|| shape_err(V, format!("time: no '{field}'")))
 }
 
 /// Normalise a Binance order or order response.
@@ -383,6 +394,14 @@ impl Venue for Binance {
             .map_err(|e| VenueError::new(V, r.status, e))
     }
 
+    fn server_time(&self) -> Option<Result<f64, VenueError>> {
+        Some(self.public("/api/v3/time").and_then(|r| {
+            if r.status != Some(200) {
+                return Err(fail("time".into(), &r));
+            }
+            server_ms(&r.json_or_null(), "serverTime")
+        }))
+    }
     fn qty_step(&self, symbol: &str) -> Result<f64, VenueError> {
         Ok(self.filters(symbol)?.step)
     }

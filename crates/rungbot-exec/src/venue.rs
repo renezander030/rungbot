@@ -124,6 +124,11 @@ pub trait Venue {
             delisting_ts: None,
         })
     }
+    /// The venue's clock in epoch seconds, read from its unsigned time endpoint, or
+    /// `None` when this client has no such endpoint.
+    fn server_time(&self) -> Option<Result<f64, VenueError>> {
+        None
+    }
     /// Does `venue_cid`, as this venue echoes it, belong to journal id `cid`?
     fn id_matches(&self, venue_cid: &str, cid: &str) -> bool {
         venue_id_matches(self.name(), venue_cid, cid)
@@ -147,9 +152,25 @@ pub fn spread_pct(bid: f64, ask: f64) -> Option<f64> {
 /// rounding an amount up can exceed the balance you have.
 pub(crate) fn floor_to_step(x: f64, step: f64) -> f64 {
     if step > 0.0 {
-        (x / step).floor() * step
+        floor_steps(x / step) * step
     } else {
         x
+    }
+}
+
+/// `n.floor()`, except that a count a rounding error below a whole number is that
+/// number. Binary floating point puts an amount already on the step just below it
+/// (`0.3 / 0.1` is 2.9999…), and a plain floor would drop a whole step or tick. The
+/// tolerance is a billionth of a step, or a few units in the last place of a large
+/// count, so a value between steps still rounds down. Shared by every venue's
+/// rounding, so the rule has one owner.
+pub(crate) fn floor_steps(n: f64) -> f64 {
+    let whole = n.round();
+    let tol = 1e-9_f64.max(n.abs() * 4.0 * f64::EPSILON);
+    if whole > n && whole - n <= tol {
+        whole
+    } else {
+        n.floor()
     }
 }
 

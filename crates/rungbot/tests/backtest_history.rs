@@ -138,3 +138,109 @@ fn sweep_retains_its_missing_history_exclusion() {
         "{stdout}"
     );
 }
+
+#[test]
+fn window_names_a_carried_forward_price_run_and_still_replays() {
+    let f = Fixture::new();
+    // days 10..=15 hold one price, as a feed that carries the last close over a halt writes it
+    let points: Vec<_> = (0..30)
+        .map(|i| {
+            (
+                i * 86400,
+                if (10..=15).contains(&i) {
+                    103
+                } else {
+                    100 + i % 4
+                },
+            )
+        })
+        .collect();
+    let text = serde_json::to_vec(&serde_json::json!({ "AAA": points })).unwrap();
+    std::fs::write(f.0.join("history.json"), text).unwrap();
+    let out = f.run("window", true);
+    let stderr = String::from_utf8(out.stderr).unwrap();
+    assert!(out.status.success(), "{stderr}");
+    assert!(
+        stderr.contains(
+            "note: history AAA repeats one price for 6 points from 1970-01-11 to 1970-01-16"
+        ),
+        "{stderr}"
+    );
+    assert!(!out.stdout.is_empty());
+}
+
+#[test]
+fn window_stays_quiet_on_a_moving_history() {
+    let f = Fixture::new();
+    f.history("AAA");
+    let out = f.run("window", true);
+    let stderr = String::from_utf8(out.stderr).unwrap();
+    assert!(out.status.success(), "{stderr}");
+    assert!(!stderr.contains("repeats one price"), "{stderr}");
+}
+
+#[test]
+fn window_names_a_second_point_inside_one_period_and_still_replays() {
+    let f = Fixture::new();
+    // a daily series with a second bar for day 12, stamped at the session open
+    let mut points: Vec<_> = (0..30).map(|i| (i * 86400, 100 + i % 4)).collect();
+    points.insert(13, (12 * 86400 + 9 * 3600 + 1800, 80));
+    let text = serde_json::to_vec(&serde_json::json!({ "AAA": points })).unwrap();
+    std::fs::write(f.0.join("history.json"), text).unwrap();
+    let out = f.run("window", true);
+    let stderr = String::from_utf8(out.stderr).unwrap();
+    assert!(out.status.success(), "{stderr}");
+    assert!(
+        stderr.contains(
+            "note: history AAA has a point at 1970-01-13 09:30 UTC only 9.5 h after the one before, against its usual 24 h; a second bar for one period replays as an extra price move"
+        ),
+        "{stderr}"
+    );
+    assert!(!out.stdout.is_empty());
+}
+
+#[test]
+fn window_says_nothing_of_an_even_history_ending_on_a_live_price() {
+    let f = Fixture::new();
+    // the last point is the live price at fetch time, minutes after the last full day
+    let mut points: Vec<_> = (0..30).map(|i| (i * 86400, 100 + i % 4)).collect();
+    points.push((29 * 86400 + 1380, 101));
+    let text = serde_json::to_vec(&serde_json::json!({ "AAA": points })).unwrap();
+    std::fs::write(f.0.join("history.json"), text).unwrap();
+    let out = f.run("window", true);
+    let stderr = String::from_utf8(out.stderr).unwrap();
+    assert!(out.status.success(), "{stderr}");
+    assert!(!stderr.contains("second bar"), "{stderr}");
+}
+
+#[test]
+fn window_refuses_a_price_that_is_not_a_positive_number() {
+    for bad in ["0", "-5", "NaN"] {
+        let f = Fixture::new();
+        let points: Vec<String> = (0..30)
+            .map(|i| {
+                let px = if i == 10 {
+                    bad.to_string()
+                } else {
+                    (100 + i % 4).to_string()
+                };
+                format!("[{}, {px}]", i * 86400)
+            })
+            .collect();
+        std::fs::write(
+            f.0.join("history.json"),
+            format!("{{\"AAA\": [{}]}}", points.join(", ")),
+        )
+        .unwrap();
+        let out = f.run("window", true);
+        let stderr = String::from_utf8(out.stderr).unwrap();
+        assert!(!out.status.success(), "price {bad} replayed: {stderr}");
+        assert!(
+            stderr.contains(&format!(
+                "history AAA: price {bad} at timestamp 864000; prices must be positive numbers"
+            )),
+            "{stderr}"
+        );
+        assert!(out.stdout.is_empty(), "price {bad}");
+    }
+}

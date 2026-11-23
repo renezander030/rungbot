@@ -211,17 +211,30 @@ balances snapshot from the paths under `watch:`, so `rungbot` still holds no ven
 Example systemd units are in [`contrib/systemd`](contrib/systemd).
 
 **`rungbot backtest`** replays the configured ladder over past prices; it never trades.
-`window --book FILE` runs the last 28 days (`--days N`) hour by hour from a start book of
+`window --book FILE` replays the supplied price samples (28 days by default) from a start book of
 holdings and free stable, skipping any trade below the pair's minimum order, and writes
 the book it started from. `--fee-pct PCT` charges a trading fee on every simulated buy
 and sell and prints the total (default: fee-free); fills are at the period's price, with
-no slippage. A price history whose coin has fewer than two points, or whose timestamps
-repeat or run backwards, is refused with the coin named. Window and monthly inputs
+no slippage. Cadence comes from the history's median timestamp spacing; daily samples
+remain daily, and the 24-hour lookback uses that spacing. `--days` selects the fetched
+window and labels the report; it does not resample or trim an explicit `--history` file.
+Each history point is `[epoch_seconds, price]`, not an OHLC candle. A dip or rally
+between samples is invisible to this replay: it does not reconstruct a high/low path
+or infer fills between points. Use the same sampling cadence when comparing runs;
+results describe the supplied samples, not every price the market visited.
+
+A price history whose coin has fewer than two points, whose timestamps
+repeat or run backwards, or that holds a zero, negative or NaN price, is refused with
+the coin named. Window and monthly inputs
 must also contain every configured coin: an omitted coin produces a named input error
 instead of a replay panic. Sweep still reports and excludes coins without history.
 On stderr, `window` also notes
 a gap in a coin's history (spacing over three times its usual step) and a coin whose
-history ends early, as a delisted coin's does; stdout and the exit code are unchanged.
+history ends early, as a delisted coin's does, and a run where one price repeats for
+four points or more across a day or longer, as a feed that carries the last price forward
+over a halt writes it, and a point less than half the usual step after the one before,
+as a second bar for one period is (a series' last point, the live price at fetch time,
+is left out); stdout and the exit code are unchanged.
 `sweep` replays the same window under nine band and core variants. `monthly` runs
 several windows (`backtest.windows`, default 28/90/180), flags REVIEW when a variant
 beats the live bands by more than `backtest.drift_band_pct`, probes per-coin bands, and
@@ -264,6 +277,10 @@ writer at a time holds the journal (`run`, `sync`, `reconcile`, `cancel`, `archi
 and a journal that exists but does not parse stops the run instead of reading as empty.
 Every subcommand finds the journal as `run` does (`--journal`, else the run config's)
 and takes the same lock on it (`run_lock`, else `RUNGBOT_LOCK`, else `<journal>.lock`).
+`cancel --pair PAIR` lists a pair's resting orders and, with `--live --i-understand`,
+cancels them, journaled or not; `--order-id ID` narrows it to that one venue order (an
+order left behind outside the journal, say), and an id that is not resting cancels nothing
+and exits 1.
 
 The journal is a plain JSON object keyed by client id; finished cancels older than 30
 days move to `orders-archive.jsonl` with `rungbot-exec archive`. `rungbot-exec
@@ -292,8 +309,9 @@ trade mode, the halt file and the balances snapshot's age. It exits 1 when the l
 run is older than `--max-age` minutes (default 90) or the journal does not read, and
 takes `--json`. It warns about open orders whose last poll failed, about open orders
 that share a venue, pair, side and price, about orders marked filled with no filled
-amount, and about cash the venue freed by a cancel that no run has re-laddered within
-2 hours; `--max-rest-days D` also warns about open orders resting longer than D days.
+amount, about cash the venue freed by a cancel that no run has re-laddered within
+2 hours, and about open orders that have had no venue order id for over 15 minutes, which
+reconcile cannot poll; `--max-rest-days D` also warns about open orders resting longer than D days.
 `--strict` exits 1 on a warning too.
 
 `rungbot-exec env` shows the run config it reads, its state directory and each
@@ -307,7 +325,12 @@ P&L sheet or a tax tool (`--json`, `--since YYYY-MM-DD`).
 `rungbot-exec pairs` asks each routed venue whether the pair still trades: Gate's trade
 status and any delisting date it announced, Binance's symbol status, and whether Revolut
 X still lists the pair. It exits 1 when a pair is gone, halted or has a delisting date,
-so a daily timer hears of a delisting before the ladder's orders start failing. For an alarm that also fires when the host itself is down, set
+so a daily timer hears of a delisting before the ladder's orders start failing. It also
+compares the host clock with Binance's and Gate's unsigned server time: a signed request
+carries the host's timestamp, and Binance refuses one more than 1 s ahead or 5 s behind
+(its `recvWindow`), Gate one more than 60 s off. Past half that window it warns; outside
+it, every signed call would fail, so it exits 1 (`clock` in `--json`, with `offset_s`).
+For an alarm that also fires when the host itself is down, set
 `heartbeat_url` in the run config (or `RUNGBOT_HEARTBEAT_URL`): every completed run
 then GETs it, so a dead-man's switch such as healthchecks.io or Uptime Kuma alerts
 when the pings stop. Dry and shadow runs do not ping.
