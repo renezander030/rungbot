@@ -211,11 +211,19 @@ balances snapshot from the paths under `watch:`, so `rungbot` still holds no ven
 Example systemd units are in [`contrib/systemd`](contrib/systemd).
 
 **`rungbot backtest`** replays the configured ladder over past prices; it never trades.
-`window --book FILE` runs the last 28 days (`--days N`) hour by hour from a start book of
+`window --book FILE` replays the supplied price samples (28 days by default) from a start book of
 holdings and free stable, skipping any trade below the pair's minimum order, and writes
 the book it started from. `--fee-pct PCT` charges a trading fee on every simulated buy
 and sell and prints the total (default: fee-free); fills are at the period's price, with
-no slippage. A price history whose coin has fewer than two points, or whose timestamps
+no slippage. Cadence comes from the history's median timestamp spacing; daily samples
+remain daily, and the 24-hour lookback uses that spacing. `--days` selects the fetched
+window and labels the report; it does not resample or trim an explicit `--history` file.
+Each history point is `[epoch_seconds, price]`, not an OHLC candle. A dip or rally
+between samples is invisible to this replay: it does not reconstruct a high/low path
+or infer fills between points. Use the same sampling cadence when comparing runs;
+results describe the supplied samples, not every price the market visited.
+
+A price history whose coin has fewer than two points, or whose timestamps
 repeat or run backwards, is refused with the coin named. Window and monthly inputs
 must also contain every configured coin: an omitted coin produces a named input error
 instead of a replay panic. Sweep still reports and excludes coins without history.

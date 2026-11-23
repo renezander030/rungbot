@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.8.3
+
+- Restore current stable Clippy compatibility in exact arithmetic and trailing-stop replay without changing replay calculations.
+- Clarify sampled-price window cadence and between-sample limits, with public-interface regression coverage for sampled dips, hourly/daily histories and inclusive trailing-stop dates.
+
 ## 0.8.2
 
 - Report a named input error instead of panicking when a window or monthly backtest history omits a configured coin, for both explicit history files and cached data.
