@@ -7,6 +7,7 @@
 - Clarify sampled-price window cadence and between-sample limits, with public-interface regression coverage for sampled dips, hourly/daily histories and inclusive trailing-stop dates.
 - `rungbot-exec health` warns about open orders that have had no venue order id for over 15 minutes: reconcile polls by venue id, so such an order is never read back and would otherwise look alive.
 - `rungbot-exec cancel --order-id ID` cancels one resting venue order instead of every order on the pair, for example an order left outside the journal; an id that is not resting cancels nothing and exits 1.
+- `rungbot backtest window` notes on stderr a run where one price repeats for four points or more across a day or longer, as a feed that carries the last price forward over a halt writes it; the replay and its report are unchanged.
 
 ## 0.8.2
 

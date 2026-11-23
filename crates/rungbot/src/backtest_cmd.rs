@@ -242,6 +242,13 @@ fn history_notes(h: &History) -> Vec<String> {
             utc_day(to)
         ));
     }
+    for (sym, from, to, n) in h.flat_runs() {
+        out.push(format!(
+            "note: history {sym} repeats one price for {n} points from {} to {}; a feed that carries the last price forward replays it as real",
+            utc_day(from),
+            utc_day(to)
+        ));
+    }
     let day = 86_400;
     let latest = h.0.iter().filter_map(|(_, p)| p.last()).map(|p| p.0).max();
     for (sym, last) in h.ends_early() {
@@ -917,7 +924,9 @@ mod tests {
         let mk = |s: &str, n: i64| {
             (
                 s.to_string(),
-                (0..n).map(|d| (d * day, 1.0)).collect::<Vec<_>>(),
+                (0..n)
+                    .map(|d| (d * day, 1.0 + d as f64))
+                    .collect::<Vec<_>>(),
             )
         };
         let h = History(vec![mk("AAA", 10), mk("BBB", 5)]);
@@ -934,7 +943,7 @@ mod tests {
             "AAA".to_string(),
             [0, 1, 2, 3, 10, 11, 12]
                 .iter()
-                .map(|d| (d * day, 1.0))
+                .map(|d| (d * day, 1.0 + *d as f64))
                 .collect(),
         )]);
         assert_eq!(

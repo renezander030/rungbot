@@ -138,3 +138,43 @@ fn sweep_retains_its_missing_history_exclusion() {
         "{stdout}"
     );
 }
+
+#[test]
+fn window_names_a_carried_forward_price_run_and_still_replays() {
+    let f = Fixture::new();
+    // days 10..=15 hold one price, as a feed that carries the last close over a halt writes it
+    let points: Vec<_> = (0..30)
+        .map(|i| {
+            (
+                i * 86400,
+                if (10..=15).contains(&i) {
+                    103
+                } else {
+                    100 + i % 4
+                },
+            )
+        })
+        .collect();
+    let text = serde_json::to_vec(&serde_json::json!({ "AAA": points })).unwrap();
+    std::fs::write(f.0.join("history.json"), text).unwrap();
+    let out = f.run("window", true);
+    let stderr = String::from_utf8(out.stderr).unwrap();
+    assert!(out.status.success(), "{stderr}");
+    assert!(
+        stderr.contains(
+            "note: history AAA repeats one price for 6 points from 1970-01-11 to 1970-01-16"
+        ),
+        "{stderr}"
+    );
+    assert!(!out.stdout.is_empty());
+}
+
+#[test]
+fn window_stays_quiet_on_a_moving_history() {
+    let f = Fixture::new();
+    f.history("AAA");
+    let out = f.run("window", true);
+    let stderr = String::from_utf8(out.stderr).unwrap();
+    assert!(out.status.success(), "{stderr}");
+    assert!(!stderr.contains("repeats one price"), "{stderr}");
+}

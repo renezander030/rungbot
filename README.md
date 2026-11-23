@@ -229,7 +229,9 @@ must also contain every configured coin: an omitted coin produces a named input 
 instead of a replay panic. Sweep still reports and excludes coins without history.
 On stderr, `window` also notes
 a gap in a coin's history (spacing over three times its usual step) and a coin whose
-history ends early, as a delisted coin's does; stdout and the exit code are unchanged.
+history ends early, as a delisted coin's does, and a run where one price repeats for
+four points or more across a day or longer, as a feed that carries the last price forward
+over a halt writes it; stdout and the exit code are unchanged.
 `sweep` replays the same window under nine band and core variants. `monthly` runs
 several windows (`backtest.windows`, default 28/90/180), flags REVIEW when a variant
 beats the live bands by more than `backtest.drift_band_pct`, probes per-coin bands, and

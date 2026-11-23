@@ -106,6 +106,29 @@ impl History {
         out
     }
 
+    /// Runs where a series repeats one price exactly: at least [`FLAT_POINTS`]
+    /// consecutive points spanning a day or more. A feed that carries the last price
+    /// forward over a halt or an empty market writes such runs, and the replay would
+    /// trade them as real prices. Returns `(symbol, from_ts, to_ts, points)` in series
+    /// order.
+    pub fn flat_runs(&self) -> Vec<(String, i64, i64, usize)> {
+        let mut out = Vec::new();
+        for (sym, pts) in &self.0 {
+            let mut start = 0;
+            for i in 1..=pts.len() {
+                if i < pts.len() && pts[i].1 == pts[start].1 {
+                    continue;
+                }
+                let (from, to, n) = (pts[start].0, pts[i - 1].0, i - start);
+                if n >= FLAT_POINTS && to - from >= FLAT_SPAN_S {
+                    out.push((sym.clone(), from, to, n));
+                }
+                start = i;
+            }
+        }
+        out
+    }
+
     /// Series whose last point is more than three of its own median steps before the
     /// latest last point across all series (a coin whose history stops). Returns
     /// `(symbol, last_ts)` in series order.
@@ -241,6 +264,11 @@ impl Book {
 }
 
 /// Median spacing between consecutive points; `None` for fewer than two points.
+/// Fewest repeated points [`History::flat_runs`] reports.
+pub const FLAT_POINTS: usize = 4;
+/// Shortest span, in seconds, [`History::flat_runs`] reports.
+pub const FLAT_SPAN_S: i64 = 86_400;
+
 fn median_step(pts: &[(i64, f64)]) -> Option<f64> {
     let d: Vec<f64> = pts.windows(2).map(|w| (w[1].0 - w[0].0) as f64).collect();
     (!d.is_empty()).then(|| py::median(&d))
@@ -291,6 +319,27 @@ mod tests {
         // a spacing of exactly three steps is not a gap
         let h = History(vec![series("AAA", &[0, 1, 2, 5, 6, 7])]);
         assert!(h.gaps().is_empty());
+    }
+
+    #[test]
+    fn flat_runs_need_four_points_and_a_day() {
+        let pts = |px: &[f64]| -> Vec<(i64, f64)> {
+            px.iter()
+                .enumerate()
+                .map(|(d, p)| (d as i64 * DAY, *p))
+                .collect()
+        };
+        let h = History(vec![("AAA".into(), pts(&[1.0, 2.0, 2.0, 2.0, 2.0, 3.0]))]);
+        assert_eq!(h.flat_runs(), vec![("AAA".to_string(), DAY, 4 * DAY, 4)]);
+        // three repeats are a quiet market, not a carried-forward feed
+        let h = History(vec![("AAA".into(), pts(&[1.0, 2.0, 2.0, 2.0, 3.0]))]);
+        assert!(h.flat_runs().is_empty());
+        // a run at the end of a series counts
+        let h = History(vec![("AAA".into(), pts(&[1.0, 5.0, 5.0, 5.0, 5.0, 5.0]))]);
+        assert_eq!(h.flat_runs(), vec![("AAA".to_string(), DAY, 5 * DAY, 5)]);
+        // four hourly repeats span less than a day
+        let hourly: Vec<(i64, f64)> = (0..6).map(|i| (i * 3600, 7.0)).collect();
+        assert!(History(vec![("AAA".into(), hourly)]).flat_runs().is_empty());
     }
 
     #[test]
