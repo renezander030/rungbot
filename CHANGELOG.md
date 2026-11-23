@@ -9,6 +9,7 @@
 - `rungbot-exec cancel --order-id ID` cancels one resting venue order instead of every order on the pair, for example an order left outside the journal; an id that is not resting cancels nothing and exits 1.
 - `rungbot backtest window` notes on stderr a run where one price repeats for four points or more across a day or longer, as a feed that carries the last price forward over a halt writes it; the replay and its report are unchanged.
 - Binance, Gate and Revolut X keep an amount or price that already sits on the venue's step or precision (`0.3` with a `0.1` step, `1.15` at two decimals) instead of rounding it one step lower through a floating point artefact; values between steps still round down.
+- `rungbot backtest window` notes on stderr a point less than half its series' usual spacing after the one before, as a second bar for one period is; the replay and its report are unchanged.
 
 ## 0.8.2
 

@@ -178,3 +178,37 @@ fn window_stays_quiet_on_a_moving_history() {
     assert!(out.status.success(), "{stderr}");
     assert!(!stderr.contains("repeats one price"), "{stderr}");
 }
+
+#[test]
+fn window_names_a_second_point_inside_one_period_and_still_replays() {
+    let f = Fixture::new();
+    // a daily series with a second bar for day 12, stamped at the session open
+    let mut points: Vec<_> = (0..30).map(|i| (i * 86400, 100 + i % 4)).collect();
+    points.insert(13, (12 * 86400 + 9 * 3600 + 1800, 80));
+    let text = serde_json::to_vec(&serde_json::json!({ "AAA": points })).unwrap();
+    std::fs::write(f.0.join("history.json"), text).unwrap();
+    let out = f.run("window", true);
+    let stderr = String::from_utf8(out.stderr).unwrap();
+    assert!(out.status.success(), "{stderr}");
+    assert!(
+        stderr.contains(
+            "note: history AAA has a point at 1970-01-13 09:30 UTC only 9.5 h after the one before, against its usual 24 h; a second bar for one period replays as an extra price move"
+        ),
+        "{stderr}"
+    );
+    assert!(!out.stdout.is_empty());
+}
+
+#[test]
+fn window_says_nothing_of_an_even_history_ending_on_a_live_price() {
+    let f = Fixture::new();
+    // the last point is the live price at fetch time, minutes after the last full day
+    let mut points: Vec<_> = (0..30).map(|i| (i * 86400, 100 + i % 4)).collect();
+    points.push((29 * 86400 + 1380, 101));
+    let text = serde_json::to_vec(&serde_json::json!({ "AAA": points })).unwrap();
+    std::fs::write(f.0.join("history.json"), text).unwrap();
+    let out = f.run("window", true);
+    let stderr = String::from_utf8(out.stderr).unwrap();
+    assert!(out.status.success(), "{stderr}");
+    assert!(!stderr.contains("second bar"), "{stderr}");
+}

@@ -232,6 +232,16 @@ fn utc_day(epoch: i64) -> String {
     format!("{y:04}-{m:02}-{d:02}")
 }
 
+/// A span in hours, one decimal at most (`9.5 h`, `24 h`).
+fn hours(seconds: f64) -> String {
+    let h = (seconds / 360.0).round() / 10.0;
+    if h.fract() == 0.0 {
+        format!("{} h", h as i64)
+    } else {
+        format!("{h} h")
+    }
+}
+
 /// Stderr notes about a history that the replay would otherwise pass over silently.
 fn history_notes(h: &History) -> Vec<String> {
     let mut out = Vec::new();
@@ -247,6 +257,15 @@ fn history_notes(h: &History) -> Vec<String> {
             "note: history {sym} repeats one price for {n} points from {} to {}; a feed that carries the last price forward replays it as real",
             utc_day(from),
             utc_day(to)
+        ));
+    }
+    for (sym, prev, at, step) in h.crowded() {
+        let (.., hh, mm, _) = time::civil(at as f64);
+        out.push(format!(
+            "note: history {sym} has a point at {} {hh:02}:{mm:02} UTC only {} after the one before, against its usual {}; a second bar for one period replays as an extra price move",
+            utc_day(at),
+            hours((at - prev) as f64),
+            hours(step)
         ));
     }
     let day = 86_400;

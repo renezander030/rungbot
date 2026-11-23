@@ -106,6 +106,28 @@ impl History {
         out
     }
 
+    /// Places where a series has two points much closer than its usual spacing: less
+    /// than half that series' median step apart. A feed that writes a second bar for one
+    /// period (one stamped at midnight and one at the session open, or a day split
+    /// across a time zone change) puts such a pair in, and the replay would trade it as
+    /// an extra price move. A series' last point is left out: price feeds end on the
+    /// live price at fetch time, off the grid by design. Returns `(symbol, previous_ts,
+    /// ts, median_step_s)` in series order.
+    pub fn crowded(&self) -> Vec<(String, i64, i64, f64)> {
+        let mut out = Vec::new();
+        for (sym, pts) in &self.0 {
+            let Some(step) = median_step(pts) else {
+                continue;
+            };
+            for w in pts[..pts.len() - 1].windows(2) {
+                if ((w[1].0 - w[0].0) as f64) < step / 2.0 {
+                    out.push((sym.clone(), w[0].0, w[1].0, step));
+                }
+            }
+        }
+        out
+    }
+
     /// Runs where a series repeats one price exactly: four consecutive points or more,
     /// spanning a day or more. A feed that carries the last price
     /// forward over a halt or an empty market writes such runs, and the replay would

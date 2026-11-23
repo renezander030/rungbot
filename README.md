@@ -231,7 +231,9 @@ On stderr, `window` also notes
 a gap in a coin's history (spacing over three times its usual step) and a coin whose
 history ends early, as a delisted coin's does, and a run where one price repeats for
 four points or more across a day or longer, as a feed that carries the last price forward
-over a halt writes it; stdout and the exit code are unchanged.
+over a halt writes it, and a point less than half the usual step after the one before,
+as a second bar for one period is (a series' last point, the live price at fetch time,
+is left out); stdout and the exit code are unchanged.
 `sweep` replays the same window under nine band and core variants. `monthly` runs
 several windows (`backtest.windows`, default 28/90/180), flags REVIEW when a variant
 beats the live bands by more than `backtest.drift_band_pct`, probes per-coin bands, and
