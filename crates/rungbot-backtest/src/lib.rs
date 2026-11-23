@@ -106,8 +106,8 @@ impl History {
         out
     }
 
-    /// Runs where a series repeats one price exactly: at least [`FLAT_POINTS`]
-    /// consecutive points spanning a day or more. A feed that carries the last price
+    /// Runs where a series repeats one price exactly: four consecutive points or more,
+    /// spanning a day or more. A feed that carries the last price
     /// forward over a halt or an empty market writes such runs, and the replay would
     /// trade them as real prices. Returns `(symbol, from_ts, to_ts, points)` in series
     /// order.
@@ -265,9 +265,9 @@ impl Book {
 
 /// Median spacing between consecutive points; `None` for fewer than two points.
 /// Fewest repeated points [`History::flat_runs`] reports.
-pub const FLAT_POINTS: usize = 4;
+const FLAT_POINTS: usize = 4;
 /// Shortest span, in seconds, [`History::flat_runs`] reports.
-pub const FLAT_SPAN_S: i64 = 86_400;
+const FLAT_SPAN_S: i64 = 86_400;
 
 fn median_step(pts: &[(i64, f64)]) -> Option<f64> {
     let d: Vec<f64> = pts.windows(2).map(|w| (w[1].0 - w[0].0) as f64).collect();

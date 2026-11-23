@@ -1893,15 +1893,9 @@ fn cmd_cancel(args: &Args) -> Result<(), String> {
     let clients = Clients::new();
     let venue = clients.get(venue_name(args)?)?;
     let open = venue.open_orders(pair).map_err(|e| e.to_string())?;
-    if open.is_empty() {
-        println!("nothing resting for {pair}");
-        return match args.get("order-id") {
-            Some(id) => Err(format!("order {id} is not resting; nothing cancelled")),
-            None => Ok(()),
-        };
-    }
     let open = reconcile::cancel_targets(open, args.get("order-id"))?;
     if open.is_empty() {
+        println!("nothing resting for {pair}");
         return Ok(());
     }
     if !(args.has("live") && args.has("i-understand")) {
