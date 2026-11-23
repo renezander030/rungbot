@@ -52,10 +52,10 @@ impl PairInfo {
     }
 }
 
-/// `floor(x * 10**p) / 10**p`.
+/// `floor(x * 10**p) / 10**p`, keeping a value already at `p` decimals.
 fn floor_to(x: f64, p: i64) -> f64 {
     let f = 10f64.powi(p as i32);
-    (x * f).floor() / f
+    crate::venue::floor_steps(x * f) / f
 }
 
 /// An on-chain deposit as Gate credited it.
