@@ -300,8 +300,9 @@ trade mode, the halt file and the balances snapshot's age. It exits 1 when the l
 run is older than `--max-age` minutes (default 90) or the journal does not read, and
 takes `--json`. It warns about open orders whose last poll failed, about open orders
 that share a venue, pair, side and price, about orders marked filled with no filled
-amount, and about cash the venue freed by a cancel that no run has re-laddered within
-2 hours; `--max-rest-days D` also warns about open orders resting longer than D days.
+amount, about cash the venue freed by a cancel that no run has re-laddered within
+2 hours, and about open orders that have had no venue order id for over 15 minutes, which
+reconcile cannot poll; `--max-rest-days D` also warns about open orders resting longer than D days.
 `--strict` exits 1 on a warning too.
 
 `rungbot-exec env` shows the run config it reads, its state directory and each

@@ -5,6 +5,7 @@
 - Restore current stable Clippy compatibility in exact arithmetic and trailing-stop replay without changing replay calculations.
 - `rungbot-exec pairs` compares the host clock with Binance's and Gate's server time, warns past half of the venue's signed-request window and exits 1 outside it, before a drifting clock fails every signed order with a timestamp error.
 - Clarify sampled-price window cadence and between-sample limits, with public-interface regression coverage for sampled dips, hourly/daily histories and inclusive trailing-stop dates.
+- `rungbot-exec health` warns about open orders that have had no venue order id for over 15 minutes: reconcile polls by venue id, so such an order is never read back and would otherwise look alive.
 
 ## 0.8.2
 

@@ -71,6 +71,10 @@ pub fn last_run(log: &str) -> Option<(f64, String)> {
 /// before health warns. A run every 30 minutes sweeps it well inside this.
 pub const UNSWEPT_WARN_S: f64 = 2.0 * 3600.0;
 
+/// How long an open row may go without a venue order id before `health` warns: a run
+/// writes the row just before it calls the venue, so a younger one may be mid-placement.
+pub const NO_VENUE_ID_WARN_S: f64 = 15.0 * 60.0;
+
 fn minutes(s: f64) -> String {
     format!("{:.0} min", s / 60.0)
 }
@@ -142,6 +146,7 @@ pub fn report(cfg: &RunConfig, now: f64, max_age_min: f64, max_rest_days: f64) -
                     .iter()
                     .filter(|o| now - o.status_ts.unwrap_or(now) > UNSWEPT_WARN_S)
                     .count();
+                let unpolled = j.open_without_venue_id(now - NO_VENUE_ID_WARN_S).len();
                 // One warning per journal condition, in this order, only when it holds.
                 let warnings = [
                     (
@@ -177,6 +182,14 @@ pub fn report(cfg: &RunConfig, now: f64, max_age_min: f64, max_rest_days: f64) -
                             "{unswept} order(s) the venue cancelled over {} ago, cash not \
                              re-laddered (rungbot-exec status)",
                             minutes(UNSWEPT_WARN_S)
+                        ),
+                    ),
+                    (
+                        unpolled,
+                        format!(
+                            "{unpolled} open order(s) with no venue order id for over {}: \
+                             reconcile cannot poll them (rungbot-exec status)",
+                            minutes(NO_VENUE_ID_WARN_S)
                         ),
                     ),
                 ];
@@ -384,6 +397,33 @@ mod tests {
     }
 
     #[test]
+    fn an_open_row_without_a_venue_id_warns_after_the_grace() {
+        let d = std::env::temp_dir().join(format!("rungbot-health-noid-{}", std::process::id()));
+        std::fs::create_dir_all(&d).unwrap();
+        let cfg = config(&d);
+        let row = |id: &str, ts: f64| {
+            format!(
+                "{{\"c1\": {{\"client_id\": \"c1\", \"status\": \"pending\", \"exch\": \"gate\", \
+                 \"pair\": \"AAA_USDT\", \"side\": \"buy\", \"price\": 1.0, \"ts\": {ts}{id}}}}}"
+            )
+        };
+        let now = 10_000.0;
+        // with a venue id it is polled as usual
+        write_journal(&cfg, &row(", \"order_id\": \"o1\"", now - 3600.0));
+        assert!(warnings(&cfg, now).is_empty());
+        // without one, a young row may be mid-placement
+        write_journal(&cfg, &row("", now - 60.0));
+        assert!(warnings(&cfg, now).is_empty());
+        write_journal(&cfg, &row(", \"order_id\": \"\"", now - 3600.0));
+        let w = warnings(&cfg, now);
+        assert_eq!(
+            w,
+            ["1 open order(s) with no venue order id for over 15 min: reconcile cannot poll them (rungbot-exec status)"]
+        );
+        let _ = std::fs::remove_dir_all(&d);
+    }
+
+    #[test]
     fn long_resting_open_orders_warn_only_when_asked() {
         let d = std::env::temp_dir().join(format!("rungbot-health-rest-{}", std::process::id()));
         std::fs::create_dir_all(&d).unwrap();
@@ -391,8 +431,8 @@ mod tests {
         let day = 86_400.0;
         write_journal(
             &cfg,
-            "{\"c1\": {\"client_id\": \"c1\", \"status\": \"open\", \"ts\": 1000.0},\
-              \"c2\": {\"client_id\": \"c2\", \"status\": \"open\", \"ts\": 400000.0},\
+            "{\"c1\": {\"client_id\": \"c1\", \"status\": \"open\", \"ts\": 1000.0, \"order_id\": \"o1\"},\
+              \"c2\": {\"client_id\": \"c2\", \"status\": \"open\", \"ts\": 400000.0, \"order_id\": \"o2\"},\
               \"c3\": {\"client_id\": \"c3\", \"status\": \"filled\", \"ts\": 1000.0}}",
         );
         let now = 1000.0 + 4.0 * day;
