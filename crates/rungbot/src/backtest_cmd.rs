@@ -232,8 +232,12 @@ fn utc_day(epoch: i64) -> String {
     format!("{y:04}-{m:02}-{d:02}")
 }
 
-/// A span in hours, one decimal at most (`9.5 h`, `24 h`).
+/// A span in hours, one decimal at most (`9.5 h`, `24 h`), or in whole minutes below
+/// an hour (`20 min`, at least `1 min`), so a close pair never reads `0 h`.
 fn hours(seconds: f64) -> String {
+    if seconds < 3_600.0 {
+        return format!("{} min", ((seconds / 60.0).round() as i64).max(1));
+    }
     let h = (seconds / 360.0).round() / 10.0;
     if h.fract() == 0.0 {
         format!("{} h", h as i64)
@@ -1084,5 +1088,14 @@ mod tests {
             s(&failed["stderr"])
         );
         assert_eq!(failed["rc"], 1);
+    }
+
+    #[test]
+    fn spans_read_in_hours_or_in_minutes_below_an_hour() {
+        assert_eq!(hours(86_400.0), "24 h");
+        assert_eq!(hours(34_200.0), "9.5 h");
+        assert_eq!(hours(3_600.0), "1 h");
+        assert_eq!(hours(1_200.0), "20 min");
+        assert_eq!(hours(5.0), "1 min");
     }
 }
