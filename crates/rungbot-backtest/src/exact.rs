@@ -41,9 +41,9 @@ impl Big {
         let n = self.0.len().max(o.0.len());
         self.0.resize(n, 0);
         let mut carry = 0u64;
-        for i in 0..n {
-            let s = self.0[i] as u64 + *o.0.get(i).unwrap_or(&0) as u64 + carry;
-            self.0[i] = s as u32;
+        for (i, limb) in self.0.iter_mut().enumerate() {
+            let s = *limb as u64 + *o.0.get(i).unwrap_or(&0) as u64 + carry;
+            *limb = s as u32;
             carry = s >> 32;
         }
         if carry != 0 {

@@ -250,9 +250,9 @@ fn value_at(s: &Series, trades: &[Trade], i: usize) -> (f64, f64) {
 
 fn trail_stop(s: &Series, cost: f64, i0: usize, i1: usize, g: f64) -> Option<usize> {
     let mut hi = cost;
-    for i in i0..=i1 {
-        hi = hi.max(s.c[i]);
-        if s.c[i] <= hi * (1.0 - g / 100.0) {
+    for (i, &close) in s.c.iter().enumerate().take(i1 + 1).skip(i0) {
+        hi = hi.max(close);
+        if close <= hi * (1.0 - g / 100.0) {
             return Some(i);
         }
     }
