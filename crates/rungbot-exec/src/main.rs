@@ -46,7 +46,7 @@ USAGE:
   rungbot-exec sync      --from PLAN.json --budget N --pair-map SYM=PAIR,...
                          [--venue V] --live --i-understand
   rungbot-exec reconcile
-  rungbot-exec cancel    --pair PAIR [--venue V] [--live --i-understand]
+  rungbot-exec cancel    --pair PAIR [--venue V] [--order-id ID] [--live --i-understand]
   rungbot-exec archive   [--days N]
   rungbot-exec fills     [--since YYYY-MM-DD] [--json]
   rungbot-exec shadow-diff REFERENCE.jsonl SHADOW.jsonl [--since TS] [--tolerance PCT]
@@ -311,7 +311,15 @@ fn known_flags(cmd: &str) -> Option<&'static [&'static str]> {
         "status" => &["pair", "venue", "journal", "config", "json"],
         "plan" | "sync" => PLACE,
         "reconcile" => &["journal", "config"],
-        "cancel" => &["pair", "venue", "live", "i-understand", "journal", "config"],
+        "cancel" => &[
+            "pair",
+            "venue",
+            "order-id",
+            "live",
+            "i-understand",
+            "journal",
+            "config",
+        ],
         "archive" => &["days", "journal", "config"],
         "fills" => &["since", "json", "journal", "config"],
         "import-cex" => &["dry-run", "write", "force", "config", "journal"],
@@ -1887,6 +1895,13 @@ fn cmd_cancel(args: &Args) -> Result<(), String> {
     let open = venue.open_orders(pair).map_err(|e| e.to_string())?;
     if open.is_empty() {
         println!("nothing resting for {pair}");
+        return match args.get("order-id") {
+            Some(id) => Err(format!("order {id} is not resting; nothing cancelled")),
+            None => Ok(()),
+        };
+    }
+    let open = reconcile::cancel_targets(open, args.get("order-id"))?;
+    if open.is_empty() {
         return Ok(());
     }
     if !(args.has("live") && args.has("i-understand")) {

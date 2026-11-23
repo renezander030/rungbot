@@ -6,6 +6,7 @@
 - `rungbot-exec pairs` compares the host clock with Binance's and Gate's server time, warns past half of the venue's signed-request window and exits 1 outside it, before a drifting clock fails every signed order with a timestamp error.
 - Clarify sampled-price window cadence and between-sample limits, with public-interface regression coverage for sampled dips, hourly/daily histories and inclusive trailing-stop dates.
 - `rungbot-exec health` warns about open orders that have had no venue order id for over 15 minutes: reconcile polls by venue id, so such an order is never read back and would otherwise look alive.
+- `rungbot-exec cancel --order-id ID` cancels one resting venue order instead of every order on the pair, for example an order left outside the journal; an id that is not resting cancels nothing and exits 1.
 
 ## 0.8.2
 

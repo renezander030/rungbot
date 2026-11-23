@@ -272,6 +272,10 @@ writer at a time holds the journal (`run`, `sync`, `reconcile`, `cancel`, `archi
 and a journal that exists but does not parse stops the run instead of reading as empty.
 Every subcommand finds the journal as `run` does (`--journal`, else the run config's)
 and takes the same lock on it (`run_lock`, else `RUNGBOT_LOCK`, else `<journal>.lock`).
+`cancel --pair PAIR` lists a pair's resting orders and, with `--live --i-understand`,
+cancels them, journaled or not; `--order-id ID` narrows it to that one venue order (an
+order left behind outside the journal, say), and an id that is not resting cancels nothing
+and exits 1.
 
 The journal is a plain JSON object keyed by client id; finished cancels older than 30
 days move to `orders-archive.jsonl` with `rungbot-exec archive`. `rungbot-exec
