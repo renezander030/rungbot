@@ -315,7 +315,12 @@ P&L sheet or a tax tool (`--json`, `--since YYYY-MM-DD`).
 `rungbot-exec pairs` asks each routed venue whether the pair still trades: Gate's trade
 status and any delisting date it announced, Binance's symbol status, and whether Revolut
 X still lists the pair. It exits 1 when a pair is gone, halted or has a delisting date,
-so a daily timer hears of a delisting before the ladder's orders start failing. For an alarm that also fires when the host itself is down, set
+so a daily timer hears of a delisting before the ladder's orders start failing. It also
+compares the host clock with Binance's and Gate's unsigned server time: a signed request
+carries the host's timestamp, and Binance refuses one more than 1 s ahead or 5 s behind
+(its `recvWindow`), Gate one more than 60 s off. Past half that window it warns; outside
+it, every signed call would fail, so it exits 1 (`clock` in `--json`, with `offset_s`).
+For an alarm that also fires when the host itself is down, set
 `heartbeat_url` in the run config (or `RUNGBOT_HEARTBEAT_URL`): every completed run
 then GETs it, so a dead-man's switch such as healthchecks.io or Uptime Kuma alerts
 when the pings stop. Dry and shadow runs do not ping.

@@ -124,6 +124,11 @@ pub trait Venue {
             delisting_ts: None,
         })
     }
+    /// The venue's clock in epoch seconds, read from its unsigned time endpoint, or
+    /// `None` when this client has no such endpoint.
+    fn server_time(&self) -> Option<Result<f64, VenueError>> {
+        None
+    }
     /// Does `venue_cid`, as this venue echoes it, belong to journal id `cid`?
     fn id_matches(&self, venue_cid: &str, cid: &str) -> bool {
         venue_id_matches(self.name(), venue_cid, cid)

@@ -432,6 +432,21 @@ impl Venue for Gate {
             .map_err(|e| VenueError::new(V, r.status, e))
     }
 
+    fn server_time(&self) -> Option<Result<f64, VenueError>> {
+        Some(
+            self.public(&format!("{BASE}/api/v4/spot/time"))
+                .and_then(|r| {
+                    if r.status != Some(200) {
+                        return Err(err("GET", "/spot/time", &r));
+                    }
+                    r.json_or_null()
+                        .get("server_time")
+                        .and_then(Value::as_f64)
+                        .map(|ms| ms / 1000.0)
+                        .ok_or_else(|| shape_err(V, "time: no 'server_time'"))
+                }),
+        )
+    }
     fn qty_step(&self, pair: &str) -> Result<f64, VenueError> {
         Ok(crate::venue::step_from_precision(
             self.pair_info(pair)?.amount_precision,

@@ -1193,7 +1193,6 @@ fn venue_name(args: &Args) -> Result<&str, String> {
 /// `pairs`: every routed pair's trading status on its venue; exit 1 on a pair that is
 /// gone, halted or has a delisting date.
 fn cmd_pairs(argv: &[String]) -> ExitCode {
-    use rungbot_exec::health::Level;
     use rungbot_exec::pairs;
     use rungbot_exec::run::config::RunConfig;
     let cfg = match RunConfig::load(&layer_config_path(argv)) {
@@ -1205,10 +1204,11 @@ fn cmd_pairs(argv: &[String]) -> ExitCode {
     };
     let clients = Clients::public();
     let rows = pairs::check(&cfg, |v| clients.get(v));
+    let clock = pairs::clock_check(&cfg, |v| clients.get(v), now);
     if argv.iter().any(|a| a == "--json") {
         println!(
             "{}",
-            serde_json::to_string_pretty(&pairs::to_json(&rows)).unwrap_or_default()
+            serde_json::to_string_pretty(&pairs::report_json(&rows, &clock)).unwrap_or_default()
         );
     } else {
         for r in &rows {
@@ -1221,8 +1221,11 @@ fn cmd_pairs(argv: &[String]) -> ExitCode {
                 r.message
             );
         }
+        for c in &clock {
+            println!("{} clock {}: {}", c.level.tag(), c.exch, c.message);
+        }
     }
-    if rows.iter().any(|r| r.level == Level::Fail) {
+    if !pairs::all_ok(&rows, &clock) {
         ExitCode::from(1)
     } else {
         ExitCode::SUCCESS
