@@ -223,8 +223,9 @@ between samples is invisible to this replay: it does not reconstruct a high/low 
 or infer fills between points. Use the same sampling cadence when comparing runs;
 results describe the supplied samples, not every price the market visited.
 
-A price history whose coin has fewer than two points, or whose timestamps
-repeat or run backwards, is refused with the coin named. Window and monthly inputs
+A price history whose coin has fewer than two points, whose timestamps
+repeat or run backwards, or that holds a zero, negative or NaN price, is refused with
+the coin named. Window and monthly inputs
 must also contain every configured coin: an omitted coin produces a named input error
 instead of a replay panic. Sweep still reports and excludes coins without history.
 On stderr, `window` also notes

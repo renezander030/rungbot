@@ -212,3 +212,35 @@ fn window_says_nothing_of_an_even_history_ending_on_a_live_price() {
     assert!(out.status.success(), "{stderr}");
     assert!(!stderr.contains("second bar"), "{stderr}");
 }
+
+#[test]
+fn window_refuses_a_price_that_is_not_a_positive_number() {
+    for bad in ["0", "-5", "NaN"] {
+        let f = Fixture::new();
+        let points: Vec<String> = (0..30)
+            .map(|i| {
+                let px = if i == 10 {
+                    bad.to_string()
+                } else {
+                    (100 + i % 4).to_string()
+                };
+                format!("[{}, {px}]", i * 86400)
+            })
+            .collect();
+        std::fs::write(
+            f.0.join("history.json"),
+            format!("{{\"AAA\": [{}]}}", points.join(", ")),
+        )
+        .unwrap();
+        let out = f.run("window", true);
+        let stderr = String::from_utf8(out.stderr).unwrap();
+        assert!(!out.status.success(), "price {bad} replayed: {stderr}");
+        assert!(
+            stderr.contains(&format!(
+                "history AAA: price {bad} at timestamp 864000; prices must be positive numbers"
+            )),
+            "{stderr}"
+        );
+        assert!(out.stdout.is_empty(), "price {bad}");
+    }
+}

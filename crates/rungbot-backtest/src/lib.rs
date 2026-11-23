@@ -67,15 +67,22 @@ impl History {
         Ok(h)
     }
 
-    /// Every series has two points or more, in strictly rising time. A short series
-    /// cannot be replayed, and a repeated or backward timestamp (a paged fetch that
-    /// overlapped) would bend the replay's clock, so both are refused by name.
+    /// Every series has two points or more, in strictly rising time, and every price is
+    /// a positive number. A short series cannot be replayed, a repeated or backward
+    /// timestamp (a paged fetch that overlapped) would bend the replay's clock, and a
+    /// zero, negative or NaN price (a feed's placeholder for a missing close) would be
+    /// passed over as if the market had not moved, so all three are refused by name.
     pub fn check(&self) -> Result<(), String> {
         for (sym, pts) in &self.0 {
             if pts.len() < 2 {
                 return Err(format!(
                     "history {sym} has {} point(s); a replay needs two or more",
                     pts.len()
+                ));
+            }
+            if let Some((t, px)) = pts.iter().find(|p| !(p.1 > 0.0 && p.1.is_finite())) {
+                return Err(format!(
+                    "history {sym}: price {px} at timestamp {t}; prices must be positive numbers"
                 ));
             }
             if let Some(w) = pts.windows(2).find(|w| w[1].0 <= w[0].0) {
