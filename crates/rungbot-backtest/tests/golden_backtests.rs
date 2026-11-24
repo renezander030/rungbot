@@ -87,6 +87,16 @@ fn regime(env: &Py) -> RegimeConfig {
     r
 }
 
+/// RUNGBOT_BLESS=1 rewrites a golden's outputs from this implementation (after
+/// tools/synthetic_fixtures.py rewrote the inputs); without it every output is compared.
+fn bless() -> bool {
+    std::env::var_os("RUNGBOT_BLESS").is_some()
+}
+
+fn write_golden(name: &str, cases: Vec<Py>) {
+    std::fs::write(dir("golden").join(name), Py::List(cases).json(Some(1)) + "\n").unwrap();
+}
+
 fn show_diff(name: &str, want: &str, got: &str) {
     if want != got {
         for (k, (a, b)) in want.lines().zip(got.lines()).enumerate() {
@@ -156,6 +166,7 @@ fn window_and_sweep_reports_match_the_reference() {
     let book = Book::parse(&read("fixtures", "book.json")).unwrap();
     let cases = golden.as_list();
     assert!(cases.len() >= 9, "the golden file lost scenarios");
+    let mut blessed = Vec::new();
     for case in cases {
         let sc = case.get("scenario").unwrap();
         let name = sc.get("name").and_then(|v| v.as_str()).unwrap();
@@ -175,6 +186,21 @@ fn window_and_sweep_reports_match_the_reference() {
             fee_pct: 0.0,
         };
         let run = window::run(&cfg, Ok(&hist), &book, &opts);
+        if bless() {
+            let written = run.book.clone().expect("a book");
+            let so = SweepOpts {
+                days,
+                bag: env_f(env, "BT_BAG"),
+                regime: regime(env),
+            };
+            let sw = sweep::run(&cfg, Ok(&hist), Some(&written), &so).unwrap();
+            let mut c = case.clone();
+            c.set("window_stdout", run.text.clone());
+            c.set("book_written", written.to_py());
+            c.set("sweep_stdout", sw);
+            blessed.push(c);
+            continue;
+        }
         show_diff(
             &format!("{name} window"),
             case.get("window_stdout").and_then(|v| v.as_str()).unwrap(),
@@ -198,6 +224,9 @@ fn window_and_sweep_reports_match_the_reference() {
             &sw,
         );
     }
+    if bless() {
+        write_golden("window_sweep.json", blessed);
+    }
 }
 
 #[test]
@@ -205,9 +234,9 @@ fn monthly_verdicts_match_the_reference() {
     let golden = loads(&read("golden", "monthly.json")).unwrap();
     let book = Book::parse(&read("fixtures", "book.json")).unwrap();
     let coins = loads(
-        r#"[{"sym": "BTC", "venue": "binance", "pair": "BTCUSDT", "entry": 60000},
-            {"sym": "FET", "venue": "binance", "pair": "FETUSDT", "entry": 0.5},
-            {"sym": "OSMO", "venue": "gate", "pair": "OSMO_USDT", "entry": 0.3}]"#,
+        r#"[{"sym": "AAA", "venue": "binance", "pair": "AAAUSDT", "entry": 60000},
+            {"sym": "BBB", "venue": "binance", "pair": "BBBUSDT", "entry": 0.5},
+            {"sym": "CCC", "venue": "gate", "pair": "CCC_USDT", "entry": 0.3}]"#,
     )
     .unwrap();
     let files = [
@@ -215,6 +244,7 @@ fn monthly_verdicts_match_the_reference() {
         (90, "hist_hourly_90d.json"),
         (180, "hist_daily_180d.json"),
     ];
+    let mut blessed = Vec::new();
     for case in golden.as_list() {
         let name = case.get("name").and_then(|v| v.as_str()).unwrap();
         let env = case.get("env").unwrap();
@@ -237,10 +267,20 @@ fn monthly_verdicts_match_the_reference() {
         let history_for = |days: i64| match files.iter().find(|(d, _)| *d == days) {
             Some((_, f)) => History::parse(&read("fixtures", f)),
             None => Err(format!(
-                "history BTC failed: offline fixture: no {days}d history for btc-id"
+                "history AAA failed: offline fixture: no {days}d history for aaa-id"
             )),
         };
         let report = monthly::run(&cfg, &book, &history_for, &opts);
+        if bless() {
+            let mut c = case.clone();
+            c.set("stdout", report.dry_run_text());
+            c.set(
+                "expectation",
+                report.expectation.clone().map(Py::from).unwrap_or(Py::None),
+            );
+            blessed.push(c);
+            continue;
+        }
         show_diff(
             name,
             case.get("stdout").and_then(|v| v.as_str()).unwrap(),
@@ -252,5 +292,8 @@ fn monthly_verdicts_match_the_reference() {
             report.expectation.as_deref(),
             "{name}: expectation"
         );
+    }
+    if bless() {
+        write_golden("monthly.json", blessed);
     }
 }

@@ -586,9 +586,6 @@ fn check(book: &str) {
         .unwrap()
         .replace(&d.public_dir.display().to_string(), "<public>")
         .replace('\\', "/");
-    let want_log = std::fs::read_to_string(exp.join("log.txt")).unwrap();
-    assert_eq!(log, want_log, "{book}: log lines; stderr:\n{stderr}");
-
     let files = [
         ("data.json", d.data_path()),
         ("scenarios.json", d.scenarios_path()),
@@ -597,6 +594,26 @@ fn check(book: &str) {
         ("wallets-alert-state.json", d.wallet_state_path()),
         ("wallets-last-good.json", d.wallet_last_good_path()),
     ];
+    // RUNGBOT_BLESS=1 writes what this implementation produced as the book's expected files
+    // (after tools/synthetic_fixtures.py rewrote the inputs); without it every file is compared
+    if std::env::var_os("RUNGBOT_BLESS").is_some() {
+        let _ = std::fs::remove_dir_all(&exp);
+        std::fs::create_dir_all(&exp).unwrap();
+        std::fs::write(exp.join("log.txt"), &log).unwrap();
+        for (name, got) in &files {
+            if got.exists() {
+                std::fs::copy(got, exp.join(name)).unwrap();
+            }
+        }
+        let list = |v: &[String]| Json::Arr(v.iter().map(|x| Json::Str(x.clone())).collect()).dumps(Some(1));
+        std::fs::write(exp.join("alerts.json"), list(&pings.0.borrow())).unwrap();
+        std::fs::write(exp.join("calls.json"), list(&transport.calls.borrow())).unwrap();
+        let _ = std::fs::remove_dir_all(&dir);
+        return;
+    }
+    let want_log = std::fs::read_to_string(exp.join("log.txt")).unwrap();
+    assert_eq!(log, want_log, "{book}: log lines; stderr:\n{stderr}");
+
     for (name, got) in files {
         let want = exp.join(name);
         if !want.exists() {

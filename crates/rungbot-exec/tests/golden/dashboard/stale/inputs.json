@@ -1,11 +1,11 @@
 {
- "now": 1735000000.25,
- "log_mtime_ns": 1734999000123456789,
+ "now": 1898604000.25,
+ "log_mtime_ns": 1898603905249999872,
  "halt": false,
  "mode": "live",
  "live_enabled": "yes",
- "target_pct": 15.0,
- "first_pct": 15.0,
+ "target_pct": 60.0,
+ "first_pct": 25.0,
  "watchlist": [
   [
    "BTC",
@@ -24,12 +24,12 @@
    "ccc-coin"
   ],
   [
-   "VVV",
-   "vvv-coin"
-  ],
-  [
    "DDD",
    "ddd-coin"
+  ],
+  [
+   "VVV",
+   "vvv-coin"
   ]
  ],
  "routing": [
@@ -58,414 +58,395 @@
    "USDT"
   ],
   [
-   "VVV",
+   "DDD",
    "revx",
-   "VVV-USD",
+   "DDD-USD",
    "USD"
   ],
   [
-   "DDD",
+   "VVV",
    "binance",
-   "DDDUSDT",
+   "VVVUSDT",
    "USDT"
   ]
  ],
  "entries": {
-  "BTC": 20000.0,
-  "AAA": 0.8,
-  "BBB": 3.0,
-  "CCC": 0.05,
-  "VVV": 0.2,
-  "DDD": 1.5
+  "BTC": 56897.3,
+  "AAA": 0.5,
+  "BBB": 6.14,
+  "CCC": 0.15,
+  "DDD": 0.48,
+  "VVV": 0.31
  },
  "alloc": {
-  "AAA": 300,
-  "BBB": 200,
-  "CCC": 100,
-  "VVV": 150,
-  "BTC": 250
+  "AAA": 400,
+  "BBB": 400,
+  "CCC": 300,
+  "DDD": 500,
+  "VVV": 500
  },
  "legacy_venues": {
-  "DDD": "binance",
-  "AAA": "gate"
+  "VVV": "binance",
+  "CCC": "gate"
  },
- "legacy_before_ts": 1734000000,
+ "legacy_before_ts": 1895148000,
  "gate": {
   "clients": true,
   "balances": {
    "USDT": {
-    "free": 5.0,
-    "locked": 0.0
+    "free": 26.4,
+    "locked": 1.7
    },
    "AAA": {
-    "free": 0.5,
-    "locked": 0.0
-   },
-   "CCC": {
-    "free": 5.0,
-    "locked": 0.0
+    "free": 6.9,
+    "locked": 2.2
    }
   },
   "pairs": {
    "AAA_USDT": [
+    57.8,
     1.0,
-    3.0,
     2
-   ],
-   "CCC_USDT": [
-    10.0,
-    3.0,
-    0
    ]
   }
  },
  "revx_pairs": {
   "BTC-USD": [
    0.0001,
-   5.0,
-   5
+   1.0,
+   8
   ],
   "BBB-USD": [
-   0.1,
-   5.0,
+   1.0,
+   1.0,
    2
   ],
-  "VVV-USD": [
+  "DDD-USD": [
    1000.0,
-   5.0,
-   1
+   1.0,
+   0
   ]
  },
  "prices": {
   "BTC": [
-   41000.0,
-   2.5
+   60462.9,
+   8.8
   ],
   "AAA": [
-   1.25,
-   -3.0
+   2.59,
+   6.6
   ],
   "BBB": [
-   3.2,
-   -16.0
+   5.67,
+   4.6
   ],
   "CCC": [
-   0.12,
-   7.25
-  ],
-  "VVV": [
-   0.33,
-   0.0
+   0.76,
+   10.8
   ],
   "DDD": [
-   1.1,
-   -1.5
+   0.54,
+   8.2
+  ],
+  "VVV": [
+   1.57,
+   -9.0
   ]
  },
  "regime": {
-  "epoch": 1735000000,
-  "market": "chop",
+  "epoch": 1898603400,
+  "market": "bull",
   "btc": {
-   "px": 42000.5,
-   "sma100": 38000.25,
-   "sma200": 35000.0
+   "px": 60462.9,
+   "sma100": 55625.9,
+   "sma200": 51393.5
   },
-  "breadth_above_sma30": "3/6",
+  "breadth_above_sma30": "3/5",
   "coins": {
    "BTC": {
     "running": true,
+    "score": 0,
     "signals": {
      "above_sma30": true,
      "ret30_strong": true,
      "fresh_30d_high": true,
      "higher_lows": false
-    },
-    "px": 1.0,
-    "sma30": 0.9
+    }
    },
    "AAA": {
     "running": false,
+    "score": 1,
     "signals": {
      "above_sma30": false,
      "ret30_strong": false,
-     "fresh_30d_high": true,
+     "fresh_30d_high": false,
      "higher_lows": true
-    },
-    "px": 2.0,
-    "sma30": 1.9
+    }
    },
    "BBB": {
-    "running": false,
+    "running": true,
+    "score": 2,
     "signals": {
      "above_sma30": true,
      "ret30_strong": false,
-     "fresh_30d_high": true,
+     "fresh_30d_high": false,
      "higher_lows": false
-    },
-    "px": 3.0,
-    "sma30": 2.9
+    }
    },
    "CCC": {
     "running": false,
+    "score": 3,
     "signals": {
      "above_sma30": false,
      "ret30_strong": true,
-     "fresh_30d_high": true,
-     "higher_lows": false
-    },
-    "px": 4.0,
-    "sma30": 3.9
+     "fresh_30d_high": false,
+     "higher_lows": true
+    }
    },
    "VVV": {
-    "running": false,
+    "running": true,
+    "score": 0,
     "signals": {
      "above_sma30": true,
      "ret30_strong": false,
      "fresh_30d_high": true,
      "higher_lows": false
-    },
-    "px": 5.0,
-    "sma30": 4.9
+    }
    },
    "DDD": {
     "running": false,
-    "error": "synthetic kline failure xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+    "error": "synthetic fetch failure while reading the candle history"
    }
   }
  },
  "history": {
-  "epoch": 1735000000,
+  "epoch": 1898603400,
   "labels": [
-   "bear",
+   "bull",
    "bull"
   ],
-  "held_days": 20,
-  "prev_label": "chop",
+  "held_days": 12,
+  "prev_label": "flat",
   "confirmed": false,
-  "confirm_days": 14,
-  "days_covered": 400
+  "confirm_days": 10,
+  "days_covered": 120
  },
  "ladder_state": {
-  "AAA": {
-   "cost_basis": 0.75,
-   "win_dir": "buy",
-   "win_until": 1735003600.25,
-   "deployed_pct": 30,
-   "sold_pct": 5.0
-  },
-  "BBB": {
-   "win_dir": "sell",
-   "win_until": 1734999990.25,
-   "deployed_pct": 12.5
-  },
+  "AAA": "not a dict",
+  "BBB": "not a dict",
   "CCC": "not a dict",
   "_daily": {
-   "date": "2024-12-24",
-   "notional": 125.5,
+   "date": "2030-03-01",
+   "notional": 666.0,
    "orders": 3
   }
  },
  "journal": {
-  "depxAAAb1r1": {
-   "client_id": "depxAAAb1r1",
+  "dep1AAAr1x0": {
+   "client_id": "dep1AAAr1x0",
+   "sym": "AAA",
+   "side": "buy",
+   "kind": "deploy_buy",
+   "status": "cancelled",
+   "rung": 1,
+   "price": 2.46,
+   "quote": 28.6,
+   "base": 49.1,
+   "ts": 1898510399.75,
+   "note": "rolled into new tranche (synthetic)",
+   "exch": "gate",
+   "canceled_ts": 1898517539.75
+  },
+  "dep2AAAr1x0": {
+   "client_id": "dep2AAAr1x0",
    "sym": "AAA",
    "side": "buy",
    "kind": "deploy_buy",
    "status": "open",
    "rung": 1,
-   "price": 0.9,
-   "quote": 40.0,
-   "base": 44.44,
-   "ts": 1734900000.0,
-   "exch": "gate"
+   "price": 2.38,
+   "quote": 78.8,
+   "base": 39.1,
+   "ts": 1898517600.75,
+   "note": "placed below the zone (synthetic)",
+   "exch": "gate",
+   "canceled_ts": 1898517660.75
   },
-  "depxBBBb1r2": {
-   "client_id": "depxBBBb1r2",
-   "sym": "BBB",
+  "dpAAAr2x0": {
+   "client_id": "dpAAAr2x0",
+   "sym": "AAA",
    "side": "buy",
    "kind": "deploy_buy",
    "status": "new",
    "rung": 2,
-   "price": 2.5,
-   "quote": 60.0,
-   "base": 24.0,
-   "ts": 1734950000.5
+   "price": 2.2,
+   "quote": 82.7,
+   "base": 88.0,
+   "ts": 1898517600
   },
-  "csAAAb1r3x": {
-   "client_id": "csAAAb1r3x",
-   "sym": "AAA",
+  "dpBBBr1x0": {
+   "client_id": "dpBBBr1x0",
+   "sym": "BBB",
    "side": "buy",
    "kind": "deploy_buy",
    "status": "placed",
-   "rung": 3,
-   "price": 0.7,
-   "quote": 25.0,
-   "base": 35.7,
-   "ts": 1733900000,
-   "venue": "gate"
+   "rung": 1,
+   "price": 5.1,
+   "quote": 54.4,
+   "base": 37.8,
+   "ts": 1898517601.75,
+   "venue": "revx"
   },
-  "csCCCb1r1": {
-   "client_id": "csCCCb1r1",
+  "dpBBBr2x1": {
+   "client_id": "dpBBBr2x1",
+   "sym": "BBB",
+   "side": "buy",
+   "kind": "deploy_buy",
+   "status": "PARTIALLY_FILLED",
+   "price": 4.54,
+   "quote": 38.1,
+   "base": 61.2,
+   "ts": 1898517602.75
+  },
+  "dpCCCr1x0": {
+   "client_id": "dpCCCr1x0",
    "sym": "CCC",
    "side": "buy",
-   "kind": "ladder_buy",
-   "status": "PARTIALLY_FILLED",
-   "price": 0.04,
-   "quote": 20.0,
-   "base": 500.0,
-   "ts": 1734500000.0,
-   "last_error": "poll: synthetic timeout"
+   "kind": "deploy_buy",
+   "status": "open",
+   "rung": 1,
+   "price": 0.68,
+   "quote": 48.4,
+   "base": 21.3,
+   "ts": 1898517603.75
   },
-  "csVVVb1r1": {
-   "client_id": "csVVVb1r1",
+  "lsAAAs1x0": {
+   "client_id": "lsAAAs1x0",
+   "sym": "AAA",
+   "side": "sell",
+   "kind": "ladder_sell",
+   "status": "filled",
+   "price": 3.11,
+   "quote": 41.8,
+   "base": 869.5,
+   "filled_quote": 65.1,
+   "ts": 1898517604.75,
+   "filled_ts": 1898518000.75
+  },
+  "lsBBBs1x0": {
+   "client_id": "lsBBBs1x0",
+   "sym": "BBB",
+   "side": "sell",
+   "kind": "ladder_sell",
+   "status": "filled",
+   "price": 6.8,
+   "quote": 37.8,
+   "base": 840.0,
+   "filled_quote": 61.5,
+   "ts": 1898517605.75,
+   "filled_ts": 1898518100.75
+  },
+  "dpDDDr1x0": {
+   "client_id": "dpDDDr1x0",
+   "sym": "DDD",
+   "side": "buy",
+   "kind": "deploy_buy",
+   "status": "filled",
+   "rung": 1,
+   "price": 0.49,
+   "quote": 53.7,
+   "base": 40.9,
+   "ts": 1898517606.75
+  },
+  "dpDDDr2x0": {
+   "client_id": "dpDDDr2x0",
+   "sym": "DDD",
+   "side": "buy",
+   "kind": "deploy_buy",
+   "status": "filled",
+   "rung": 2,
+   "price": 0.43,
+   "quote": 30.5,
+   "base": 55.6,
+   "ts": 1898517607.75
+  },
+  "dpCCCr2x0": {
+   "client_id": "dpCCCr2x0",
+   "sym": "CCC",
+   "side": "buy",
+   "kind": "deploy_buy",
+   "status": "canceled",
+   "rung": 2,
+   "price": 0.61,
+   "quote": 46.3,
+   "base": 38.5,
+   "ts": 1898517608.75,
+   "exch": "gate"
+  },
+  "dpVVVr1x0": {
+   "client_id": "dpVVVr1x0",
    "sym": "VVV",
    "side": "buy",
    "kind": "deploy_buy",
    "status": "open",
-   "rung": 0,
-   "price": 0.3,
-   "quote": 15.0,
-   "base": 50.0,
-   "ts": 1734990000.0
-  },
-  "csAAAs1r1": {
-   "client_id": "csAAAs1r1",
-   "sym": "AAA",
-   "side": "sell",
-   "kind": "ladder_sell",
-   "status": "filled",
-   "price": 1.2,
-   "quote": 30.0,
-   "base": 25.0,
-   "filled_base": 25.0,
-   "filled_quote": 29.75,
-   "avg_price": 1.19,
-   "ts": 1734800000.0,
-   "filled_ts": 1734800100.0
-  },
-  "csBBBs1r1": {
-   "client_id": "csBBBs1r1",
-   "sym": "BBB",
-   "side": "sell",
-   "kind": "policy_sell",
-   "status": "filled",
-   "price": 4.0,
-   "quote": 80.0,
-   "base": 20.0,
-   "filled_quote": 81.5,
-   "ts": 1733000000.0,
-   "filled_ts": 1733000500
-  },
-  "csBTCb1r1": {
-   "client_id": "csBTCb1r1",
-   "sym": "BTC",
-   "side": "buy",
-   "kind": "market_buy",
-   "status": "filled",
-   "price": 40000,
-   "quote": 100.0,
-   "base": 0.0025,
-   "filled_base": 0.00249,
-   "avg_price": 40100.5,
-   "ts": 1734000500.0,
-   "filled_ts": 1734000600.0
-  },
-  "csDDDb1r1": {
-   "client_id": "csDDDb1r1",
-   "sym": "DDD",
-   "side": "buy",
-   "kind": "ladder_buy",
-   "status": "filled",
-   "price": 1.4,
-   "quote": 14.0,
-   "base": 10.0,
-   "ts": 1733500000.0
-  },
-  "depxAAAb0r1": {
-   "client_id": "depxAAAb0r1",
-   "sym": "AAA",
-   "side": "buy",
-   "kind": "deploy_buy",
-   "status": "canceled",
    "rung": 1,
-   "price": 0.95,
-   "quote": 40.0,
-   "base": 42.1,
-   "ts": 1734700000.0,
-   "note": "rolled into new tranche",
-   "exch": "gate",
-   "canceled_ts": 1734899000.0
-  },
-  "depxAAAb1r2": {
-   "client_id": "depxAAAb1r2",
-   "sym": "AAA",
-   "side": "buy",
-   "kind": "deploy_buy",
-   "status": "open",
-   "rung": 2,
-   "price": 0.8,
-   "quote": 30.0,
-   "base": 37.5,
-   "ts": 1734900300.0,
+   "price": 1.41,
+   "quote": 77.7,
+   "base": 70.1,
+   "ts": 1898517609.75,
    "exch": "gate"
   },
-  "depxBBBb0r2": {
-   "client_id": "depxBBBb0r2",
-   "sym": "BBB",
+  "dpVVVr2x0": {
+   "client_id": "dpVVVr2x0",
+   "sym": "VVV",
    "side": "buy",
    "kind": "deploy_buy",
-   "status": "filled",
+   "status": "placed",
    "rung": 2,
-   "price": 2.6,
-   "quote": 26.0,
-   "base": 10.0,
-   "filled_quote": 26.0,
-   "ts": 1734600000.0,
-   "filled_ts": 1734650000.0
+   "price": 1.26,
+   "quote": 52.9,
+   "base": 66.7,
+   "ts": 1898517610.75
   },
-  "depxAAAb0r2": {
-   "client_id": "depxAAAb0r2",
-   "sym": "AAA",
+  "dpDDDr3x0": {
+   "client_id": "dpDDDr3x0",
+   "sym": "DDD",
    "side": "buy",
    "kind": "deploy_buy",
    "status": "canceled",
-   "rung": 2,
-   "price": 0.85,
-   "quote": 30.0,
-   "base": 35.3,
-   "ts": 1734800000.0,
-   "note": "rolled into new tranche (resized)",
-   "exch": "gate",
-   "canceled_ts": 1734899000.0
+   "rung": 3,
+   "price": 0.38,
+   "quote": 24.2,
+   "base": 23.0,
+   "ts": 1898517611.75,
+   "exch": "gate"
   },
-  "csBBBb9r1": {
-   "client_id": "csBBBb9r1",
-   "sym": "BBB",
+  "dpAAAr3x0": {
+   "client_id": "dpAAAr3x0",
+   "sym": "AAA",
    "side": "buy",
-   "kind": "ladder_buy",
-   "status": "error",
-   "price": 2.0,
-   "quote": 10.0,
-   "ts": 1734990500.0,
-   "error": "synthetic reject"
+   "kind": "deploy_buy",
+   "status": "closed",
+   "price": 1.81,
+   "quote": 86.8,
+   "base": 57.2,
+   "ts": 1898517612.75
   },
-  "csCCCs1r1": {
-   "client_id": "csCCCs1r1",
+  "lsCCCs1x0": {
+   "client_id": "lsCCCs1x0",
    "sym": "CCC",
    "side": "sell",
    "kind": "ladder_sell",
    "status": "filled",
-   "price": 0.08,
-   "quote": 16.0,
-   "base": 200.0,
-   "filled_quote": 15.9,
-   "ts": 1734990900.0,
-   "filled_ts": 1734991000.0
+   "price": 0.99,
+   "quote": 43.1,
+   "base": 604.8,
+   "ts": 1898517613.75
   }
  },
- "decisions": "{\"ts\": 1734568000.25, \"sym\": \"AAA\", \"side\": \"buy\", \"kind\": \"done\", \"text\": \"too old\", \"src\": \"ladder\"}\n{\"ts\": 1734910000.25, \"sym\": \"AAA\", \"side\": \"buy\", \"kind\": \"skip\", \"text\": \"window open\", \"src\": \"ladder\"}\n{\"ts\": 1734997000.25, \"sym\": \"AAA\", \"side\": \"sell\", \"kind\": \"done\", \"text\": \"sold 5% at +20%\", \"src\": \"ladder\"}\nnot json at all\n{\"ts\": 1734997500.25, \"sym\": \"BBB\", \"side\": \"buy\", \"kind\": \"warn\", \"text\": \"below exchange min\", \"src\": \"deploy\"}\n{\"ts\": 1734997600.25, \"kind\": \"run\", \"text\": \"signals buy=1 sell=1\"}\n{\"ts\": 1734998000, \"sym\": \"CCC\", \"side\": \"sell\", \"kind\": \"err\", \"text\": \"venue said no\", \"src\": \"policy\"}\n{\"ts\": 1734999900.25, \"sym\": \"VVV\", \"side\": \"buy\", \"kind\": \"plan\", \"text\": \"zone planned\", \"src\": \"deploy\"}\n",
+ "decisions": "{\"ts\": 1898517600.5, \"sym\": \"AAA\", \"side\": \"buy\", \"kind\": \"deploy\", \"text\": \"buy AAA\", \"src\": \"synthetic\"}\n{\"ts\": 1898517700.5, \"sym\": \"BBB\", \"side\": \"buy\", \"kind\": \"deploy\", \"text\": \"buy BBB\", \"src\": \"synthetic\"}\n{\"ts\": 1898517800.5, \"sym\": \"CCC\", \"side\": \"sell\", \"kind\": \"ladder\", \"text\": \"sell CCC\", \"src\": \"synthetic\"}\nnot json at all\n{\"ts\": 1898518000.5, \"sym\": \"DDD\", \"side\": \"buy\", \"kind\": \"deploy\", \"text\": \"buy DDD\", \"src\": \"synthetic\"}\n{\"ts\": 1898518100.5, \"kind\": \"note\", \"text\": \"a synthetic note without a coin\"}\n{\"ts\": 1898518200.5, \"sym\": \"VVV\", \"side\": \"buy\", \"kind\": \"deploy\", \"text\": \"buy VVV\", \"src\": \"synthetic\"}\n{\"ts\": 1898518300.5, \"sym\": \"AAA\", \"side\": \"sell\", \"kind\": \"ladder\", \"text\": \"sell AAA\", \"src\": \"synthetic\"}\n{\"ts\": 1898603400.0, \"sym\": \"BTC\", \"side\": \"buy\", \"kind\": \"plan\", \"text\": \"plan BTC\", \"src\": \"synthetic\"}\n",
  "audit": {
-  "ts": 1734990000.0,
+  "ts": 1898517600.75,
   "ok": false,
   "findings": [
    "synthetic finding"
@@ -476,22 +457,22 @@
   }
  },
  "deploy_status": {
-  "last_ok_ts": 1734990000.0,
-  "last_fail_ts": 1734999900.0,
-  "consecutive_failures": 4
+  "last_ok_ts": 1898517600.75,
+  "last_fail_ts": 1898518500.75,
+  "consecutive_failures": 2
  },
  "manual_fills": [
   {
    "client_id": "manual-synthetic",
-   "sym": "BBB",
+   "sym": "DDD",
    "side": "buy",
    "kind": "manual",
    "status": "filled",
    "venue": "revx",
-   "base": 10.0,
-   "quote": 25.0,
-   "price": 2.5,
-   "ts": 1734800050.0,
+   "base": 56.1,
+   "quote": 49.2,
+   "price": 4.8,
+   "ts": 1898517600.75,
    "note": "synthetic manual fill"
   },
   {
@@ -500,193 +481,215 @@
    "side": "buy",
    "kind": "manual",
    "status": "open",
-   "ts": 1734800060.0
+   "ts": 1898517601.75
   }
  ],
  "revx_cache": {
-  "ts": 1734999299.75,
+  "ts": 1898603700.0,
   "data": {
    "balances": {
-    "USD": {
-     "available": 10.0,
-     "reserved": 5.0,
-     "total": 15.0
-    },
-    "USDC": {
-     "available": 2000.0,
+    "AAA": {
+     "available": 41.7,
      "reserved": 0.0,
-     "total": 2000.0
+     "total": 31.8
     },
     "BBB": {
-     "available": 30.0,
-     "reserved": 0.0,
-     "total": 30.0
+     "available": 78.5,
+     "reserved": 2.3,
+     "total": 23.7
+    },
+    "USD": {
+     "available": 7483.2,
+     "reserved": 3.8,
+     "total": 3081.3
     }
    },
    "orders": [
     {
-     "sym": "VVV",
+     "sym": "BBB",
      "side": "buy",
-     "price": 0.3,
-     "qty": 50.0,
-     "usd": 15.0,
+     "price": 4.54,
+     "qty": 54.2,
+     "usd": 88.9,
+     "below_spot_pct": 23.024,
+     "ts": 1898517600.75
+    },
+    {
+     "sym": "CCC",
+     "side": "buy",
+     "price": 0.61,
+     "qty": 64.0,
+     "usd": 61.9,
      "below_spot_pct": null,
      "ts": null
     }
    ],
    "eur_usd": null,
-   "usd_free": 10.0,
-   "usd_reserved": 5.0,
-   "hold_value": 0.0,
-   "total_value": 15.0
+   "usd_free": 1412.5,
+   "usd_reserved": 1.8,
+   "hold_value": 592.91,
+   "total_value": 1648.35
   }
  },
  "http": {
+  "https://revx.revolut.com/api/1.0/balances": {
+   "status": 429
+  },
+  "https://revx.revolut.com/api/1.0/orders/active": {
+   "status": 200,
+   "body": {
+    "data": [
+     {
+      "symbol": "BBB/USD",
+      "side": "buy",
+      "price": 4.54,
+      "quantity": 97,
+      "created_date": 1898517600750
+     },
+     {
+      "symbol": "CCC/USD",
+      "side": "buy",
+      "price": 0.61,
+      "quantity": 84,
+      "created_date": null
+     }
+    ]
+   }
+  },
   "https://rest.cosmos.directory/aaachain/cosmos/staking/v1beta1/params": {
    "status": 200,
    "body": {
     "params": {
      "bond_denom": "uaaa",
-     "unbonding_time": "1814400s"
+     "unbonding_time": "2419200s"
     }
    }
   },
-  "https://rest.cosmos.directory/aaachain/cosmos/bank/v1beta1/balances/aaa1synthetic000000000000000000000000000": {
+  "https://rest.cosmos.directory/aaachain/cosmos/bank/v1beta1/balances/aaa17822cc2659yns5vdus54hfm0trlznxmf75xq4y": {
    "status": 200,
    "body": {
     "balances": [
      {
-      "denom": "ibc/OTHER",
-      "amount": "5"
+      "denom": "ibc/SYNTHETIC",
+      "amount": "1"
      },
      {
       "denom": "uaaa",
-      "amount": "1500000000"
+      "amount": "74400118"
      }
     ]
    }
   },
-  "https://rest.cosmos.directory/aaachain/cosmos/staking/v1beta1/delegations/aaa1synthetic000000000000000000000000000": {
+  "https://rest.cosmos.directory/aaachain/cosmos/staking/v1beta1/delegations/aaa17822cc2659yns5vdus54hfm0trlznxmf75xq4y": {
    "status": 200,
    "body": {
     "delegation_responses": [
      {
-      "delegation": {
-       "validator_address": "val0"
-      },
       "balance": {
        "denom": "uaaa",
-       "amount": "1333333333"
-      }
-     },
-     {
-      "delegation": {
-       "validator_address": "val1"
-      },
-      "balance": {
-       "denom": "uaaa",
-       "amount": "1333333333"
-      }
-     },
-     {
-      "delegation": {
-       "validator_address": "val2"
-      },
-      "balance": {
-       "denom": "uaaa",
-       "amount": "1333333334"
+       "amount": "596627310"
       }
      }
     ]
    }
   },
-  "https://rest.cosmos.directory/aaachain/cosmos/staking/v1beta1/delegators/aaa1synthetic000000000000000000000000000/unbonding_delegations": {
+  "https://rest.cosmos.directory/aaachain/cosmos/staking/v1beta1/delegators/aaa17822cc2659yns5vdus54hfm0trlznxmf75xq4y/unbonding_delegations": {
    "status": 200,
    "body": {
     "unbonding_responses": [
      {
       "entries": [
        {
-        "balance": "250000000",
-        "completion_time": "2025-01-10T00:00:00Z"
+        "balance": "8641842",
+        "completion_time": "2030-03-20T10:00:00Z"
        }
       ]
      }
     ]
    }
   },
-  "https://rest.cosmos.directory/aaachain/cosmos/distribution/v1beta1/delegators/aaa1synthetic000000000000000000000000000/rewards": {
+  "https://rest.cosmos.directory/aaachain/cosmos/distribution/v1beta1/delegators/aaa17822cc2659yns5vdus54hfm0trlznxmf75xq4y/rewards": {
    "status": 200,
    "body": {
     "total": [
      {
       "denom": "uaaa",
-      "amount": "12.345678"
+      "amount": "5"
      },
      {
-      "denom": "ibc/OTHER",
-      "amount": "9.5"
+      "denom": "ibc/SYNTHETIC",
+      "amount": "2.336"
      }
     ]
    }
   },
-  "https://rest.cosmos.directory/wwwchain/cosmos/staking/v1beta1/params": {
+  "https://rest.cosmos.directory/zzzchain/cosmos/staking/v1beta1/params": {
    "status": 200,
    "body": {
     "params": {
-     "bond_denom": "uwww",
+     "bond_denom": "uzzz",
      "unbonding_time": "1209600s"
     }
    }
   },
-  "https://rest.cosmos.directory/wwwchain/cosmos/bank/v1beta1/balances/www1synthetic000000000000000000000000000": {
+  "https://rest.cosmos.directory/zzzchain/cosmos/bank/v1beta1/balances/zzz1yrs32tpwvnryx3qpsha2ztmr4ya9cfxn83t52g": {
    "status": 200,
    "body": {
     "balances": [
      {
-      "denom": "ibc/OTHER",
-      "amount": "5"
+      "denom": "ibc/SYNTHETIC",
+      "amount": "9"
      },
      {
-      "denom": "uwww",
-      "amount": "10000000"
+      "denom": "uzzz",
+      "amount": "34550672"
      }
     ]
    }
   },
-  "https://rest.cosmos.directory/wwwchain/cosmos/staking/v1beta1/delegations/www1synthetic000000000000000000000000000": {
+  "https://rest.cosmos.directory/zzzchain/cosmos/staking/v1beta1/delegations/zzz1yrs32tpwvnryx3qpsha2ztmr4ya9cfxn83t52g": {
    "status": 200,
    "body": {
     "delegation_responses": [
      {
-      "delegation": {
-       "validator_address": "val0"
-      },
       "balance": {
-       "denom": "uwww",
-       "amount": "800000000"
+       "denom": "uzzz",
+       "amount": "51315365"
       }
      }
     ]
    }
   },
-  "https://rest.cosmos.directory/wwwchain/cosmos/staking/v1beta1/delegators/www1synthetic000000000000000000000000000/unbonding_delegations": {
+  "https://rest.cosmos.directory/zzzchain/cosmos/staking/v1beta1/delegators/zzz1yrs32tpwvnryx3qpsha2ztmr4ya9cfxn83t52g/unbonding_delegations": {
    "status": 200,
    "body": {
-    "unbonding_responses": []
+    "unbonding_responses": [
+     {
+      "entries": [
+       {
+        "balance": "7299434",
+        "completion_time": "2030-03-18T10:00:00Z"
+       },
+       {
+        "balance": "5367958",
+        "completion_time": "2030-03-25T10:00:00Z"
+       }
+      ]
+     }
+    ]
    }
   },
-  "https://rest.cosmos.directory/wwwchain/cosmos/distribution/v1beta1/delegators/www1synthetic000000000000000000000000000/rewards": {
+  "https://rest.cosmos.directory/zzzchain/cosmos/distribution/v1beta1/delegators/zzz1yrs32tpwvnryx3qpsha2ztmr4ya9cfxn83t52g/rewards": {
    "status": 200,
    "body": {
     "total": [
      {
-      "denom": "uwww",
-      "amount": "1.5"
+      "denom": "uzzz",
+      "amount": "1"
      },
      {
-      "denom": "ibc/OTHER",
-      "amount": "9.5"
+      "denom": "ibc/SYNTHETIC",
+      "amount": "7.385"
      }
     ]
    }
@@ -700,164 +703,130 @@
     }
    }
   },
-  "https://rest.cosmos.directory/cccchain/cosmos/bank/v1beta1/balances/ccc1synthetic000000000000000000000000000": {
+  "https://rest.cosmos.directory/cccchain/cosmos/bank/v1beta1/balances/ccc1lx7lyxxax9h7ppu05ek2e9dxjmqcl3s8rx3v4m": {
    "status": 200,
    "body": {
     "balances": [
      {
-      "denom": "ibc/OTHER",
-      "amount": "5"
+      "denom": "ibc/SYNTHETIC",
+      "amount": "3"
      },
      {
       "denom": "uccc",
-      "amount": "123456789012345678901234"
+      "amount": "40399396"
      }
     ]
    }
   },
-  "https://rest.cosmos.directory/cccchain/cosmos/staking/v1beta1/delegations/ccc1synthetic000000000000000000000000000": {
+  "https://rest.cosmos.directory/cccchain/cosmos/staking/v1beta1/delegations/ccc1lx7lyxxax9h7ppu05ek2e9dxjmqcl3s8rx3v4m": {
    "status": 200,
    "body": {
     "delegation_responses": [
      {
-      "delegation": {
-       "validator_address": "val0"
-      },
       "balance": {
        "denom": "uccc",
-       "amount": "493827160549382716054938"
-      }
-     },
-     {
-      "delegation": {
-       "validator_address": "val1"
-      },
-      "balance": {
-       "denom": "uccc",
-       "amount": "493827160549382716054938"
+       "amount": "499437978"
       }
      }
     ]
    }
   },
-  "https://rest.cosmos.directory/cccchain/cosmos/staking/v1beta1/delegators/ccc1synthetic000000000000000000000000000/unbonding_delegations": {
-   "status": 200,
-   "body": {
-    "unbonding_responses": [
-     {
-      "entries": [
-       {
-        "balance": "11111111111111111111",
-        "completion_time": "2025-01-02T00:00:00Z"
-       },
-       {
-        "balance": "22222222222222222222222",
-        "completion_time": "2025-01-05T12:00:00Z"
-       }
-      ]
-     }
-    ]
-   }
-  },
-  "https://rest.cosmos.directory/cccchain/cosmos/distribution/v1beta1/delegators/ccc1synthetic000000000000000000000000000/rewards": {
-   "status": 200,
-   "body": {
-    "total": [
-     {
-      "denom": "uccc",
-      "amount": "3333333333333333.333333333333333333"
-     },
-     {
-      "denom": "ibc/OTHER",
-      "amount": "9.5"
-     }
-    ]
-   }
-  },
-  "https://rest.cosmos.directory/xxxchain/cosmos/staking/v1beta1/params": {
-   "status": 200,
-   "body": {
-    "params": {
-     "bond_denom": "uxxx",
-     "unbonding_time": "604800s"
-    }
-   }
-  },
-  "https://rest.cosmos.directory/xxxchain/cosmos/bank/v1beta1/balances/xxx1synthetic000000000000000000000000000": {
-   "status": 200,
-   "body": {
-    "balances": [
-     {
-      "denom": "ibc/OTHER",
-      "amount": "5"
-     },
-     {
-      "denom": "uxxx",
-      "amount": "5000000"
-     }
-    ]
-   }
-  },
-  "https://rest.cosmos.directory/xxxchain/cosmos/staking/v1beta1/delegations/xxx1synthetic000000000000000000000000000": {
-   "status": 200,
-   "body": {
-    "delegation_responses": []
-   }
-  },
-  "https://rest.cosmos.directory/xxxchain/cosmos/staking/v1beta1/delegators/xxx1synthetic000000000000000000000000000/unbonding_delegations": {
+  "https://rest.cosmos.directory/cccchain/cosmos/staking/v1beta1/delegators/ccc1lx7lyxxax9h7ppu05ek2e9dxjmqcl3s8rx3v4m/unbonding_delegations": {
    "status": 200,
    "body": {
     "unbonding_responses": []
    }
   },
-  "https://rest.cosmos.directory/xxxchain/cosmos/distribution/v1beta1/delegators/xxx1synthetic000000000000000000000000000/rewards": {
+  "https://rest.cosmos.directory/cccchain/cosmos/distribution/v1beta1/delegators/ccc1lx7lyxxax9h7ppu05ek2e9dxjmqcl3s8rx3v4m/rewards": {
    "status": 200,
    "body": {
     "total": [
      {
-      "denom": "uxxx",
-      "amount": "0"
+      "denom": "uccc",
+      "amount": "1"
      },
      {
-      "denom": "ibc/OTHER",
-      "amount": "9.5"
+      "denom": "ibc/SYNTHETIC",
+      "amount": "5.185"
      }
     ]
    }
   },
-  "https://rpc-one.example.invalid {\"jsonrpc\": \"2.0\", \"id\": 1, \"method\": \"eth_call\", \"params\": [{\"to\": \"0x2222222222222222222222222222222222222222\", \"data\": \"0x07a2d13a0000000000000000000000000000000000000000000000000de0b6b3a7640000\"}, \"latest\"]}": {
+  "https://rest.cosmos.directory/wwwchain/cosmos/staking/v1beta1/params": {
+   "status": 200,
+   "body": {
+    "params": {
+     "bond_denom": "uwww",
+     "unbonding_time": "1209600s"
+    }
+   }
+  },
+  "https://rest.cosmos.directory/wwwchain/cosmos/bank/v1beta1/balances/www1vrz9305m525jrar4njg436q4ks4lpyqhnppa90": {
+   "status": 200,
+   "body": {
+    "balances": [
+     {
+      "denom": "ibc/SYNTHETIC",
+      "amount": "5"
+     },
+     {
+      "denom": "uwww",
+      "amount": "31922067"
+     }
+    ]
+   }
+  },
+  "https://rest.cosmos.directory/wwwchain/cosmos/staking/v1beta1/delegations/www1vrz9305m525jrar4njg436q4ks4lpyqhnppa90": {
+   "status": 200,
+   "body": {
+    "delegation_responses": [
+     {
+      "balance": {
+       "denom": "uwww",
+       "amount": "406331942"
+      }
+     }
+    ]
+   }
+  },
+  "https://rest.cosmos.directory/wwwchain/cosmos/staking/v1beta1/delegators/www1vrz9305m525jrar4njg436q4ks4lpyqhnppa90/unbonding_delegations": {
+   "status": 200,
+   "body": {
+    "unbonding_responses": []
+   }
+  },
+  "https://rest.cosmos.directory/wwwchain/cosmos/distribution/v1beta1/delegators/www1vrz9305m525jrar4njg436q4ks4lpyqhnppa90/rewards": {
+   "status": 200,
+   "body": {
+    "total": [
+     {
+      "denom": "uwww",
+      "amount": "4"
+     },
+     {
+      "denom": "ibc/SYNTHETIC",
+      "amount": "6.083"
+     }
+    ]
+   }
+  },
+  "https://rpc-one.example.invalid {\"jsonrpc\": \"2.0\", \"id\": 1, \"method\": \"eth_call\", \"params\": [{\"to\": \"0x2b1eeeee1ede2be2811e228e8e2ed11bbeb1db1d\", \"data\": \"0x07a2d13a0000000000000000000000000000000000000000000000000de0b6b3a7640000\"}, \"latest\"]}": {
    "status": 200,
    "body": {
     "jsonrpc": "2.0",
     "id": 1,
-    "result": "0x106033bf82f60000"
+    "result": "0xe12bc631dd40080"
    }
   },
-  "https://rpc-one.example.invalid {\"jsonrpc\": \"2.0\", \"id\": 1, \"method\": \"eth_call\", \"params\": [{\"to\": \"0x2222222222222222222222222222222222222222\", \"data\": \"0x70a0823100000000000000000000000000000000000000000000000000000000000000aa\"}, \"latest\"]}": {
+  "https://rpc-one.example.invalid {\"jsonrpc\": \"2.0\", \"id\": 1, \"method\": \"eth_call\", \"params\": [{\"to\": \"0x2b1eeeee1ede2be2811e228e8e2ed11bbeb1db1d\", \"data\": \"0x70a08231000000000000000000000000953bb0305f00933fb0f959f9f09033339bb05f3f\"}, \"latest\"]}": {
    "status": 200,
    "body": {
     "jsonrpc": "2.0",
     "id": 1,
-    "result": "0x10f0cf064dd59200000"
+    "result": "0x2e6b45ab3bef7c0000"
    }
   },
-  "https://rpc-two.example.invalid {\"jsonrpc\": \"2.0\", \"id\": 1, \"method\": \"eth_call\", \"params\": [{\"to\": \"0x4444444444444444444444444444444444444444\", \"data\": \"0x70a0823100000000000000000000000000000000000000000000000000000000000000aa\"}, \"latest\"]}": {
-   "status": 200,
-   "body": {
-    "jsonrpc": "2.0",
-    "id": 1,
-    "result": "0x42ed123b0bd8203a14"
-   }
-  },
-  "https://rpc-one.example.invalid {\"jsonrpc\": \"2.0\", \"id\": 1, \"method\": \"eth_call\", \"params\": [{\"to\": \"0x1111111111111111111111111111111111111111\", \"data\": \"0x70a0823100000000000000000000000000000000000000000000000000000000000000aa\"}, \"latest\"]}": {
-   "status": 200,
-   "body": {
-    "jsonrpc": "2.0",
-    "id": 1,
-    "result": "0x56bc75e2d63100001"
-   }
-  },
-  "https://rpc-two.example.invalid {\"jsonrpc\": \"2.0\", \"id\": 1, \"method\": \"eth_call\", \"params\": [{\"to\": \"0x3333333333333333333333333333333333333333\", \"data\": \"0x70a0823100000000000000000000000000000000000000000000000000000000000000aa\"}, \"latest\"]}": {
+  "https://rpc-one.example.invalid {\"jsonrpc\": \"2.0\", \"id\": 1, \"method\": \"eth_call\", \"params\": [{\"to\": \"0x40800f142111040f0f1f1f4f21f418442128fff1\", \"data\": \"0x70a08231000000000000000000000000953bb0305f00933fb0f959f9f09033339bb05f3f\"}, \"latest\"]}": {
    "status": 200,
    "body": {
     "jsonrpc": "2.0",
@@ -865,90 +834,107 @@
     "result": "0x0"
    }
   },
-  "https://mempool.space/api/address/bc1qsyntheticwallet0000000000000000000000": {
+  "https://rpc-two.example.invalid {\"jsonrpc\": \"2.0\", \"id\": 1, \"method\": \"eth_call\", \"params\": [{\"to\": \"0x084111080f1808f8481186461f08f06611088414\", \"data\": \"0x70a08231000000000000000000000000953bb0305f00933fb0f959f9f09033339bb05f3f\"}, \"latest\"]}": {
    "status": 200,
    "body": {
-    "address": "bc1qsyntheticwallet0000000000000000000000",
+    "jsonrpc": "2.0",
+    "id": 1,
+    "result": "0x2c298a32cc9ff80000"
+   }
+  },
+  "https://rpc-two.example.invalid {\"jsonrpc\": \"2.0\", \"id\": 1, \"method\": \"eth_call\", \"params\": [{\"to\": \"0x27878d72887000dd8cd78c7c207d0277270d77c0\", \"data\": \"0x70a08231000000000000000000000000953bb0305f00933fb0f959f9f09033339bb05f3f\"}, \"latest\"]}": {
+   "status": 200,
+   "body": {
+    "jsonrpc": "2.0",
+    "id": 1,
+    "result": "0x0"
+   }
+  },
+  "https://mempool.space/api/address/bc1qyvy038z3u5f57hkp405g5dldfpscsvsx4hs3k9": {
+   "status": 200,
+   "body": {
+    "address": "bc1qyvy038z3u5f57hkp405g5dldfpscsvsx4hs3k9",
     "chain_stats": {
-     "funded_txo_sum": 150000000,
-     "spent_txo_sum": 25000000
+     "funded_txo_sum": 22051369,
+     "spent_txo_sum": 16486738
     }
    }
   },
-  "https://api.coingecko.com/api/v3/simple/price?vs_currencies=usd&ids=aaa-coin,www-coin,ccc-coin,xxx-coin,vvv-coin,bitcoin": {
+  "https://api.coingecko.com/api/v3/simple/price?vs_currencies=usd&ids=aaa-coin,zzz-coin,ccc-coin,www-coin,vvv-coin,bitcoin": {
    "status": 200,
    "body": {
-    "aaa-coin": {
-     "usd": 3.3
-    },
     "www-coin": {
-     "usd": 2.0
-    },
-    "ccc-coin": {
-     "usd": 0.25
-    },
-    "vvv-coin": {
-     "usd": 0.34
+     "usd": 7.54
     },
     "bitcoin": {
-     "usd": 41005.0
+     "usd": 60462.9
     }
    }
   },
-  "https://api.coingecko.com/api/v3/coins/markets?vs_currency=usd&ids=bitcoin,aaa-coin,bbb-coin,ccc-coin,vvv-coin,ddd-coin": {
+  "https://api.coingecko.com/api/v3/coins/markets?vs_currency=usd&ids=bitcoin,aaa-coin,bbb-coin,ccc-coin,ddd-coin,vvv-coin": {
    "status": 200,
    "body": [
     {
      "symbol": "btc",
-     "ath": 69000.0,
-     "ath_date": "2021-11-10T14:24:11.849Z"
+     "ath": 121753.4,
+     "ath_date": "2029-10-06T00:00:00.000Z"
     },
     {
      "symbol": "aaa",
-     "ath": 3.75,
-     "ath_date": "2021-04-02T00:00:00.000Z"
+     "ath": 24.1,
+     "ath_date": "2029-04-01T00:00:00.000Z"
+    },
+    {
+     "symbol": "bbb",
+     "ath": 19.8,
+     "ath_date": "2029-05-02"
+    },
+    {
+     "symbol": "ccc",
+     "ath": 7.4,
+     "ath_date": "2029-05-03"
     },
     {
      "symbol": "zzz",
      "ath": 1.0,
-     "ath_date": "2021-01-01"
+     "ath_date": "2029-05-04"
     },
     {
-     "symbol": "ccc",
-     "ath": null
+     "symbol": "vvv",
+     "ath": 6.7,
+     "ath_date": "2029-05-05"
+    },
+    {
+     "symbol": "ddd",
+     "ath": 13.9,
+     "ath_date": "2029-05-06"
     }
    ]
-  },
-  "https://revx.revolut.com/api/1.0/balances": {
-   "status": 429,
-   "body": null
-  },
-  "https://revx.revolut.com/api/1.0/orders/active": {
-   "status": 200,
-   "body": {
-    "data": []
-   }
   }
  },
  "wallet_targets": {
-  "WWW": 2.2
+  "AAA": 1.29
  },
  "wallet_state": {
+  "ZZZ": {
+   "fired": true,
+   "ts": 1898431200
+  },
   "AAA": {
    "fired": true,
-   "ts": 5
+   "ts": 1898431200
   },
   "CCC": {
    "fired": true,
-   "ts": 6
+   "ts": 1898431200
   }
  },
  "wallet_last_good": {},
  "scenario_env": {
   "SCENARIO_FEE_PCT": "0.25",
   "SCENARIO_SLIP_PCT": "0.5",
-  "SCENARIO_DAYS": "250",
-  "SCENARIO_DEX_USD": "750",
-  "SCENARIO_NEW_CASH_USD": "4000"
+  "SCENARIO_DAYS": "120",
+  "SCENARIO_DEX_USD": "2500",
+  "SCENARIO_NEW_CASH_USD": "1000"
  }
 }
