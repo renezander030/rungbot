@@ -1041,9 +1041,23 @@ mod tests {
         let Ok(text) = std::fs::read_to_string(&p) else {
             return; // not shipped in the published crate
         };
-        let g: serde_json::Value = serde_json::from_str(&text).unwrap();
+        let mut g: serde_json::Value = serde_json::from_str(&text).unwrap();
         let s = |v: &serde_json::Value| v.as_str().unwrap().to_string();
         let email = rungbot_notify::EmailConfig::new(s(&g["from"]), s(&g["to"]));
+        // RUNGBOT_BLESS=1 writes each case's request body as this implementation builds it
+        // (after tools/synthetic_fixtures.py --sync-mail copied the monthly subjects and bodies)
+        if std::env::var_os("RUNGBOT_BLESS").is_some() {
+            let key = s(&g["key"]);
+            for c in g["cases"].as_array_mut().unwrap() {
+                let msg = rungbot_notify::EmailMessage::text(s(&c["subject"]), s(&c["body"]));
+                c["request"]["body"] = email.request(&msg, &key).body.into();
+            }
+            let mut out = Vec::new();
+            let fmt = serde_json::ser::PrettyFormatter::with_indent(b" ");
+            let mut ser = serde_json::Serializer::with_formatter(&mut out, fmt);
+            serde::Serialize::serialize(&g, &mut ser).unwrap();
+            std::fs::write(&p, String::from_utf8(out).unwrap() + "\n").unwrap();
+        }
         for c in g["cases"].as_array().unwrap() {
             let msg = rungbot_notify::EmailMessage::text(s(&c["subject"]), s(&c["body"]));
             let req = email.request(&msg, &s(&g["key"]));

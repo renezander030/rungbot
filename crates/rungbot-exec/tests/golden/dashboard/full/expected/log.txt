@@ -1,21 +1,21 @@
-[Tue Dec 24 00:26:40 UTC 2024] snapshot
-CHURN 7d: 2 rolls (2 rungs) / 1 fills, 2.0 cancels per fill, rung life median 41.7h; 0 rolls in 24h
-SELL-CHECK 4/6 sellable; DDD no binance client; VVV dust: 400.5 < min 1000 VVV-USD
-wrote <public>/data.json | 6 coins | value $1943.26 | stable $1412.73 (locked $89.50) | errors 0
-  FORECAST cycle top, bot book + $2,500 new (invested now $4,667):
-    hold_top     p10 $   13,359  p50 $   30,249  p90 $    70,577  mean $   36,209
-    policy_top   p10 $   13,290  p50 $   27,335  p90 $    52,039  mean $   29,909
-    keep_hold    p10 $    2,022  p50 $    3,742  p90 $     7,823  mean $    4,357
-    keep_policy  p10 $    6,453  p50 $   14,402  p90 $    29,417  mean $   16,034
-    dex_top      p10 $    2,698  p50 $    7,008  p90 $    12,677  mean $    7,861
-scenarios.json: 5 scenarios, nw0 $3,421, 108 KB
-  ATH level 10% of ATH, BTC at ATH     hold $     1,275 policy $     1,275 | kept after the bear: hold $      314 policy $      658
-  ATH level 25% of ATH, BTC at ATH     hold $     2,154 policy $     2,154 | kept after the bear: hold $      402 policy $    1,045
-  ATH level 50% of ATH, BTC 1.5x ATH   hold $     3,962 policy $     3,962 | kept after the bear: hold $      676 policy $    1,891
-  ATH level ATH again, BTC 2x ATH      hold $     7,234 policy $     7,136 | kept after the bear: hold $    1,096 policy $    3,729
-  synthetic early  proxied ['CCC', 'DDD'] | hold peak 1.27x end 1.25x | ladder end 1.1x | live peak 1.27x end 1.25x kept 0.98
-  synthetic run    proxied ['CCC', 'DDD'] | hold peak 5.87x end 5.87x | ladder end 2.34x | live peak 4.02x end 4.02x kept 1.0
-  synthetic top    proxied ['DDD'] | hold peak 13.34x end 7.54x | ladder end 3.33x | live peak 5.27x end 4.09x kept 0.78
-  synthetic late   proxied ['DDD'] | hold peak 19.18x end 17.47x | ladder end 6.28x | live peak 7.28x end 6.94x kept 0.92
-  synthetic none: skipped
-wrote <public>/wallets.json | 6 wallets | $357,722.67 | staked 76% | of all 75% | alerts 3 | errors 0
+[Fri Mar  1 12:00:00 UTC 2030] snapshot
+CHURN 7d: 1 rolls (1 rungs) / 2 fills, 0.5 cancels per fill, rung life median 2.0h; 0 rolls in 24h
+SELL-CHECK 1/6 sellable; AAA dust: 2.5 < min 16.1 AAA; BTC nothing held; CCC check failed: unknown pair CCC_USDT; DDD dust: 307 < min 1000 DDD-USD; VVV no binance client
+wrote <public>/data.json | 6 coins | value $15145.72 | stable $689.69 (locked $40.80) | errors 0
+  FORECAST cycle top, bot book + $1,000 new (invested now $16,697):
+    hold_top     p10 $   43,675  p50 $  120,374  p90 $   239,351  mean $  155,186
+    policy_top   p10 $   43,086  p50 $  117,601  p90 $   235,391  mean $  152,765
+    keep_hold    p10 $    4,368  p50 $   12,037  p90 $    23,935  mean $   15,519
+    keep_policy  p10 $   18,603  p50 $   50,752  p90 $   100,559  mean $   65,351
+    dex_top      p10 $    6,744  p50 $   17,520  p90 $    31,691  mean $   19,653
+scenarios.json: 5 scenarios, nw0 $16,280, 40 KB
+  ATH level 10% of ATH, BTC at ATH     hold $     3,934 policy $     3,934 | kept after the bear: hold $      393 policy $    1,673
+  ATH level 25% of ATH, BTC at ATH     hold $     9,834 policy $     9,691 | kept after the bear: hold $      983 policy $    4,334
+  ATH level 50% of ATH, BTC 1.5x ATH   hold $    19,668 policy $    18,962 | kept after the bear: hold $    1,967 policy $    8,586
+  ATH level ATH again, BTC 2x ATH      hold $    39,337 policy $    36,826 | kept after the bear: hold $    3,934 policy $   16,855
+  synthetic crash  proxied ['CCC', 'DDD'] | hold peak 1.02x end 1.01x | ladder end 1.01x | live peak 1.02x end 1.01x kept 0.99
+  synthetic top    proxied ['CCC', 'DDD'] | hold peak 1.05x end 0.93x | ladder end 0.93x | live peak 1.05x end 0.93x kept 0.77
+  synthetic low    proxied ['CCC', 'DDD', 'BBB'] | hold peak 1.13x end 1.06x | ladder end 1.07x | live peak 1.13x end 1.06x kept 0.94
+  synthetic chop   proxied ['CCC', 'DDD'] | hold peak 1.0x end 0.82x | ladder end 0.82x | live peak 1.0x end 0.82x kept 0.82
+  synthetic rally  proxied ['CCC', 'DDD'] | hold peak 1.19x end 1.19x | ladder end 1.18x | live peak 1.19x end 1.19x kept 1.0
+wrote <public>/wallets.json | 6 wallets | $11,520.70 | staked 62% | of all 26% | alerts 3 | errors 0
