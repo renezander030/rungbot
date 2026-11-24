@@ -605,7 +605,9 @@ fn check(book: &str) {
                 std::fs::copy(got, exp.join(name)).unwrap();
             }
         }
-        let list = |v: &[String]| Json::Arr(v.iter().map(|x| Json::Str(x.clone())).collect()).dumps(Some(1));
+        let list = |v: &[String]| {
+            Json::Arr(v.iter().map(|x| Json::Str(x.clone())).collect()).dumps(Some(1))
+        };
         std::fs::write(exp.join("alerts.json"), list(&pings.0.borrow())).unwrap();
         std::fs::write(exp.join("calls.json"), list(&transport.calls.borrow())).unwrap();
         let _ = std::fs::remove_dir_all(&dir);

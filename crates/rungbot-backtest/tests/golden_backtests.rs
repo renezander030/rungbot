@@ -94,7 +94,11 @@ fn bless() -> bool {
 }
 
 fn write_golden(name: &str, cases: Vec<Py>) {
-    std::fs::write(dir("golden").join(name), Py::List(cases).json(Some(1)) + "\n").unwrap();
+    std::fs::write(
+        dir("golden").join(name),
+        Py::List(cases).json(Some(1)) + "\n",
+    )
+    .unwrap();
 }
 
 fn show_diff(name: &str, want: &str, got: &str) {
